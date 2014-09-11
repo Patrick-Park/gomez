@@ -16,7 +16,7 @@ type Message struct {
 }
 
 // Adds a new recepient to the message
-func (m *Message) AddRcpt(addr Address) { m.rcpt = append(m.rcpt, addr) }
+func (m *Message) AddRcpt(addr ...Address) { m.rcpt = append(m.rcpt, addr...) }
 
 // Returns the message recepients
 func (m Message) Rcpt() []Address { return m.rcpt }
