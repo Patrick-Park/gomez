@@ -6,6 +6,11 @@ import (
 	"regexp"
 )
 
+var (
+	pathFormat    = regexp.MustCompile("^\"([a-zA-Z ]{1,})\" <([a-zA-Z1-9]{1,})@([a-zA-Z1-9.]{4,})>$")
+	ErrBadAddress = errors.New("Supplied address is invalid")
+)
+
 // A message represents an e-mail message and
 // holds information about sender, recepients
 // and the message body
@@ -42,11 +47,6 @@ type Address struct {
 
 // Implements the Stringer interface for pretty printing
 func (a Address) String() string { return fmt.Sprintf(`"%s" <%s@%s>`, a.Name, a.User, a.Host) }
-
-var (
-	pathFormat    = regexp.MustCompile("^\"([a-zA-Z ]{1,})\" <([a-zA-Z1-9]{1,})@([a-zA-Z1-9.]{4,})>$")
-	ErrBadAddress = errors.New("Supplied address is invalid")
-)
 
 // Attempts to parse a string and return a new Address
 // representation of it.
