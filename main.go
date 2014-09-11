@@ -32,7 +32,7 @@ func handshake(conn net.Conn) {
 			break
 		}
 
-		fmt.Println("Received: " + cmd)
+		fmt.Println("[SMTP] Received: " + cmd)
 	}
 }
 
