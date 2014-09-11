@@ -6,8 +6,6 @@ import (
 	"regexp"
 )
 
-var ErrBadAddress = errors.New("Supplied address is invalid")
-
 // Mailbox implements message queueing and
 // dequeueing system
 type Mailbox interface {
@@ -60,12 +58,13 @@ type Address struct {
 	User, Host string
 }
 
-// A correct path representation has the format
-// "First Last" <user@host> according to RFC 2821
-var pathFormat = regexp.MustCompile("^\"([a-zA-Z ]{1,})\" <([a-zA-Z1-9]{1,})@([a-zA-Z1-9.]{4,})>$")
-
 // Implements the Stringer interface for pretty printing
 func (a Address) String() string { return fmt.Sprintf(`"%s" <%s@%s>`, a.Name, a.User, a.Host) }
+
+var (
+	pathFormat    = regexp.MustCompile("^\"([a-zA-Z ]{1,})\" <([a-zA-Z1-9]{1,})@([a-zA-Z1-9.]{4,})>$")
+	ErrBadAddress = errors.New("Supplied address is invalid")
+)
 
 // Attempts to parse a string and return a new Address
 // representation of it.
