@@ -27,15 +27,15 @@ type Reply struct {
 // Implements the Stringer interface for pretty printing
 func (r Reply) String() string { return fmt.Sprintf("%d - %s", r.Code, r.Msg) }
 
-// Map of supported commands. The servers command specification.
+// Map of supported commands. The server's command specification.
 // Because it is a map, we initialize a new command spec using make:
 // 	cs := make(CommandSpec)
 type CommandSpec map[string]Command
 
-// Registers a new SMTP command with the CommandSpec
+// Registers a new SMTP command on the CommandSpec
 func (cs *CommandSpec) Register(cmd string, action Command) { (*cs)[cmd] = action }
 
-// Runs a message on the command spec. It should include a valid
+// Runs a message from the command spec. It should include a valid
 // SMTP command and optional parameters
 func (cs CommandSpec) Run(msg string) Reply {
 	if !commandFormat.MatchString(msg) {
