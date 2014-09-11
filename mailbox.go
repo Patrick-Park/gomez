@@ -2,6 +2,7 @@ package gomez
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -58,6 +59,9 @@ type Address struct {
 	Name       string
 	User, Host string
 }
+
+// Implements the Stringer interface for pretty printing
+func (a Address) String() string { return fmt.Sprintf(`"%s" <%s@%s>`, a.Name, a.User, a.Host) }
 
 // Attempts to parse a string and return a new Address
 // representation of it. A correct path representation
