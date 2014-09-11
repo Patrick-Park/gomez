@@ -3,7 +3,7 @@ package gomez
 import (
 	"errors"
 	"fmt"
-	"strings"
+	"regexp"
 )
 
 var ErrBadAddress = errors.New("Supplied address is invalid")
@@ -60,29 +60,20 @@ type Address struct {
 	User, Host string
 }
 
+// A correct path representation has the format
+// "First Last" <user@host> according to RFC 2821
+var pathFormat = regexp.MustCompile("^\"([a-zA-Z ]{1,})\" <([a-zA-Z1-9]{1,})@([a-zA-Z1-9.]{4,})>$")
+
 // Implements the Stringer interface for pretty printing
 func (a Address) String() string { return fmt.Sprintf(`"%s" <%s@%s>`, a.Name, a.User, a.Host) }
 
 // Attempts to parse a string and return a new Address
-// representation of it. A correct path representation
-// has the format "First Lastname" <user@host> according
-// to RFC 2821 / 3.5.1
+// representation of it.
 func NewAddress(addr string) (Address, error) {
-	parts := strings.Split(addr, "\" <")
-	if len(parts) != 2 || !strings.HasPrefix(parts[0], "\"") {
+	if !pathFormat.MatchString(addr) {
 		return Address{}, ErrBadAddress
 	}
 
-	name := strings.Trim(parts[0], "\" ")
-	if !strings.HasSuffix(parts[1], ">") {
-		return Address{}, ErrBadAddress
-	}
-
-	addr_clean := strings.Trim(parts[1], "<>")
-	addr_parts := strings.Split(addr_clean, "@")
-	if len(addr_parts) != 2 {
-		return Address{}, ErrBadAddress
-	}
-
-	return Address{name, addr_parts[0], addr_parts[1]}, nil
+	matches := pathFormat.FindStringSubmatch(addr)
+	return Address{matches[1], matches[2], matches[3]}, nil
 }

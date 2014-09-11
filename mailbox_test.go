@@ -41,6 +41,11 @@ func TestAddressCreation(t *testing.T) {
 			Address{"John", "jerry", "seinfeld.com"},
 			false,
 		},
+		{
+			`"" <>`,
+			Address{},
+			true,
+		},
 	}
 
 	for _, test := range testCases {
