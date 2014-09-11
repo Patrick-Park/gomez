@@ -10,8 +10,8 @@ import (
 // holds information about sender, recepients
 // and the message body
 type Message struct {
-	rcpt []Address
 	from Address
+	rcpt []Address
 	body string
 }
 
