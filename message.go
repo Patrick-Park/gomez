@@ -22,13 +22,13 @@ func (m *Message) AddRcpt(addr Address) { m.rcpt = append(m.rcpt, addr) }
 func (m Message) Rcpt() []Address { return m.rcpt }
 
 // Adds a Reply-To address
-func (m *Message) AddFrom(addr Address) { m.from = addr }
+func (m *Message) SetFrom(addr Address) { m.from = addr }
 
 // Returns the Reply-To address
 func (m Message) From() Address { return m.from }
 
 // Sets the message body
-func (m *Message) AddBody(msg string) { m.body = msg }
+func (m *Message) SetBody(msg string) { m.body = msg }
 
 // Returns the message body
 func (m Message) Body() string { return m.body }
