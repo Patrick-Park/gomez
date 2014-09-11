@@ -28,6 +28,8 @@ type Reply struct {
 func (r Reply) String() string { return fmt.Sprintf("%d - %s", r.Code, r.Msg) }
 
 // Map of supported commands. The servers command specification.
+// Because it is a map, we initialize a new command spec using make:
+// 	cs := make(CommandSpec)
 type CommandSpec map[string]Command
 
 // Registers a new SMTP command with the CommandSpec
