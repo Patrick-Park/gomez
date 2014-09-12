@@ -18,6 +18,7 @@ func TestAddressCreation(t *testing.T) {
 		{`"John" jerry@seinfeld.com>`, Address{}, true},
 		{`John <jerry@seinfeld.com>`, Address{"John", "jerry", "seinfeld.com"}, false},
 		{`"" <>`, Address{}, true},
+		{`<james@het.com>`, Address{Name: "", User: "james", Host: "het.com"}, false},
 	}
 
 	for _, test := range testCases {
