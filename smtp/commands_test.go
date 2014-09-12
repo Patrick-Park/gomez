@@ -8,11 +8,20 @@ import (
 func TestCommandSpec(t *testing.T) {
 
 	testCases := []struct {
+		// Test server mode
 		ServerMode InputMode
-		CmdName    string
-		Message    string
-		Command    Command
-		Reply      Reply
+
+		// Name of command to register
+		CmdName string
+
+		// Name of test message
+		Message string
+
+		// Actual command
+		Command Command
+
+		// Expected reply
+		Reply Reply
 	}{
 		{
 			MODE_HELO,
