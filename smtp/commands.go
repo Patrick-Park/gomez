@@ -39,10 +39,7 @@ type CommandSpec struct {
 }
 
 func NewCommandSpec(s *Server) *CommandSpec {
-	cs := &CommandSpec{server: s}
-	cs.commands = make(map[string]Command)
-
-	return cs
+	return &CommandSpec{make(map[string]Command), s}
 }
 
 // Registers a new SMTP command on the CommandSpec
