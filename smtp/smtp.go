@@ -33,8 +33,7 @@ func NewServer(conf Config) *Server {
 		mb:   conf.Mailbox,
 	}
 
-	s.cs = &CommandSpec{server: s}
-
+	s.cs = NewCommandSpec(s)
 	s.cs.Register("HELO", Command{
 		Action:        func(s *Server, a string) Reply { return Reply{} },
 		SupportedMode: MODE_HELO,

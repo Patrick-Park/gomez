@@ -1,52 +1,70 @@
 package smtp
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestCommandSpec(t *testing.T) {
-	cs := make(CommandSpec, 10)
 
 	testCases := []struct {
-		Msg string
-		Exp Reply
+		ServerMode InputMode
+		CmdName    string
+		Message    string
+		Command    Command
+		Reply      Reply
 	}{
-		{"EHLO world", Reply{0, "EHLO:world"}},
-		{"EHLO    world   ", Reply{0, "EHLO:world"}},
-		{"EHLO world how are you  ", Reply{0, "EHLO:world how are you"}},
-		{"EHLO", Reply{0, "EHLO:"}},
-		{"HELO", Reply{0, "HELO:"}},
-		{"HELO  WAZZAAA", Reply{0, "HELO:WAZZAAA"}},
-		{"AEHLO", badCommand},
-		{"", badCommand},
-		{"BADC", badCommand},
-		{"BAD COMMAND", badCommand},
+		{
+			MODE_HELO,
+			"EHLO",
+			"EHLO", Command{makeAction("EHLO"), MODE_FREE, Reply{1, "Invalid"}},
+			Reply{0, "EHLO:"},
+		},
+		{
+			MODE_HELO,
+			"RCPT",
+			"RCPT world", Command{makeAction("RCOT"), MODE_RCPT, Reply{2, "Invalid"}},
+			Reply{2, "Invalid"},
+		},
+		{
+			MODE_HELO,
+			"ABCD",
+			"ABCD   wo rld", Command{makeAction("ABCD"), MODE_HELO, Reply{3, "Invalid"}},
+			Reply{0, "ABCD:wo rld"},
+		},
+		{
+			MODE_HELO,
+			"RCOT",
+			"RCOT bad mode", Command{makeAction("RCOT"), MODE_RCPT, Reply{4, "Invalid"}},
+			Reply{5, "Invalid"},
+		},
 	}
 
-	// Test command that echoes params
-	makeTestAction := func(cmd string) Command {
-		return func(params string) Reply {
-			return Reply{0, cmd + ":" + params}
-		}
-	}
+	cs := NewCommandSpec(&Server{mode: MODE_FREE})
 
-	cs.Register("HELO", makeTestAction("HELO"))
-	if _, ok := cs["HELO"]; !ok {
-		t.Error("Did not register command correctly")
-	}
-
-	cs.Register("EHLO", makeTestAction("EHLO"))
-	if _, ok := cs["EHLO"]; !ok {
-		t.Error("Did not register command correctly")
-	}
-
-	if len(cs) != 2 {
-		t.Error("Did not register correct number of commands")
-	}
-
+	// Register all commands
 	for _, test := range testCases {
-		reply := cs.Run(test.Msg)
-
-		if reply.Msg != test.Exp.Msg {
-			t.Errorf("At test %s expected response %#v, but got %#v.", test.Msg, test.Exp, reply)
+		cs.Register(test.CmdName, test.Command)
+		if _, ok := cs.commands[test.CmdName]; !ok {
+			t.Errorf("Was expecting to register %s, but did not.", test.CmdName)
 		}
+	}
+
+	// Run all tests
+	for _, test := range testCases {
+		cs.server.mode = test.ServerMode
+
+		rpl := cs.Run(test.Message)
+		if !reflect.DeepEqual(rpl, test.Reply) {
+			t.Errorf(`Expected "%s" but got "%s".`, test.Reply, rpl)
+		}
+	}
+}
+
+// Dynamically constructs a command's action mock
+// returning caller information
+func makeAction(cmd string) func(*Server, string) Reply {
+	return func(s *Server, param string) Reply {
+		return Reply{0, cmd + ":" + param}
 	}
 }
