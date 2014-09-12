@@ -6,46 +6,36 @@ import (
 )
 
 func TestCommandSpec(t *testing.T) {
-
 	testCases := []struct {
-		// Test server mode
-		ServerMode InputMode
-
-		// Name of command to register
-		CmdName string
-
-		// Name of test message
-		Message string
-
-		// Actual command
-		Command Command
-
-		// Expected reply
-		Reply Reply
+		ServerMode InputMode // Server mode for current test
+		CmdName    string    // Name of command to register
+		Command    Command   // Actual command
+		Message    string    // Message to run
+		Reply      Reply     // Expected reply
 	}{
 		{
 			MODE_HELO,
-			"EHLO",
 			"EHLO", Command{makeAction("EHLO"), MODE_FREE, Reply{1, "Invalid"}},
+			"EHLO",
 			Reply{0, "EHLO:"},
 		},
 		{
-			MODE_HELO,
-			"RCPT",
-			"RCPT world", Command{makeAction("RCOT"), MODE_RCPT, Reply{2, "Invalid"}},
+			MODE_DATA,
+			"RCPT", Command{makeAction("RCPT"), MODE_RCPT, Reply{2, "Invalid"}},
+			"RCPT world",
 			Reply{2, "Invalid"},
 		},
 		{
 			MODE_HELO,
-			"ABCD",
-			"ABCD   wo rld", Command{makeAction("ABCD"), MODE_HELO, Reply{3, "Invalid"}},
+			"ABCD", Command{makeAction("ABCD"), MODE_HELO, Reply{3, "Invalid"}},
+			"ABCD   wo rld",
 			Reply{0, "ABCD:wo rld"},
 		},
 		{
 			MODE_HELO,
-			"RCOT",
-			"RCOT bad mode", Command{makeAction("RCOT"), MODE_RCPT, Reply{4, "Invalid"}},
-			Reply{5, "Invalid"},
+			"RCOT", Command{makeAction("RCOT"), MODE_RCPT, Reply{4, "Invalid"}},
+			"RCOT bad mode",
+			Reply{4, "Invalid"},
 		},
 	}
 
