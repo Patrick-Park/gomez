@@ -17,10 +17,9 @@ var (
 // SupportedMode is the supported InputMode in which
 // the Command is allowed to run
 type Command struct {
-	Action        func(string) Reply
+	Action        func(*Server, string) Reply
 	SupportedMode InputMode
 	ReplyInvalid  Reply
-	server        *Server
 }
 
 // Reply is an SMTP reply. It contains a status
@@ -40,10 +39,7 @@ type CommandSpec struct {
 }
 
 // Registers a new SMTP command on the CommandSpec
-func (cs *CommandSpec) Register(name string, cmd Command) {
-	cmd.server = cs.server
-	cs.commands[name] = cmd
-}
+func (cs *CommandSpec) Register(name string, cmd Command) { cs.commands[name] = cmd }
 
 // Runs a message from the command spec. It should include a valid
 // SMTP command and optional parameters
@@ -65,5 +61,5 @@ func (cs CommandSpec) Run(msg string) Reply {
 		return command.ReplyInvalid
 	}
 
-	return command.Action(params)
+	return command.Action(cs.server, params)
 }

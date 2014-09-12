@@ -36,7 +36,7 @@ func NewServer(conf Config) *Server {
 	s.cs = &CommandSpec{server: s}
 
 	s.cs.Register("HELO", Command{
-		Action:        func(a string) Reply { return Reply{} },
+		Action:        func(s *Server, a string) Reply { return Reply{} },
 		SupportedMode: MODE_HELO,
 		ReplyInvalid:  Reply{},
 	})
