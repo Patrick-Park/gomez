@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	pathFormat    = regexp.MustCompile("^\"([a-zA-Z ]{1,})\" <([a-zA-Z1-9]{1,})@([a-zA-Z1-9.]{4,})>$")
+	pathFormat    = regexp.MustCompile("^([a-zA-Z ]{1,}) <([a-zA-Z1-9]{1,})@([a-zA-Z1-9.]{4,})>$")
 	ErrBadAddress = errors.New("Supplied address is invalid")
 )
 

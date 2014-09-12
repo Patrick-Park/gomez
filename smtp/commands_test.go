@@ -5,6 +5,22 @@ import "testing"
 func TestCommandSpec(t *testing.T) {
 	cs := make(CommandSpec, 10)
 
+	testCases := []struct {
+		Msg string
+		Exp Reply
+	}{
+		{"EHLO world", Reply{0, "EHLO:world"}},
+		{"EHLO    world   ", Reply{0, "EHLO:world"}},
+		{"EHLO world how are you  ", Reply{0, "EHLO:world how are you"}},
+		{"EHLO", Reply{0, "EHLO:"}},
+		{"HELO", Reply{0, "HELO:"}},
+		{"HELO  WAZZAAA", Reply{0, "HELO:WAZZAAA"}},
+		{"AEHLO", badCommand},
+		{"", badCommand},
+		{"BADC", badCommand},
+		{"BAD COMMAND", badCommand},
+	}
+
 	// Test command that echoes params
 	makeTestAction := func(cmd string) Command {
 		return func(params string) Reply {
@@ -24,22 +40,6 @@ func TestCommandSpec(t *testing.T) {
 
 	if len(cs) != 2 {
 		t.Error("Did not register correct number of commands")
-	}
-
-	testCases := []struct {
-		Msg string
-		Exp Reply
-	}{
-		{"EHLO world", Reply{0, "EHLO:world"}},
-		{"EHLO    world   ", Reply{0, "EHLO:world"}},
-		{"EHLO world how are you  ", Reply{0, "EHLO:world how are you"}},
-		{"EHLO", Reply{0, "EHLO:"}},
-		{"HELO", Reply{0, "HELO:"}},
-		{"HELO  WAZZAAA", Reply{0, "HELO:WAZZAAA"}},
-		{"AEHLO", badCommand},
-		{"", badCommand},
-		{"BADC", badCommand},
-		{"BAD COMMAND", badCommand},
 	}
 
 	for _, test := range testCases {

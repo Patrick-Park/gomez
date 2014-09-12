@@ -11,12 +11,12 @@ func TestAddressCreation(t *testing.T) {
 		expct    Address // Expected result address
 		err      bool    // Expect error
 	}{
-		{`"John Doe" <jerry@seinfeld.com>`, Address{"John Doe", "jerry", "seinfeld.com"}, false},
-		{`"John" jerry@seinfeld.com>`, Address{}, true},
-		{`"John" jerry@seinfeld.com`, Address{}, true},
+		{`John Doe <jerry@seinfeld.com>`, Address{"John Doe", "jerry", "seinfeld.com"}, false},
+		{`John jerry@seinfeld.com>`, Address{}, true},
+		{`John jerry@seinfeld.com`, Address{}, true},
 		{`sosme random" <qwe@asd.com>`, Address{}, true},
 		{`"John" jerry@seinfeld.com>`, Address{}, true},
-		{`"John" <jerry@seinfeld.com>`, Address{"John", "jerry", "seinfeld.com"}, false},
+		{`John <jerry@seinfeld.com>`, Address{"John", "jerry", "seinfeld.com"}, false},
 		{`"" <>`, Address{}, true},
 	}
 

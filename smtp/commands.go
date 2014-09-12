@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?: ?)(.*)?$")
+	commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 	badCommand    = Reply{502, "5.5.2 Error: command not recoginized"}
 )
 
