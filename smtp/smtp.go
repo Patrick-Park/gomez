@@ -22,10 +22,7 @@ const (
 
 // Configuration settings for the SMTP server
 type Config struct {
-	// Specifies the port to listen on for this service
-	Port int
-
-	// Specifies the gomez.Mailbox to use
+	Port    int
 	Mailbox gomez.Mailbox
 }
 
@@ -95,6 +92,8 @@ func (s *Server) digest(msg *gomez.Message) error {
 	return nil
 }
 
+// A connected client. Holds state information
+// and built message.
 type Client struct {
 	msg  *gomez.Message
 	Mode InputMode
@@ -102,7 +101,8 @@ type Client struct {
 	Host *Server
 }
 
-// Resets the client
+// Resets the client to "HELO" InputMode
+// and empties the message buffer
 func (c *Client) Reset() {
 	c.msg = new(gomez.Message)
 	c.Mode = MODE_HELO
