@@ -33,7 +33,14 @@ type Reply struct {
 func (r Reply) String() string { return fmt.Sprintf("%d - %s", r.Code, r.Msg) }
 
 // Map of supported commands. The server's command specification.
+// TODO(g): Add mutex
 type CommandSpec map[string]Command
+
+// Returns and registers commands with a new
+// command spec
+func NewCommandSpec() *CommandSpec {
+	return make(CommandSpec)
+}
 
 // Registers a new SMTP command on the CommandSpec
 func (cs *CommandSpec) Register(name string, cmd Command) { (*cs)[name] = cmd }

@@ -9,12 +9,6 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-// Configuration settings for the SMTP server
-type Config struct {
-	Port    int
-	Mailbox gomez.Mailbox
-}
-
 type InputMode int
 
 const (
@@ -25,22 +19,48 @@ const (
 	MODE_DATA
 )
 
+// Configuration settings for the SMTP server
+type Config struct {
+	// Specifies the port to listen on for this service
+	Port int
+
+	// Specifies the gomez.Mailbox to use
+	Mailbox gomez.Mailbox
+}
+
+// SMTP Server instance
 type Server struct {
-	cs CommandSpec
-	mb gomez.Mailbox
+	cs      CommandSpec
+	Mailbox gomez.Mailbox
 }
 
-type Client struct {
-	msg  *gomez.Message
-	Mode InputMode
-	conn *textproto.Conn
+// Starts the SMTP server given the specified configuration.
+// Accepts incoming connections and initiates communication.
+func Start(conf Config) {
+	ln, err := net.Listen("tcp", ":"+strconv.Itoa(conf.Port))
+	if err != nil {
+		log.Fatalf("Could not open port %d.", conf.Port)
+	}
+
+	srv := &Server{Mailbox: conf.Mailbox, cs: NewCommandSpec()}
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Print("Error accepting an incoming connection.")
+		}
+
+		go srv.createClient(conn)
+	}
 }
 
+// Creates a new client based on the given connection
 func (s *Server) createClient(conn net.Conn) {
 	c := &Client{
 		msg:  new(gomez.Message),
 		Mode: MODE_HELO,
 		conn: textproto.NewConn(conn),
+		Host: s,
 	}
 
 	for {
@@ -63,20 +83,9 @@ func (s *Server) createClient(conn net.Conn) {
 	c.conn.Close()
 }
 
-func Start(conf Config) {
-	ln, err := net.Listen("tcp", ":"+strconv.Itoa(conf.Port))
-	if err != nil {
-		log.Fatalf("Could not open port %d.", conf.Port)
-	}
-
-	srv := &Server{mb: conf.Mailbox, cs: make(CommandSpec)}
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Print("Error accepting an incoming connection.")
-		}
-
-		go srv.createClient(conn)
-	}
+type Client struct {
+	msg  *gomez.Message
+	Mode InputMode
+	conn *textproto.Conn
+	Host *Server
 }
