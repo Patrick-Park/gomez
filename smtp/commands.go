@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 )
 
 var (
@@ -34,22 +33,19 @@ type Reply struct {
 func (r Reply) String() string { return fmt.Sprintf("%d - %s", r.Code, r.Msg) }
 
 // Map of supported commands. The server's command specification.
-type CommandSpec struct {
-	spec map[string]Command
-	mu   sync.Mutex
-}
+type CommandSpec map[string]Command
 
 // Registers a new SMTP command on the CommandSpec
-func (cs *CommandSpec) Register(name string, cmd Command) { cs.spec[name] = cmd }
+func (cs *CommandSpec) Register(name string, cmd Command) { (*cs)[name] = cmd }
 
 // Returns and registers commands with a new
 // command spec
 func NewCommandSpec() *CommandSpec {
-	cs := &CommandSpec{spec: make(map[string]Command)}
+	cs := make(CommandSpec)
 
 	// Register
 
-	return cs
+	return &cs
 }
 
 // Runs a message from the command spec in the context of a
@@ -62,7 +58,7 @@ func (cs CommandSpec) Run(c *Client, msg string) Reply {
 	parts := commandFormat.FindStringSubmatch(msg)
 	cmd, params := parts[1], strings.Trim(parts[2], " ")
 
-	command, ok := cs.spec[cmd]
+	command, ok := cs[cmd]
 	if !ok {
 		return badCommand
 	}

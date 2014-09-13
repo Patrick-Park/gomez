@@ -44,7 +44,7 @@ func TestCommandSpec(t *testing.T) {
 	// Register all commands
 	for _, test := range testCases {
 		cs.Register(test.CmdName, test.Command)
-		if _, ok := cs.spec[test.CmdName]; !ok {
+		if _, ok := (*cs)[test.CmdName]; !ok {
 			t.Errorf("Was expecting to register %s, but did not.", test.CmdName)
 		}
 	}
