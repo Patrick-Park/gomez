@@ -107,7 +107,8 @@ func (c *Client) Serve() {
 				c.Reset()
 			}
 		default:
-			c.Host.cs.Run(c, msg)
+			rpl := c.Host.cs.Run(c, msg)
+			c.conn.PrintfLine(rpl.String())
 		}
 	}
 }

@@ -13,14 +13,12 @@ var wg sync.WaitGroup
 
 // If deadlock occurs it means that Client.Serve() did not exit
 func TestSmtpClient(t *testing.T) {
-	var receivedMsg string
 	spec := make(CommandSpec)
 
 	spec.Register("DATA", Command{
 		Action: func(c *Client, msg string) Reply {
-			receivedMsg = msg
 			c.Mode = MODE_DATA
-			return Reply{}
+			return Reply{1, msg}
 		},
 		SupportedMode: MODE_HELO,
 		ReplyInvalid:  Reply{0, "Invalid"},
@@ -49,8 +47,14 @@ func TestSmtpClient(t *testing.T) {
 	}()
 
 	cconn.PrintfLine("DATA Hello world")
-	if receivedMsg != "Hello world" {
-		t.Error("Expected to receive 'Hello world'")
+
+	rcv, err := cconn.ReadLine()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if rcv != "1 - Hello world" {
+		t.Errorf("Expected to receive '1 - Hello world' but got '%s'", rcv)
 	}
 
 	if client.Mode != MODE_DATA {
