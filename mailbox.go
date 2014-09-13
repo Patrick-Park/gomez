@@ -16,4 +16,7 @@ type Mailbox interface {
 	// Retrieves all messages for a given address and
 	// empties mailbox
 	Retrieve(usr Address) []*Message
+
+	// Queries the server for a user
+	Query(q string) Address
 }

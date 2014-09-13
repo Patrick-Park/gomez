@@ -17,7 +17,7 @@ var (
 // SupportedMode is the supported InputMode in which
 // the Command is allowed to run
 type Command struct {
-	Action        func(*Server, string) Reply
+	Action        func(*Client, string) Reply
 	SupportedMode InputMode
 	ReplyInvalid  Reply
 }
@@ -33,21 +33,14 @@ type Reply struct {
 func (r Reply) String() string { return fmt.Sprintf("%d - %s", r.Code, r.Msg) }
 
 // Map of supported commands. The server's command specification.
-type CommandSpec struct {
-	commands map[string]Command
-	server   *Server
-}
-
-func NewCommandSpec(s *Server) *CommandSpec {
-	return &CommandSpec{make(map[string]Command), s}
-}
+type CommandSpec map[string]Command
 
 // Registers a new SMTP command on the CommandSpec
-func (cs *CommandSpec) Register(name string, cmd Command) { cs.commands[name] = cmd }
+func (cs *CommandSpec) Register(name string, cmd Command) { (*cs)[name] = cmd }
 
-// Runs a message from the command spec. It should include a valid
-// SMTP command and optional parameters
-func (cs CommandSpec) Run(msg string) Reply {
+// Runs a message from the command spec in the context of a
+// given client
+func (cs CommandSpec) Run(c *Client, msg string) Reply {
 	if !commandFormat.MatchString(msg) {
 		return badCommand
 	}
@@ -55,15 +48,15 @@ func (cs CommandSpec) Run(msg string) Reply {
 	parts := commandFormat.FindStringSubmatch(msg)
 	cmd, params := parts[1], strings.Trim(parts[2], " ")
 
-	command, ok := cs.commands[cmd]
+	command, ok := cs[cmd]
 	if !ok {
 		return badCommand
 	}
 
 	// Check if command can be run in the current server mode
-	if command.SupportedMode != MODE_FREE && command.SupportedMode != cs.server.Mode() {
+	if command.SupportedMode != MODE_FREE && command.SupportedMode != c.Mode {
 		return command.ReplyInvalid
 	}
 
-	return command.Action(cs.server, params)
+	return command.Action(c, params)
 }
