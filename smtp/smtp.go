@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/textproto"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gbbr/gomez"
@@ -61,25 +62,7 @@ func (s *Server) createClient(conn net.Conn) {
 		conn: textproto.NewConn(conn),
 		Host: s,
 	}
-
-	for {
-		msg, err := c.conn.ReadLine()
-		if err != nil {
-			log.Printf("Could not read input: %s\n", err)
-		}
-
-		if c.Mode == MODE_DATA {
-			if msg != "." {
-				c.msg.AddBody(msg)
-			} else {
-				s.digest(c.msg)
-				c.Reset()
-			}
-		} else {
-			s.cs.Run(c, msg)
-		}
-	}
-
+	c.Accept()
 	c.conn.Close()
 }
 
@@ -99,6 +82,33 @@ type Client struct {
 	Mode InputMode
 	conn *textproto.Conn
 	Host *Server
+}
+
+// Accepts a new SMTP connection and handles all
+// incoming commands
+func (c *Client) Accept() {
+	for {
+		msg, err := c.conn.ReadLine()
+		if err != nil {
+			log.Printf("Could not read input: %s\n", err)
+		}
+
+		if strings.ToUpper(msg) == "QUIT" {
+			break
+		}
+
+		switch c.Mode {
+		case MODE_DATA:
+			if msg != "." {
+				c.msg.AddBody(msg)
+			} else {
+				c.Host.digest(c.msg)
+				c.Reset()
+			}
+		default:
+			c.Host.cs.Run(c, msg)
+		}
+	}
 }
 
 // Resets the client to "HELO" InputMode
