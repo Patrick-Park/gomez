@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/textproto"
 	"strconv"
+	"sync"
 
 	"github.com/gbbr/gomez"
 )
@@ -30,6 +31,7 @@ type Config struct {
 
 // SMTP Server instance
 type Server struct {
+	sync.Mutex
 	cs      *CommandSpec
 	Mailbox gomez.Mailbox
 }
@@ -70,12 +72,13 @@ func (s *Server) createClient(conn net.Conn) {
 		}
 
 		if c.Mode == MODE_DATA {
-			// if "."
-
-			// else :
-			c.msg.AddBody(msg)
+			if msg != "." {
+				c.msg.AddBody(msg)
+			} else {
+				s.digest(c.msg)
+				c.Reset()
+			}
 		} else {
-			// Run commands
 			s.cs.Run(c, msg)
 		}
 	}
@@ -83,9 +86,24 @@ func (s *Server) createClient(conn net.Conn) {
 	c.conn.Close()
 }
 
+// Digests a message. Delivers or enqueues messages
+// according to reciepients
+func (s *Server) digest(msg *gomez.Message) error {
+	s.Lock()
+	defer s.Unlock()
+
+	return nil
+}
+
 type Client struct {
 	msg  *gomez.Message
 	Mode InputMode
 	conn *textproto.Conn
 	Host *Server
+}
+
+// Resets the client
+func (c *Client) Reset() {
+	c.msg = new(gomez.Message)
+	c.Mode = MODE_HELO
 }
