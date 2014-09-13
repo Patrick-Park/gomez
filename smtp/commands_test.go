@@ -40,6 +40,12 @@ func TestCommandSpec(t *testing.T) {
 			"RCOT bad mode",
 			Reply{4, "Invalid"},
 		},
+		{
+			MODE_RCPT,
+			"CMND", Command{makeAction("CMND"), MODE_RCPT, Reply{4, "Invalid"}},
+			"SOME thing else",
+			badCommand,
+		},
 	}
 
 	cs := NewCommandSpec()
@@ -58,6 +64,10 @@ func TestCommandSpec(t *testing.T) {
 		if !reflect.DeepEqual(rpl, test.Reply) {
 			t.Errorf(`Expected "%s" but got "%s".`, test.Reply, rpl)
 		}
+	}
+
+	if cs.Run(&Client{}, "INVALID") != badCommand {
+		t.Error("Matched regexp on invalid command")
 	}
 }
 
