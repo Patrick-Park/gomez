@@ -11,17 +11,6 @@ var (
 	badCommand    = Reply{502, "5.5.2 Error: command not recoginized"}
 )
 
-// A Command is an SMTP supported command where
-// Action is a function that takes the command's
-// parameters and returns a valid SMTP Reply and
-// SupportedMode is the supported InputMode in which
-// the Command is allowed to run
-type Command struct {
-	Action        func(*Client, string) Reply
-	SupportedMode InputMode
-	ReplyInvalid  Reply
-}
-
 // Reply is an SMTP reply. It contains a status
 // code and a message.
 type Reply struct {
@@ -31,6 +20,16 @@ type Reply struct {
 
 // Implements the Stringer interface for pretty printing
 func (r Reply) String() string { return fmt.Sprintf("%d - %s", r.Code, r.Msg) }
+
+// A Command is an SMTP supported command that performs
+// an action in the context of the calling client and returns
+// a Reply. The command may only run when the client is in the
+// supported InputMode, otherwise it returns the invalid reply.
+type Command struct {
+	Action        func(*Client, string) Reply
+	SupportedMode InputMode
+	ReplyInvalid  Reply
+}
 
 // Map of supported commands. The server's command specification.
 type CommandSpec map[string]Command
