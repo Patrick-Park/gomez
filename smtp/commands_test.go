@@ -7,7 +7,7 @@ import (
 
 func TestCommandSpec(t *testing.T) {
 	testCases := []struct {
-		ServerMode InputMode // Server mode for current test
+		ClientMode InputMode // Server mode for current test
 		CmdName    string    // Name of command to register
 		Command    Command   // Actual command
 		Message    string    // Message to run
@@ -39,21 +39,19 @@ func TestCommandSpec(t *testing.T) {
 		},
 	}
 
-	cs := NewCommandSpec(&Server{mode: MODE_FREE})
+	cs := NewCommandSpec()
 
 	// Register all commands
 	for _, test := range testCases {
 		cs.Register(test.CmdName, test.Command)
-		if _, ok := cs.commands[test.CmdName]; !ok {
+		if _, ok := cs.spec[test.CmdName]; !ok {
 			t.Errorf("Was expecting to register %s, but did not.", test.CmdName)
 		}
 	}
 
 	// Run all tests
 	for _, test := range testCases {
-		cs.server.mode = test.ServerMode
-
-		rpl := cs.Run(test.Message)
+		rpl := cs.Run(&Client{Mode: test.ClientMode}, test.Message)
 		if !reflect.DeepEqual(rpl, test.Reply) {
 			t.Errorf(`Expected "%s" but got "%s".`, test.Reply, rpl)
 		}
@@ -62,8 +60,8 @@ func TestCommandSpec(t *testing.T) {
 
 // Dynamically constructs a command's action mock
 // returning caller information
-func makeAction(cmd string) func(*Server, string) Reply {
-	return func(s *Server, param string) Reply {
+func makeAction(cmd string) func(*Client, string) Reply {
+	return func(c *Client, param string) Reply {
 		return Reply{0, cmd + ":" + param}
 	}
 }

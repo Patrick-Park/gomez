@@ -39,14 +39,18 @@ type CommandSpec struct {
 	mu   sync.Mutex
 }
 
+// Registers a new SMTP command on the CommandSpec
+func (cs *CommandSpec) Register(name string, cmd Command) { cs.spec[name] = cmd }
+
 // Returns and registers commands with a new
 // command spec
 func NewCommandSpec() *CommandSpec {
-	return &CommandSpec{spec: make(map[string]Command)}
-}
+	cs := &CommandSpec{spec: make(map[string]Command)}
 
-// Registers a new SMTP command on the CommandSpec
-func (cs *CommandSpec) Register(name string, cmd Command) { cs.spec[name] = cmd }
+	// Register
+
+	return cs
+}
 
 // Runs a message from the command spec in the context of a
 // given client
