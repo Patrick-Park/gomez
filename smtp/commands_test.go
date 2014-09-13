@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// Ensures that CommandSpec.Run runs the correction Action
+// with the correct parameters and returns the invalid reply
+// when the command is inappropriate for the Client's InputMode
 func TestCommandSpec(t *testing.T) {
 	testCases := []struct {
 		ClientMode InputMode // Server mode for current test
