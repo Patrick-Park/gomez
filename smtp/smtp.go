@@ -62,7 +62,8 @@ func (s *Server) createClient(conn net.Conn) {
 		conn: textproto.NewConn(conn),
 		Host: s,
 	}
-	c.Accept()
+
+	c.Serve()
 	c.conn.Close()
 }
 
@@ -84,9 +85,9 @@ type Client struct {
 	Host *Server
 }
 
-// Accepts a new SMTP connection and handles all
+// Serves a new SMTP connection and handles all
 // incoming commands
-func (c *Client) Accept() {
+func (c *Client) Serve() {
 	for {
 		msg, err := c.conn.ReadLine()
 		if err != nil {
