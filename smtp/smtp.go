@@ -30,7 +30,7 @@ type Config struct {
 
 // SMTP Server instance
 type Server struct {
-	cs      CommandSpec
+	cs      *CommandSpec
 	Mailbox gomez.Mailbox
 }
 
