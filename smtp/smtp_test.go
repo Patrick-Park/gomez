@@ -13,19 +13,17 @@ var wg sync.WaitGroup
 
 // If deadlock occurs it means that Client.Serve() did not exit
 func TestSmtpClient(t *testing.T) {
-	spec := make(CommandSpec)
-
-	spec.Register("DATA", Command{
-		Action: func(c *Client, msg string) Reply {
-			c.Mode = MODE_DATA
-			return Reply{1, msg}
-		},
-		SupportedMode: MODE_HELO,
-		ReplyInvalid:  Reply{0, "Invalid"},
-	})
-
 	srv := &Server{
-		cs:      &spec,
+		cs: &CommandSpec{
+			"DATA": Command{
+				Action: func(c *Client, msg string) Reply {
+					c.Mode = MODE_DATA
+					return Reply{1, msg}
+				},
+				SupportedMode: MODE_HELO,
+				ReplyInvalid:  Reply{0, "Invalid"},
+			},
+		},
 		Mailbox: new(gomez.MockMailbox),
 	}
 
@@ -46,14 +44,24 @@ func TestSmtpClient(t *testing.T) {
 		wg.Done()
 	}()
 
-	cconn.PrintfLine("DATA Hello world")
-
+	cconn.PrintfLine("ABCD")
 	rcv, err := cconn.ReadLine()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if rcv != "1 - Hello world" {
+	if rcv != badCommand.String() {
+		t.Errorf("Did not return invalid reply for n/a command. Got: %s", rcv)
+	}
+
+	cconn.PrintfLine("DATA Hello world")
+
+	rcv, err = cconn.ReadLine()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if rcv != "1 Hello world" {
 		t.Errorf("Expected to receive '1 - Hello world' but got '%s'", rcv)
 	}
 
