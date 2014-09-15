@@ -1,22 +1,12 @@
 package smtp
 
 import (
+	"fmt"
 	"log"
 	"net/textproto"
-	"strings"
 
 	"github.com/gbbr/gomez"
 )
-
-// A connected client. Holds state information
-// and built message.
-type Client struct {
-	Id   string
-	msg  *gomez.Message
-	Mode InputMode
-	conn *textproto.Conn
-	Host Host
-}
 
 type InputMode int
 
@@ -29,32 +19,38 @@ const (
 	MODE_QUIT
 )
 
+// Reply is an SMTP reply. It contains a status
+// code and a message.
+type Reply struct {
+	Code int
+	Msg  string
+}
+
+// Implements the Stringer interface for pretty printing
+func (r Reply) String() string { return fmt.Sprintf("%d %s", r.Code, r.Msg) }
+
+// A connected client. Holds state information
+// and built message.
+type Client struct {
+	Id   string
+	msg  *gomez.Message
+	Mode InputMode
+	conn *textproto.Conn
+	Host Host
+}
+
 // Serves a new SMTP connection and handles all
 // incoming commands
 func (c *Client) Serve() {
 	for {
-		switch c.Mode {
-		case MODE_QUIT:
+		msg, err := c.conn.ReadLine()
+		if err != nil {
+			log.Printf("Could not read input: %s\n", err)
+		}
+
+		c.Host.Run(c, msg)
+		if c.Mode == MODE_QUIT {
 			return
-
-		case MODE_DATA:
-			msg, err := c.conn.ReadDotLines()
-			if err != nil {
-				log.Printf("Could not read dot lines: %s\n", err)
-			}
-
-			c.msg.SetBody(strings.Join(msg, ""))
-			c.Host.Digest(c)
-			c.Reset()
-			c.Reply(Reply{250, "Message queued"})
-
-		default:
-			msg, err := c.conn.ReadLine()
-			if err != nil {
-				log.Printf("Could not read input: %s\n", err)
-			}
-
-			c.Host.Run(c, msg)
 		}
 	}
 }
