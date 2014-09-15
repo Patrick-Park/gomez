@@ -20,9 +20,9 @@ func TestServerRun(t *testing.T) {
 
 	srv := &Server{
 		spec: &CommandSpec{
-			"HELO": func(ctx Child, params string) Reply {
+			"HELO": func(ctx Child, params string) {
 				passedMsg = params
-				return Reply{}
+				ctx.Reply(Reply{100, "Hi"})
 			},
 		},
 	}
@@ -44,7 +44,14 @@ func TestServerRun(t *testing.T) {
 	passedMsg, passedRpl = "", Reply{}
 	srv.Run(testChild, "HELO  world ")
 
-	if passedMsg != "world" || passedRpl.String() != "0 " {
+	if passedMsg != "world" || passedRpl.String() != "100 Hi" {
+		t.Errorf("Expected to pass params and get no reply but instead got reply: '%s', and params: '%s'", passedRpl, passedMsg)
+	}
+
+	passedMsg, passedRpl = "", Reply{}
+	srv.Run(testChild, "HELO")
+
+	if passedMsg != "" || passedRpl.String() != "100 Hi" {
 		t.Errorf("Expected to pass params and get no reply but instead got reply: '%s', and params: '%s'", passedRpl, passedMsg)
 	}
 }

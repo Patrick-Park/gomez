@@ -33,10 +33,9 @@ type Reply struct {
 // Implements the Stringer interface for pretty printing
 func (r Reply) String() string { return fmt.Sprintf("%d %s", r.Code, r.Msg) }
 
-// A Command is an SMTP supported command that performs
-// an action in the context of the calling client and returns
-// a Reply.
-type Action func(Child, string) Reply
+// An action is performed in the context of a child given a
+// string parameter
+type Action func(Child, string)
 
 // Map of supported commands. The server's command specification.
 type CommandSpec map[string]Action
