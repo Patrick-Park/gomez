@@ -51,3 +51,7 @@ func TestServerRun(t *testing.T) {
 		}
 	}
 }
+
+// Test create client
+
+// Test E2E
