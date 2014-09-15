@@ -1,33 +1,33 @@
 package smtp
 
-func cmdHELO(c *Client, param string) Reply {
+func cmdHELO(c Child, param string) Reply {
 	return Reply{}
 }
 
-func cmdEHLO(c *Client, param string) Reply {
+func cmdEHLO(c Child, param string) Reply {
 	return Reply{}
 }
 
-func cmdMAIL(c *Client, param string) Reply {
+func cmdMAIL(c Child, param string) Reply {
 	return Reply{}
 }
 
-func cmdRCPT(c *Client, param string) Reply {
+func cmdRCPT(c Child, param string) Reply {
 	return Reply{}
 }
 
-func cmdDATA(c *Client, param string) Reply {
+func cmdDATA(c Child, param string) Reply {
 	return Reply{}
 }
 
-func cmdRSET(c *Client, param string) Reply {
+func cmdRSET(c Child, param string) Reply {
 	return Reply{}
 }
 
-func cmdNOOP(c *Client, param string) Reply {
+func cmdNOOP(c Child, param string) Reply {
 	return Reply{}
 }
 
-func cmdVRFY(c *Client, param string) Reply {
+func cmdVRFY(c Child, param string) Reply {
 	return Reply{}
 }
