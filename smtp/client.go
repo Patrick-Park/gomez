@@ -8,14 +8,6 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-// A child of a host can reply to its connection,
-// serve communication and reset its state
-type Child interface {
-	Serve()
-	Reset()
-	Reply(r Reply)
-}
-
 // A connected client. Holds state information
 // and built message.
 type Client struct {

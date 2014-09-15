@@ -1,57 +1,53 @@
 package smtp
 
 import (
-	"reflect"
+	// "log"
+	"net"
+	"net/textproto"
 	"testing"
 )
 
 func TestServerRun(t *testing.T) {
-	var (
-		passedMsg string
-		passedRpl Reply
-		testChild Child
-	)
-
-	testChild = &MockChild{
-		Reply_: func(r Reply) {
-			passedRpl = r
-		},
-	}
+	var passedMsg string
 
 	srv := &Server{
 		spec: &CommandSpec{
-			"HELO": func(ctx Child, params string) {
+			"HELO": func(ctx *Client, params string) {
 				passedMsg = params
 				ctx.Reply(Reply{100, "Hi"})
 			},
 		},
 	}
 
-	passedMsg, passedRpl = "", Reply{}
-	srv.Run(testChild, "BADFORMAT")
+	cc, sc := net.Pipe()
+	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
 
-	if passedMsg != "" || !reflect.DeepEqual(passedRpl, badCommand) {
-		t.Errorf("Expected to pass params '%s' and get no reply but instead got reply: '%s', and params: '%s'", badCommand, passedRpl, passedMsg)
+	testClient := &Client{
+		Mode: MODE_HELO,
+		conn: sconn,
 	}
 
-	passedMsg, passedRpl = "", Reply{}
-	srv.Run(testChild, "GOOD FORMAT but doesn't exist")
-
-	if passedMsg != "" || !reflect.DeepEqual(passedRpl, badCommand) {
-		t.Errorf("Expected to pass params '%s' and get no reply but instead got reply: '%s', and params: '%s'", badCommand, passedRpl, passedMsg)
+	testCases := []struct {
+		Message        string
+		Reponse, Reply string
+	}{
+		{"BADFORMAT", "", badCommand.String()},
+		{"GOOD FORMAT", "", badCommand.String()},
+		{"HELO  world ", "world", "100 Hi"},
+		{"HELO", "", "100 Hi"},
 	}
 
-	passedMsg, passedRpl = "", Reply{}
-	srv.Run(testChild, "HELO  world ")
+	for _, test := range testCases {
+		passedMsg = ""
 
-	if passedMsg != "world" || passedRpl.String() != "100 Hi" {
-		t.Errorf("Expected to pass params and get no reply but instead got reply: '%s', and params: '%s'", passedRpl, passedMsg)
-	}
+		go srv.Run(testClient, test.Message)
+		rpl, err := cconn.ReadLine()
+		if err != nil {
+			t.Errorf("Error reading response %s", err)
+		}
 
-	passedMsg, passedRpl = "", Reply{}
-	srv.Run(testChild, "HELO")
-
-	if passedMsg != "" || passedRpl.String() != "100 Hi" {
-		t.Errorf("Expected to pass params and get no reply but instead got reply: '%s', and params: '%s'", passedRpl, passedMsg)
+		if passedMsg != test.Reponse || rpl != test.Reply {
+			t.Errorf("Expected params (%s) and message (%s), got (%s) and (%s).", test.Reponse, test.Reply, passedMsg, rpl)
+		}
 	}
 }
