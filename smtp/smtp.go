@@ -28,10 +28,15 @@ type Config struct {
 	Mailbox gomez.Mailbox
 }
 
+type Host interface {
+	Digest(c *Client) error
+	Run(ctx *Client, msg string)
+}
+
 // SMTP Server instance
 type Server struct {
 	sync.Mutex
-	cs      *CommandSpec
+	spec    *CommandSpec
 	Mailbox gomez.Mailbox
 }
 
@@ -43,7 +48,19 @@ func Start(conf Config) {
 		log.Fatalf("Could not open port %d.", conf.Port)
 	}
 
-	srv := &Server{Mailbox: conf.Mailbox, cs: NewCommandSpec()}
+	srv := &Server{
+		Mailbox: conf.Mailbox,
+		spec: &CommandSpec{
+			"HELO": cmdHELO,
+			"EHLO": cmdEHLO,
+			"MAIL": cmdMAIL,
+			"RCPT": cmdRCPT,
+			"DATA": cmdDATA,
+			"RSET": cmdRSET,
+			"NOOP": cmdNOOP,
+			"VRFY": cmdVRFY,
+		},
+	}
 
 	for {
 		conn, err := ln.Accept()
@@ -70,20 +87,38 @@ func (s *Server) createClient(conn net.Conn) {
 
 // Digests a message. Delivers or enqueues messages
 // according to reciepients
-func (s *Server) digest(msg *gomez.Message) error {
+func (s *Server) Digest(c *Client) error {
 	s.Lock()
 	defer s.Unlock()
 
 	return nil
 }
 
+// Runs a command on the server's command spec
+func (s *Server) Run(ctx *Client, msg string) {
+	if !commandFormat.MatchString(msg) {
+		ctx.Reply(badCommand)
+	}
+
+	parts := commandFormat.FindStringSubmatch(msg)
+	cmd, params := parts[1], strings.Trim(parts[2], " ")
+
+	command, ok := (*s.spec)[cmd]
+	if !ok {
+		ctx.Reply(badCommand)
+	}
+
+	command(ctx, params)
+}
+
 // A connected client. Holds state information
 // and built message.
 type Client struct {
+	Id   string
 	msg  *gomez.Message
 	Mode InputMode
 	conn *textproto.Conn
-	Host *Server
+	Host Host
 }
 
 // Serves a new SMTP connection and handles all
@@ -101,6 +136,7 @@ func (c *Client) Serve() {
 			}
 
 			c.msg.SetBody(strings.Join(msg, ""))
+			c.Host.Digest(c)
 			c.Reset()
 			c.Reply(Reply{250, "Message queued"})
 
@@ -110,8 +146,7 @@ func (c *Client) Serve() {
 				log.Printf("Could not read input: %s\n", err)
 			}
 
-			r := c.Host.cs.Run(c, msg)
-			c.Reply(r)
+			c.Host.Run(c, msg)
 		}
 	}
 }
