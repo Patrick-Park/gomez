@@ -19,6 +19,7 @@ const (
 	MODE_MAIL
 	MODE_RCPT
 	MODE_DATA
+	MODE_QUIT
 )
 
 // Configuration settings for the SMTP server
@@ -89,28 +90,35 @@ type Client struct {
 // incoming commands
 func (c *Client) Serve() {
 	for {
-		msg, err := c.conn.ReadLine()
-		if err != nil {
-			log.Printf("Could not read input: %s\n", err)
-		}
-
-		if strings.ToUpper(msg) == "QUIT" {
-			break
-		}
-
 		switch c.Mode {
+		case MODE_QUIT:
+			return
+
 		case MODE_DATA:
-			if msg != "." {
-				c.msg.AddBody(msg)
-			} else {
-				c.Host.digest(c.msg)
-				c.Reset()
+			msg, err := c.conn.ReadDotLines()
+			if err != nil {
+				log.Printf("Could not read dot lines: %s\n", err)
 			}
+
+			c.msg.SetBody(strings.Join(msg, ""))
+			c.Reset()
+			c.Reply(Reply{250, "Message queued"})
+
 		default:
-			rpl := c.Host.cs.Run(c, msg)
-			c.conn.PrintfLine(rpl.String())
+			msg, err := c.conn.ReadLine()
+			if err != nil {
+				log.Printf("Could not read input: %s\n", err)
+			}
+
+			r := c.Host.cs.Run(c, msg)
+			c.Reply(r)
 		}
 	}
+}
+
+// Replies to the client
+func (c *Client) Reply(r Reply) {
+	c.conn.PrintfLine("%s", r)
 }
 
 // Resets the client to "HELO" InputMode
