@@ -25,7 +25,7 @@ func cmdEHLO(ctx *Client, param string) {
 		return
 	}
 
-	ctx.Notify(Reply{250, "-Gomez SMTPd"})
+	ctx.Notify(Reply{250, "Gomez SMTPd"})
 	ctx.Notify(Reply{250, "VRFY"})
 	ctx.Mode = MODE_MAIL
 }
