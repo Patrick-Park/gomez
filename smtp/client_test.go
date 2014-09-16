@@ -8,26 +8,26 @@ import (
 )
 
 func TestClientServe(t *testing.T) {
-	var wg sync.WaitGroup
-
-	srv := &Server{
-		spec: &CommandSpec{
-			"TEST": func(ctx *Client, param string) {
-				ctx.Mode = MODE_RCPT
-				ctx.Reply(Reply{211, param})
-			},
-			"EXIT": func(ctx *Client, param string) {
-				ctx.Mode = MODE_QUIT
-				ctx.Reply(Reply{50, "QUITTING"})
-			},
-		},
-	}
+	var (
+		wg  sync.WaitGroup
+		msg string
+	)
 
 	cc, sc := net.Pipe()
 	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
 
 	testClient := &Client{
-		Host: srv,
+		Host: &MockHost{
+			Run_: func(ctx *Client, params string) {
+				if params == "MODE" {
+					ctx.Mode++
+				} else if params == "QUIT" {
+					ctx.Mode = MODE_QUIT
+				}
+
+				msg = params
+			},
+		},
 		Mode: MODE_HELO,
 		conn: sconn,
 	}
@@ -38,24 +38,22 @@ func TestClientServe(t *testing.T) {
 		wg.Done()
 	}()
 
-	cconn.PrintfLine("TEST callback")
-	rpl, err := cconn.ReadLine()
+	err := cconn.PrintfLine("MODE")
 	if err != nil {
-		t.Errorf("Error reading line: %s", err)
+		t.Errorf("Error sending command (%s)", err)
 	}
 
-	if rpl != "211 callback" || testClient.Mode != MODE_RCPT {
-		t.Errorf("FAILED: Expected (211 callback) but got (%s).", rpl)
+	if msg != "MODE" || testClient.Mode != MODE_MAIL {
+		t.Errorf("Expected msg (MODE) and mode (%s), but got (%s) and (%s).", MODE_MAIL, msg, testClient.Mode)
 	}
 
-	cconn.PrintfLine("EXIT")
-	rpl, err = cconn.ReadLine()
+	err = cconn.PrintfLine("QUIT")
 	if err != nil {
-		t.Errorf("Error reading line: %s", err)
+		t.Errorf("Error sending command (%s)", err)
 	}
 
-	if rpl != "50 QUITTING" || testClient.Mode != MODE_QUIT {
-		t.Errorf("FAILED: Expected (50 QUITTING) but got (%s).", rpl)
+	if msg != "QUIT" || testClient.Mode != MODE_QUIT {
+		t.Errorf("Expected msg (QUIT) and mode (%s), but got (%s) and (%s).", MODE_QUIT, msg, testClient.Mode)
 	}
 
 	wg.Wait()
