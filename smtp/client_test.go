@@ -9,6 +9,20 @@ import (
 	"github.com/gbbr/gomez"
 )
 
+// Test that Reply's stringer implentation correctly outputs
+// both single-line and multi-line messages.
+func TestReplyString(t *testing.T) {
+	r := Reply{200, "This is a line of text"}
+	if r.String() != "200 This is a line of text" {
+		t.Errorf("Error stringifying Reply %s", r)
+	}
+
+	r = Reply{123, "This is;multi;line;response"}
+	if r.String() != "123-This is\r\n123-multi\r\n123-line\r\n123 response" {
+		t.Errorf("Error stringifying Reply:\r\n%s", r)
+	}
+}
+
 // It should pass the correct message to the host's Run
 // and it should be able to alter the client's InputMode
 func TestClientServe(t *testing.T) {

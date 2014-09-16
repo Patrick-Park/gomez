@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/textproto"
+	"strings"
 
 	"github.com/gbbr/gomez"
 )
@@ -20,14 +21,31 @@ const (
 )
 
 // Reply is an SMTP reply. It contains a status
-// code and a message.
+// code and a message. If the message is multiline
+// the Msg property can separate lines using the ';'
+// character
 type Reply struct {
 	Code int
 	Msg  string
 }
 
 // Implements the Stringer interface for pretty printing
-func (r Reply) String() string { return fmt.Sprintf("%d %s", r.Code, r.Msg) }
+// according to SMTP specifications. Should be used to reply.
+func (r Reply) String() string {
+	var output string
+
+	lines := strings.Split(r.Msg, ";")
+	for n, line := range lines {
+		format := "%d-%s\r\n"
+		if len(lines)-1 == n {
+			format = "%d %s"
+		}
+
+		output += fmt.Sprintf(format, r.Code, line)
+	}
+
+	return output
+}
 
 // A connected client. Holds state information
 // and built message.
@@ -57,7 +75,10 @@ func (c *Client) Serve() {
 
 // Replies to the client
 func (c *Client) Notify(r Reply) {
-	c.conn.PrintfLine("%s", r)
+	err := c.conn.PrintfLine("%s", r)
+	if err != nil {
+		log.Printf("Error notifying client (%s).", err)
+	}
 }
 
 // Resets the client to "HELO" InputMode
