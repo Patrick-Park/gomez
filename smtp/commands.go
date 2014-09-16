@@ -3,6 +3,8 @@ package smtp
 import (
 	"log"
 	"strings"
+
+	"github.com/gbbr/gomez"
 )
 
 // SMTP HELO command: initiates handshake by
@@ -13,6 +15,7 @@ func cmdHELO(ctx *Client, param string) {
 		return
 	}
 
+	ctx.Id = param
 	ctx.Notify(Reply{250, "Gomez SMTPd"})
 	ctx.Mode = MODE_MAIL
 }
@@ -25,6 +28,7 @@ func cmdEHLO(ctx *Client, param string) {
 		return
 	}
 
+	ctx.Id = param
 	ctx.Notify(Reply{250, "Gomez SMTPd"})
 	ctx.Notify(Reply{250, "VRFY"})
 	ctx.Mode = MODE_MAIL
@@ -33,7 +37,26 @@ func cmdEHLO(ctx *Client, param string) {
 // SMTP MAIL command: sets sender address.
 // Format is: MAIL FROM:<address>
 func cmdMAIL(ctx *Client, param string) {
+	// switch ctx.Mode {
+	// case MODE_HELO: error, say HELO
+	// ....
+	// cover all error cases
+	// }
 
+	if !strings.HasPrefix(strings.ToUpper(param), "FROM:") {
+		ctx.Notify(Reply{501, "5.5.4 Syntax: MAIL FROM:<address>"})
+		return
+	}
+
+	addr, err := gomez.NewAddress(strings.TrimPrefix(param, "FROM:"))
+	if err != nil {
+		ctx.Notify(Reply{501, "5.1.7 Bad sender address syntax"})
+		return
+	}
+
+	ctx.msg.SetFrom(addr)
+	ctx.Notify(Reply{250, "2.1.0 Ok"})
+	ctx.Mode = MODE_RCPT
 }
 
 // SMTP RCPT command: set receipient. Can be executed
