@@ -9,6 +9,8 @@ import (
 	"github.com/gbbr/gomez"
 )
 
+// It should pass the correct message to the host's Run
+// and it should be able to alter the client's InputMode
 func TestClientServe(t *testing.T) {
 	var (
 		wg  sync.WaitGroup
@@ -42,14 +44,14 @@ func TestClientServe(t *testing.T) {
 		wg.Done()
 	}()
 
-	// Serve will stop after QUIT so it must come last
 	testCases := []struct {
 		msg     string
 		expMode InputMode
 	}{
 		{"ABCD", MODE_HELO},
 		{"MODE", MODE_MAIL},
-		{"QUIT", MODE_QUIT},
+		{"Random message", MODE_MAIL},
+		{"QUIT", MODE_QUIT}, // Serve will stop after QUIT so it must come last
 	}
 
 	for _, test := range testCases {
@@ -67,6 +69,7 @@ func TestClientServe(t *testing.T) {
 	cconn.Close()
 }
 
+// It should reset the client's state (ID, InputMode and Message)
 func TestClientReset(t *testing.T) {
 	testClient := &Client{
 		Mode: MODE_RCPT,
@@ -82,6 +85,7 @@ func TestClientReset(t *testing.T) {
 	}
 }
 
+// It should reply using the attached network connection
 func TestClientReply(t *testing.T) {
 	sc, cc := net.Pipe()
 	cconn := textproto.NewConn(cc)
