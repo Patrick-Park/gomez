@@ -13,7 +13,7 @@ func TestServerRun(t *testing.T) {
 	srv := &Server{
 		spec: &CommandSpec{
 			"HELO": func(ctx *Client, params string) {
-				ctx.Reply(Reply{100, params})
+				ctx.Notify(Reply{100, params})
 			},
 		},
 	}

@@ -85,7 +85,7 @@ func (s *Server) Digest(c *Client) error {
 // Runs a command in the context of a child connection
 func (s *Server) Run(ctx *Client, msg string) {
 	if !commandFormat.MatchString(msg) {
-		ctx.Reply(badCommand)
+		ctx.Notify(badCommand)
 		return
 	}
 
@@ -94,7 +94,7 @@ func (s *Server) Run(ctx *Client, msg string) {
 
 	command, ok := (*s.spec)[cmd]
 	if !ok {
-		ctx.Reply(badCommand)
+		ctx.Notify(badCommand)
 		return
 	}
 

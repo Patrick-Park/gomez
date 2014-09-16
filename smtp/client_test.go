@@ -80,19 +80,19 @@ func TestClientReset(t *testing.T) {
 	testClient.msg.SetBody("Message body.")
 
 	testClient.Reset()
-	if testClient.Mode != MODE_HELO || testClient.msg.Body() != "" || testClient.Id != "" {
+	if testClient.Mode != MODE_MAIL || testClient.msg.Body() != "" || testClient.Id != "" {
 		t.Error("Did not reset client correctly.")
 	}
 }
 
 // It should reply using the attached network connection
-func TestClientReply(t *testing.T) {
+func TestClientNotify(t *testing.T) {
 	sc, cc := net.Pipe()
 	cconn := textproto.NewConn(cc)
 
 	testClient := &Client{conn: textproto.NewConn(sc)}
 
-	go testClient.Reply(Reply{200, "Hello"})
+	go testClient.Notify(Reply{200, "Hello"})
 	msg, err := cconn.ReadLine()
 	if err != nil {
 		t.Errorf("Error reading end of pipe (%s)", err)

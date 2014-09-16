@@ -56,7 +56,7 @@ func (c *Client) Serve() {
 }
 
 // Replies to the client
-func (c *Client) Reply(r Reply) {
+func (c *Client) Notify(r Reply) {
 	c.conn.PrintfLine("%s", r)
 }
 
@@ -64,6 +64,6 @@ func (c *Client) Reply(r Reply) {
 // and empties the message buffer
 func (c *Client) Reset() {
 	c.msg = new(gomez.Message)
-	c.Mode = MODE_HELO
+	c.Mode = MODE_MAIL
 	c.Id = ""
 }
