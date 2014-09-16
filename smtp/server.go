@@ -110,6 +110,7 @@ func (s *Server) createClient(conn net.Conn) {
 		Host: s,
 	}
 
+	// c.Notify(Reply{220, "mecca.local Gomez SMTP"})
 	c.Serve()
 	c.conn.Close()
 }
