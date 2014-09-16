@@ -65,4 +65,5 @@ func (c *Client) Reply(r Reply) {
 func (c *Client) Reset() {
 	c.msg = new(gomez.Message)
 	c.Mode = MODE_HELO
+	c.Id = ""
 }
