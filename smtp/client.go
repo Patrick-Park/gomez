@@ -36,7 +36,7 @@ type Client struct {
 	msg  *gomez.Message
 	Mode InputMode
 	conn *textproto.Conn
-	Host Host
+	Host MailService
 }
 
 // Serves a new SMTP connection and handles all

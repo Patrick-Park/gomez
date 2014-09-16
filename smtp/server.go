@@ -19,7 +19,7 @@ var (
 
 // A Host is a structure that can run commands in the context of
 // a child connection, as well as consume their input/state
-type Host interface {
+type MailService interface {
 	Run(ctx *Client, msg string)
 	Digest(c *Client) error
 }

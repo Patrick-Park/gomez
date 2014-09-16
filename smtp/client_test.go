@@ -17,7 +17,7 @@ func TestClientServe(t *testing.T) {
 		msg string
 	)
 
-	hostMock := &MockHost{
+	hostMock := &MockMailService{
 		Run_: func(ctx *Client, params string) {
 			if params == "MODE" {
 				ctx.Mode = MODE_MAIL
