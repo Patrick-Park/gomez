@@ -12,8 +12,7 @@ import (
 type InputMode int
 
 const (
-	MODE_FREE InputMode = iota
-	MODE_HELO
+	MODE_HELO InputMode = iota
 	MODE_MAIL
 	MODE_RCPT
 	MODE_DATA
@@ -34,9 +33,9 @@ type Reply struct {
 func (r Reply) String() string {
 	var output string
 
-	lines := strings.Split(r.Msg, ";")
+	lines := strings.Split(r.Msg, "\n")
 	for n, line := range lines {
-		format := "%d-%s\r\n"
+		format := "%d-%s\n"
 		if len(lines)-1 == n {
 			format = "%d %s"
 		}
@@ -75,6 +74,8 @@ func (c *Client) Serve() {
 			return
 		}
 	}
+
+	c.conn.Close()
 }
 
 // Replies to the client

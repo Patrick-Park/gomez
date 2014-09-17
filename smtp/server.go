@@ -126,5 +126,4 @@ func (s *Server) createClient(conn net.Conn) {
 
 	c.Notify(Reply{220, s.Name() + " Gomez SMTP"})
 	c.Serve()
-	c.conn.Close()
 }

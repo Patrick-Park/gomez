@@ -17,8 +17,8 @@ func TestReplyString(t *testing.T) {
 		t.Errorf("Error stringifying Reply %s", r)
 	}
 
-	r = Reply{123, "This is;multi;line;response"}
-	if r.String() != "123-This is\r\n123-multi\r\n123-line\r\n123 response" {
+	r = Reply{123, "This is\nmulti\nline\nresponse"}
+	if r.String() != "123-This is\n123-multi\n123-line\n123 response" {
 		t.Errorf("Error stringifying Reply:\r\n%s", r)
 	}
 }
