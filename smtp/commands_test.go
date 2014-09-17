@@ -24,7 +24,7 @@ func TestCmdHELOandEHLO(t *testing.T) {
 		t.Errorf("Expected 501 but got %+v", err)
 	}
 
-	go cmdHELO(client, "name")
+	go cmdEHLO(client, "name")
 	_, _, err = pipe.ReadResponse(250)
 	if err != nil || client.Mode != MODE_MAIL || client.Id != "name" {
 		t.Errorf("Expected 250, Mode 0 and Id 'name' but got %+v, %d, %s", err, client.Mode, client.Id)
@@ -32,9 +32,9 @@ func TestCmdHELOandEHLO(t *testing.T) {
 
 	client.Reset()
 
-	go cmdEHLO(client, "name")
+	go cmdHELO(client, "other name")
 	_, _, err = pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_MAIL || client.Id != "name" {
+	if err != nil || client.Mode != MODE_MAIL || client.Id != "other name" {
 		t.Errorf("Expected 250, Mode 0 and Id 'name' but got %+v, %d, %s", err, client.Mode, client.Id)
 	}
 
