@@ -16,6 +16,7 @@ func cmdHELO(ctx *Client, param string) error {
 
 	ctx.Id = param
 	ctx.Mode = MODE_MAIL
+
 	return ctx.Notify(Reply{250, "Gomez SMTPd"})
 }
 
@@ -28,6 +29,7 @@ func cmdEHLO(ctx *Client, param string) error {
 
 	ctx.Id = param
 	ctx.Mode = MODE_MAIL
+
 	return ctx.Notify(Reply{250, "Gomez SMTPd;VRFY"})
 }
 
@@ -51,6 +53,7 @@ func cmdMAIL(ctx *Client, param string) error {
 
 	ctx.msg.SetFrom(addr)
 	ctx.Mode = MODE_RCPT
+
 	return ctx.Notify(Reply{250, "2.1.0 Ok"})
 }
 
@@ -73,6 +76,7 @@ func cmdDATA(ctx *Client, param string) error {
 	ctx.msg.SetBody(strings.Join(msg, ""))
 	ctx.Host.Digest(ctx)
 	ctx.Reset()
+
 	return ctx.Notify(Reply{250, "Message queued"})
 }
 
