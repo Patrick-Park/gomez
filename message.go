@@ -3,6 +3,7 @@ package gomez
 import (
 	"errors"
 	"fmt"
+	"net/textproto"
 	"regexp"
 )
 
@@ -17,7 +18,7 @@ var (
 type Message struct {
 	from    Address
 	rcpt    []Address
-	headers map[string]string
+	headers textproto.MIMEHeader
 	body    string
 }
 
