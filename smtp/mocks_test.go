@@ -5,6 +5,7 @@ var _ MailService = new(MockMailService)
 type MockMailService struct {
 	Run_    func(*Client, string) error
 	Digest_ func(*Client) error
+	Name_   func() string
 }
 
 func (h MockMailService) Run(c *Client, m string) error {
@@ -21,4 +22,12 @@ func (h MockMailService) Digest(c *Client) error {
 	}
 
 	return nil
+}
+
+func (h MockMailService) Name() string {
+	if h.Name_ != nil {
+		return h.Name_()
+	}
+
+	return ""
 }

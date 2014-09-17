@@ -17,18 +17,28 @@ var (
 	badCommand    = Reply{502, "5.5.2 Error: command not recoginized"}
 )
 
-// A Host is a structure that can run commands in the context of
-// a child connection, as well as consume their input/state
 type MailService interface {
+	// Runs a command with arguments in the context
+	// of a given client.
 	Run(ctx *Client, msg string) error
+
+	// Digests a client's contents and tries to deliver
+	// the message.
 	Digest(c *Client) error
+
+	// Returns the name of the host
+	Name() string
+
+	// Queries the mailbox for a user
+	// Query(q string) *gomez.Address
 }
 
 // SMTP host server instance
 type Server struct {
 	sync.Mutex
-	spec    *CommandSpec
-	Mailbox gomez.Mailbox
+	spec     *CommandSpec
+	Mailbox  gomez.Mailbox
+	Hostname string
 }
 
 // Maps commands to their actions. Actions run in the context
@@ -37,8 +47,9 @@ type CommandSpec map[string]func(*Client, string) error
 
 // Configuration settings for the SMTP server
 type Config struct {
-	Port    int
-	Mailbox gomez.Mailbox
+	Port     int
+	Mailbox  gomez.Mailbox
+	Hostname string
 }
 
 // Starts the SMTP server given the specified configuration.
@@ -50,7 +61,8 @@ func Start(conf Config) {
 	}
 
 	srv := &Server{
-		Mailbox: conf.Mailbox,
+		Mailbox:  conf.Mailbox,
+		Hostname: conf.Hostname,
 		spec: &CommandSpec{
 			"HELO": cmdHELO,
 			"EHLO": cmdEHLO,
@@ -100,6 +112,9 @@ func (s *Server) Run(ctx *Client, msg string) error {
 	return command(ctx, params)
 }
 
+// Returns the name of the server
+func (s Server) Name() string { return s.Hostname }
+
 // Creates a new client based on the given connection
 func (s *Server) createClient(conn net.Conn) {
 	c := &Client{
@@ -109,7 +124,7 @@ func (s *Server) createClient(conn net.Conn) {
 		Host: s,
 	}
 
-	c.Notify(Reply{220, "mecca.local Gomez SMTP"})
+	c.Notify(Reply{220, s.Name() + " Gomez SMTP"})
 	c.Serve()
 	c.conn.Close()
 }
