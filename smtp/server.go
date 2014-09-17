@@ -20,7 +20,7 @@ var (
 // A Host is a structure that can run commands in the context of
 // a child connection, as well as consume their input/state
 type MailService interface {
-	Run(ctx *Client, msg string)
+	Run(ctx *Client, msg string) error
 	Digest(c *Client) error
 }
 
@@ -31,8 +31,9 @@ type Server struct {
 	Mailbox gomez.Mailbox
 }
 
-// Map of supported commands. The server's command specification.
-type CommandSpec map[string]func(*Client, string)
+// Maps commands to their actions. Actions run in the context
+// of a connected client and a string of params
+type CommandSpec map[string]func(*Client, string) error
 
 // Configuration settings for the SMTP server
 type Config struct {
@@ -83,10 +84,9 @@ func (s *Server) Digest(c *Client) error {
 }
 
 // Runs a command in the context of a child connection
-func (s *Server) Run(ctx *Client, msg string) {
+func (s *Server) Run(ctx *Client, msg string) error {
 	if !commandFormat.MatchString(msg) {
-		ctx.Notify(badCommand)
-		return
+		return ctx.Notify(badCommand)
 	}
 
 	parts := commandFormat.FindStringSubmatch(msg)
@@ -94,11 +94,10 @@ func (s *Server) Run(ctx *Client, msg string) {
 
 	command, ok := (*s.spec)[cmd]
 	if !ok {
-		ctx.Notify(badCommand)
-		return
+		return ctx.Notify(badCommand)
 	}
 
-	command(ctx, params)
+	return command(ctx, params)
 }
 
 // Creates a new client based on the given connection
@@ -110,7 +109,7 @@ func (s *Server) createClient(conn net.Conn) {
 		Host: s,
 	}
 
-	// c.Notify(Reply{220, "mecca.local Gomez SMTP"})
+	c.Notify(Reply{220, "mecca.local Gomez SMTP"})
 	c.Serve()
 	c.conn.Close()
 }

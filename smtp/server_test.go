@@ -12,8 +12,8 @@ import (
 func TestServerRun(t *testing.T) {
 	srv := &Server{
 		spec: &CommandSpec{
-			"HELO": func(ctx *Client, params string) {
-				ctx.Notify(Reply{100, params})
+			"HELO": func(ctx *Client, params string) error {
+				return ctx.Notify(Reply{100, params})
 			},
 		},
 	}
@@ -51,6 +51,7 @@ func TestServerRun(t *testing.T) {
 }
 
 // Should create a client that picks up commands
+// and greet the connection with 220 status
 func TestServerCreateClient(t *testing.T) {
 	var wg sync.WaitGroup
 
@@ -59,8 +60,9 @@ func TestServerCreateClient(t *testing.T) {
 
 	testServer := &Server{
 		spec: &CommandSpec{
-			"EXIT": func(ctx *Client, params string) {
+			"EXIT": func(ctx *Client, params string) error {
 				ctx.Mode = MODE_QUIT
+				return nil
 			},
 		},
 	}
@@ -70,6 +72,11 @@ func TestServerCreateClient(t *testing.T) {
 		testServer.createClient(sc)
 		wg.Done()
 	}()
+
+	_, _, err := cconn.ReadResponse(220)
+	if err != nil {
+		t.Errorf("Expected code 220 but got %+v", err)
+	}
 
 	cconn.PrintfLine("EXIT")
 	wg.Wait()

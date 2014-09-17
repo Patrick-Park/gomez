@@ -66,7 +66,11 @@ func (c *Client) Serve() {
 			log.Printf("Could not read input: %s\n", err)
 		}
 
-		c.Host.Run(c, msg)
+		err = c.Host.Run(c, msg)
+		if err != nil {
+			log.Printf("Error running command '%s': %s", msg, err)
+		}
+
 		if c.Mode == MODE_QUIT {
 			return
 		}
@@ -74,11 +78,8 @@ func (c *Client) Serve() {
 }
 
 // Replies to the client
-func (c *Client) Notify(r Reply) {
-	err := c.conn.PrintfLine("%s", r)
-	if err != nil {
-		log.Printf("Error notifying client (%s).", err)
-	}
+func (c *Client) Notify(r Reply) error {
+	return c.conn.PrintfLine("%s", r)
 }
 
 // Resets the client to "HELO" InputMode

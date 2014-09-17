@@ -3,14 +3,16 @@ package smtp
 var _ MailService = new(MockMailService)
 
 type MockMailService struct {
-	Run_    func(*Client, string)
+	Run_    func(*Client, string) error
 	Digest_ func(*Client) error
 }
 
-func (h MockMailService) Run(c *Client, m string) {
+func (h MockMailService) Run(c *Client, m string) error {
 	if h.Run_ != nil {
-		h.Run_(c, m)
+		return h.Run_(c, m)
 	}
+
+	return nil
 }
 
 func (h MockMailService) Digest(c *Client) error {

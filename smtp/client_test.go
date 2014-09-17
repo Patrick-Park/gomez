@@ -32,7 +32,7 @@ func TestClientServe(t *testing.T) {
 	)
 
 	hostMock := &MockMailService{
-		Run_: func(ctx *Client, params string) {
+		Run_: func(ctx *Client, params string) error {
 			if params == "MODE" {
 				ctx.Mode = MODE_MAIL
 			} else if params == "QUIT" {
@@ -40,6 +40,7 @@ func TestClientServe(t *testing.T) {
 			}
 
 			msg = params
+			return nil
 		},
 	}
 
