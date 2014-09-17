@@ -35,7 +35,6 @@ func (m *Message) SetFrom(addr Address) { m.from = addr }
 func (m Message) From() Address { return m.from }
 
 // Sets the message body and separates out the headers
-// (adding missing ones?)
 func (m *Message) SetBody(msg string) { m.body = msg }
 
 // Returns the message body
