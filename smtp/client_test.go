@@ -81,7 +81,6 @@ func TestClientServe(t *testing.T) {
 	}
 
 	wg.Wait()
-	cconn.Close()
 }
 
 // It should reset the client's state (ID, InputMode and Message)

@@ -71,7 +71,7 @@ func (c *Client) Serve() {
 		}
 
 		if c.Mode == MODE_QUIT {
-			return
+			break
 		}
 	}
 
