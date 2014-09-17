@@ -3,7 +3,6 @@ package gomez
 import (
 	"errors"
 	"fmt"
-	"net/textproto"
 	"regexp"
 )
 
@@ -16,10 +15,9 @@ var (
 // holds information about sender, recepients
 // and the message body
 type Message struct {
-	from    Address
-	rcpt    []Address
-	headers textproto.MIMEHeader
-	body    string
+	from Address
+	rcpt []Address
+	body string
 }
 
 // Adds a new recepient to the message
@@ -34,7 +32,7 @@ func (m *Message) SetFrom(addr Address) { m.from = addr }
 // Returns the Reply-To address
 func (m Message) From() Address { return m.from }
 
-// Sets the message body and separates out the headers
+// Sets the message body
 func (m *Message) SetBody(msg string) { m.body = msg }
 
 // Returns the message body
