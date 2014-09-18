@@ -36,22 +36,15 @@ func cmdEHLO(ctx *Client, param string) error {
 // SMTP MAIL command: sets sender address.
 // Format is: MAIL FROM:<address>
 func cmdMAIL(ctx *Client, param string) error {
-	// Must be identified via HELO/EHLO first
-	if ctx.Mode == MODE_HELO {
+	switch {
+	case ctx.Mode == MODE_HELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
-	}
-
-	// Have we already set the path?
-	if ctx.Mode > MODE_MAIL {
+	case ctx.Mode > MODE_MAIL:
 		return ctx.Notify(Reply{503, "5.5.1 Error: nested MAIL command"})
-	}
-
-	// Is the syntax correct?
-	if !strings.HasPrefix(strings.ToUpper(param), "FROM:") {
+	case !strings.HasPrefix(strings.ToUpper(param), "FROM:"):
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: MAIL FROM:<address>"})
 	}
 
-	// Is the sender address of the right form?
 	addr, err := gomez.NewAddress(param[len("FROM:"):])
 	if err != nil {
 		return ctx.Notify(Reply{501, "5.1.7 Bad sender address syntax"})
@@ -67,18 +60,12 @@ func cmdMAIL(ctx *Client, param string) error {
 // multiple times for multiple receipients.
 // Format: RCPT TO:<address>
 func cmdRCPT(ctx *Client, param string) error {
-	// Must be identified via HELO/EHLO first
-	if ctx.Mode == MODE_HELO {
+	switch {
+	case ctx.Mode == MODE_HELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
-	}
-
-	// Have we set the Reply-Path?
-	if ctx.Mode == MODE_MAIL {
+	case ctx.Mode == MODE_MAIL:
 		return ctx.Notify(Reply{503, "5.5.1 Error: need MAIL command"})
-	}
-
-	// Is the syntax apparently correct?
-	if !strings.HasPrefix(strings.ToUpper(param), "TO:") {
+	case !strings.HasPrefix(strings.ToUpper(param), "TO:"):
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: RCPT TO:<address>"})
 	}
 
