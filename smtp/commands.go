@@ -37,12 +37,16 @@ func cmdEHLO(ctx *Client, param string) error {
 // Format is: MAIL FROM:<address>
 func cmdMAIL(ctx *Client, param string) error {
 	switch {
+
 	case ctx.Mode == MODE_HELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
+
 	case ctx.Mode > MODE_MAIL:
 		return ctx.Notify(Reply{503, "5.5.1 Error: nested MAIL command"})
+
 	case !strings.HasPrefix(strings.ToUpper(param), "FROM:"):
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: MAIL FROM:<address>"})
+
 	}
 
 	addr, err := gomez.NewAddress(param[len("FROM:"):])
@@ -61,12 +65,16 @@ func cmdMAIL(ctx *Client, param string) error {
 // Format: RCPT TO:<address>
 func cmdRCPT(ctx *Client, param string) error {
 	switch {
+
 	case ctx.Mode == MODE_HELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
+
 	case ctx.Mode == MODE_MAIL:
 		return ctx.Notify(Reply{503, "5.5.1 Error: need MAIL command"})
+
 	case !strings.HasPrefix(strings.ToUpper(param), "TO:"):
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: RCPT TO:<address>"})
+
 	}
 
 	// Is the address syntax correct?
