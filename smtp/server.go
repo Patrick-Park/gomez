@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/textproto"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -26,19 +25,19 @@ type MailService interface {
 	// the message.
 	Digest(c *Client) error
 
-	// Returns the name of the host
-	Name() string
+	// Returns the server configuration flags
+	Settings() Config
 
 	// Queries the mailbox for a user
-	// Query(q string) *gomez.Address
+	// Query(q interface{}) (*Address, error) ?
 }
 
 // SMTP host server instance
 type Server struct {
 	sync.Mutex
-	spec     *CommandSpec
-	Mailbox  gomez.Mailbox
-	Hostname string
+	spec    *CommandSpec
+	config  Config
+	Mailbox gomez.Mailbox
 }
 
 // Maps commands to their actions. Actions run in the context
@@ -47,22 +46,23 @@ type CommandSpec map[string]func(*Client, string) error
 
 // Configuration settings for the SMTP server
 type Config struct {
-	Port     int
-	Mailbox  gomez.Mailbox
-	Hostname string
+	ListenAddr string
+	Hostname   string
+	Relay      bool
+	TLS        bool
 }
 
 // Starts the SMTP server given the specified configuration.
 // Accepts incoming connections and initiates communication.
-func Start(conf Config) {
-	ln, err := net.Listen("tcp", ":"+strconv.Itoa(conf.Port))
+func Start(mb gomez.Mailbox, conf Config) {
+	ln, err := net.Listen("tcp", conf.ListenAddr)
 	if err != nil {
-		log.Fatalf("Could not open port %d.", conf.Port)
+		log.Fatalf("Could not listen on %s.", conf.ListenAddr)
 	}
 
 	srv := &Server{
-		Mailbox:  conf.Mailbox,
-		Hostname: conf.Hostname,
+		Mailbox: mb,
+		config:  conf,
 		spec: &CommandSpec{
 			"HELO": cmdHELO,
 			"EHLO": cmdEHLO,
@@ -112,8 +112,8 @@ func (s *Server) Run(ctx *Client, msg string) error {
 	return command(ctx, params)
 }
 
-// Returns the name of the server
-func (s Server) Name() string { return s.Hostname }
+// Returns the configuration of the server
+func (s Server) Settings() Config { return s.config }
 
 // Creates a new client based on the given connection
 func (s *Server) createClient(conn net.Conn) {
@@ -124,6 +124,6 @@ func (s *Server) createClient(conn net.Conn) {
 		Host: s,
 	}
 
-	c.Notify(Reply{220, s.Name() + " Gomez SMTP"})
+	c.Notify(Reply{220, s.config.Hostname + " Gomez SMTP"})
 	c.Serve()
 }

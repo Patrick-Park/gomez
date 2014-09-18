@@ -65,7 +65,7 @@ func TestServerCreateClient(t *testing.T) {
 				return nil
 			},
 		},
-		Hostname: "mecca.local",
+		config: Config{Hostname: "mecca.local"},
 	}
 
 	wg.Add(1)

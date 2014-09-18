@@ -3,9 +3,9 @@ package smtp
 var _ MailService = new(MockMailService)
 
 type MockMailService struct {
-	Run_    func(*Client, string) error
-	Digest_ func(*Client) error
-	Name_   func() string
+	Run_      func(*Client, string) error
+	Digest_   func(*Client) error
+	Settings_ func() Config
 }
 
 func (h MockMailService) Run(c *Client, m string) error {
@@ -24,10 +24,10 @@ func (h MockMailService) Digest(c *Client) error {
 	return nil
 }
 
-func (h MockMailService) Name() string {
-	if h.Name_ != nil {
-		return h.Name_()
+func (h MockMailService) Settings() Config {
+	if h.Settings_ != nil {
+		return h.Settings_()
 	}
 
-	return ""
+	return Config{}
 }
