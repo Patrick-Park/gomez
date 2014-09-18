@@ -56,6 +56,9 @@ type Client struct {
 	Host MailService
 }
 
+// Replies to the client
+func (c *Client) Notify(r Reply) error { return c.conn.PrintfLine("%s", r) }
+
 // Serves a new SMTP connection and handles all
 // incoming commands
 func (c *Client) Serve() {
@@ -76,11 +79,6 @@ func (c *Client) Serve() {
 	}
 
 	c.conn.Close()
-}
-
-// Replies to the client
-func (c *Client) Notify(r Reply) error {
-	return c.conn.PrintfLine("%s", r)
 }
 
 // Resets the client to "HELO" InputMode
