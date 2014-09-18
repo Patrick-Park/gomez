@@ -52,7 +52,7 @@ func cmdMAIL(ctx *Client, param string) error {
 	}
 
 	// Is the sender address of the right form?
-	addr, err := gomez.NewAddress(strings.TrimPrefix(param, "FROM:"))
+	addr, err := gomez.NewAddress(param[len("FROM:"):])
 	if err != nil {
 		return ctx.Notify(Reply{501, "5.1.7 Bad sender address syntax"})
 	}
@@ -67,7 +67,31 @@ func cmdMAIL(ctx *Client, param string) error {
 // multiple times for multiple receipients.
 // Format: RCPT TO:<address>
 func cmdRCPT(ctx *Client, param string) error {
+	// Must be identified via HELO/EHLO first
+	if ctx.Mode == MODE_HELO {
+		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
+	}
 
+	// Have we set the Reply-Path?
+	if ctx.Mode == MODE_MAIL {
+		return ctx.Notify(Reply{503, "5.5.1 Error: need MAIL command"})
+	}
+
+	// Is the syntax apparently correct?
+	if !strings.HasPrefix(strings.ToUpper(param), "TO:") {
+		return ctx.Notify(Reply{501, "5.5.4 Syntax: RCPT TO:<address>"})
+	}
+
+	// Is the address syntax correct?
+	addr, err := gomez.NewAddress(param[len("TO:"):])
+	if err != nil {
+		return ctx.Notify(Reply{501, "5.1.7 Bad recipient address syntax"})
+	}
+
+	_ = addr // temporary helps not crash build
+	// If relay is enabled register any recipients, otherwise query and see
+	// if they are local and reject them if they are not
+	// flags := ctx.Host.Settings() relay or just
 	ctx.Mode = MODE_DATA
 	return nil
 }
@@ -109,5 +133,5 @@ func cmdVRFY(ctx *Client, param string) error {
 
 func cmdQUIT(ctx *Client, param string) error {
 	ctx.Mode = MODE_QUIT
-	return ctx.Notify(Reply{221, "2.0.0 Bye"})
+	return ctx.Notify(Reply{221, "2.0.0 Adeus"})
 }

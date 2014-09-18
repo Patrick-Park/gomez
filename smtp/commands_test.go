@@ -78,7 +78,7 @@ func TestCmdMAIL(t *testing.T) {
 	}
 
 	testAddr := gomez.Address{"First Last", "asd", "box.com"}
-	go cmdMAIL(client, "FROM: First Last <asd@box.com>")
+	go cmdMAIL(client, "from:First Last <asd@box.com>")
 	_, _, err = pipe.ReadResponse(250)
 	if err != nil || client.Mode != MODE_RCPT || testAddr.String() != client.msg.From().String() {
 		t.Errorf("Expected code 250, address %s got: %#v, %s", testAddr, err, client.msg.From())
