@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -56,5 +57,5 @@ func NewAddress(addr string) (Address, error) {
 	}
 
 	matches := pathFormat.FindStringSubmatch(addr)
-	return Address{matches[1], matches[2], matches[3]}, nil
+	return Address{strings.Trim(matches[1], " "), matches[2], matches[3]}, nil
 }
