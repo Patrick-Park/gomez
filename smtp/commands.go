@@ -84,8 +84,6 @@ func cmdRCPT(ctx *Client, param string) error {
 	}
 
 	_ = addr // temporary helps not crash build
-	// If relay is enabled register any recipients, otherwise query and see
-	// if they are local and reject them if they are not
 	// flags := ctx.Host.Settings() relay or just
 	ctx.Mode = MODE_DATA
 	return nil
