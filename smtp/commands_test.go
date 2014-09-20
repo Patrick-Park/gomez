@@ -32,18 +32,6 @@ func TestCmdHELO_No_Param(t *testing.T) {
 	pipe.Close()
 }
 
-func TestCmdEHLO_No_Param(t *testing.T) {
-	client, pipe := getTestClient()
-
-	go cmdEHLO(client, "")
-	_, _, err := pipe.ReadResponse(501)
-	if err != nil {
-		t.Errorf("Expected 501 but got %+v", err)
-	}
-
-	pipe.Close()
-}
-
 func TestCmdEHLO_Param(t *testing.T) {
 	client, pipe := getTestClient()
 
@@ -51,6 +39,18 @@ func TestCmdEHLO_Param(t *testing.T) {
 	_, _, err := pipe.ReadResponse(250)
 	if err != nil || client.Mode != MODE_MAIL || client.Id != "name" {
 		t.Errorf("Expected 250, Mode 0 and Id 'name' but got %+v, %d, %s", err, client.Mode, client.Id)
+	}
+
+	pipe.Close()
+}
+
+func TestCmdEHLO_No_Param(t *testing.T) {
+	client, pipe := getTestClient()
+
+	go cmdEHLO(client, "")
+	_, _, err := pipe.ReadResponse(501)
+	if err != nil {
+		t.Errorf("Expected 501 but got %+v", err)
 	}
 
 	pipe.Close()
