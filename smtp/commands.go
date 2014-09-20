@@ -95,19 +95,21 @@ func cmdRCPT(ctx *Client, param string) error {
 		if !flags.Relay {
 			return ctx.Notify(Reply{550, "No such user here. Relaying is not supported."})
 		}
-		// ...
+
+		ctx.msg.AddRcpt(addr)
+		ctx.Mode = MODE_DATA
+
 		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
 
 	case gomez.QUERY_STATUS_SUCCESSFUL:
-		// ...
+		ctx.msg.AddRcpt(addr)
+		ctx.Mode = MODE_DATA
+
 		return ctx.Notify(Reply{250, "OK"})
 
-	case gomez.QUERY_STATUS_ERROR:
-		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
-	ctx.Mode = MODE_DATA
-	return nil
+	return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 }
 
 // SMTP DATA command: sets the message body. Can
