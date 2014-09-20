@@ -83,10 +83,9 @@ func cmdRCPT(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "5.1.7 Bad recipient address syntax"})
 	}
 
-	status := ctx.Host.Query(addr)
 	flags := ctx.Host.Settings()
 
-	switch status {
+	switch ctx.Host.Query(addr) {
 
 	case gomez.QUERY_STATUS_NOT_FOUND:
 		return ctx.Notify(Reply{550, "No such user here."})
