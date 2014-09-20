@@ -5,6 +5,8 @@ import (
 	"net/textproto"
 	"sync"
 	"testing"
+
+	"github.com/gbbr/gomez"
 )
 
 var _ MailService = new(MockMailService)
@@ -15,6 +17,7 @@ type MockMailService struct {
 	Run_      func(*Client, string) error
 	Digest_   func(*Client) error
 	Settings_ func() Config
+	Query_    func(interface{}) (*gomez.Address, gomez.QueryStatus)
 }
 
 func (h MockMailService) Run(c *Client, m string) error {
@@ -39,6 +42,14 @@ func (h MockMailService) Settings() Config {
 	}
 
 	return Config{}
+}
+
+func (h MockMailService) Query(q interface{}) (*gomez.Address, gomez.QueryStatus) {
+	if h.Query_ != nil {
+		return h.Query_(q)
+	}
+
+	return nil, gomez.QUERY_STATUS_NOT_FOUND
 }
 
 // Should correctly run commands from spec, echo parameters

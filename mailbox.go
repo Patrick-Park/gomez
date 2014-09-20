@@ -18,5 +18,23 @@ type Mailbox interface {
 	Retrieve(usr Address) []*Message
 
 	// Queries the server for a user
-	Query(q string) *Address
+	Query(q interface{}) (*Address, QueryStatus)
 }
+
+// QueryStatus reflects the outcome of the result of querying the mailbox
+type QueryStatus int
+
+const (
+	// This state indicates that the user was local (judging by host),
+	// but was not found
+	QUERY_STATUS_NOT_FOUND QueryStatus = iota
+
+	// This status reflects that the user is not local
+	QUERY_STATUS_NOT_LOCAL
+
+	// Query was successful
+	QUERY_STATUS_SUCCESSFUL
+
+	// An error has occurred
+	QUERY_STATUS_ERROR
+)

@@ -29,7 +29,7 @@ type MailService interface {
 	Settings() Config
 
 	// Queries the mailbox for a user
-	// Query(q interface{}) (*Address, error) ?
+	Query(q interface{}) (*gomez.Address, gomez.QueryStatus)
 }
 
 // SMTP host server instance
@@ -114,6 +114,9 @@ func (s *Server) Run(ctx *Client, msg string) error {
 
 // Returns the configuration of the server
 func (s Server) Settings() Config { return s.config }
+
+// Queries the host mailbox for a user by string or gomez.Address
+func (s Server) Query(q interface{}) (*gomez.Address, gomez.QueryStatus) { return s.Mailbox.Query(q) }
 
 // Creates a new client based on the given connection
 func (s *Server) createClient(conn net.Conn) {

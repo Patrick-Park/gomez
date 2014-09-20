@@ -83,8 +83,29 @@ func cmdRCPT(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "5.1.7 Bad recipient address syntax"})
 	}
 
-	_ = addr // temporary helps not crash build
-	// flags := ctx.Host.Settings() relay or just
+	_, status := ctx.Host.Query(addr)
+	flags := ctx.Host.Settings()
+
+	switch status {
+
+	case gomez.QUERY_STATUS_NOT_FOUND:
+		return ctx.Notify(Reply{550, "No such user here."})
+
+	case gomez.QUERY_STATUS_NOT_LOCAL:
+		if !flags.Relay {
+			return ctx.Notify(Reply{550, "No such user here. Relaying is not supported."})
+		}
+		// ...
+		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
+
+	case gomez.QUERY_STATUS_SUCCESSFUL:
+		// ...
+		return ctx.Notify(Reply{250, "OK"})
+
+	case gomez.QUERY_STATUS_ERROR:
+		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
+	}
+
 	ctx.Mode = MODE_DATA
 	return nil
 }
