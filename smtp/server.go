@@ -89,7 +89,7 @@ func Start(mb gomez.Mailbox, conf Config) {
 
 // Digests a child connection. Delivers or enqueues messages
 // according to reciepients
-func (s *Server) Digest(c *Client) error {
+func (s Server) Digest(c *Client) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -97,7 +97,7 @@ func (s *Server) Digest(c *Client) error {
 }
 
 // Runs a command in the context of a child connection
-func (s *Server) Run(ctx *Client, msg string) error {
+func (s Server) Run(ctx *Client, msg string) error {
 	if !commandFormat.MatchString(msg) {
 		return ctx.Notify(badCommand)
 	}
@@ -120,7 +120,7 @@ func (s Server) Settings() Config { return s.config }
 func (s Server) Query(addr gomez.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
 
 // Creates a new client based on the given connection
-func (s *Server) createClient(conn net.Conn) {
+func (s Server) createClient(conn net.Conn) {
 	c := &Client{
 		msg:  new(gomez.Message),
 		Mode: MODE_HELO,
