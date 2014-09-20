@@ -106,6 +106,17 @@ func cmdRCPT(ctx *Client, param string) error {
 // also include headers as per RFC 821 / RFC 2821
 // Ends with <CR>.<CR>
 func cmdDATA(ctx *Client, param string) error {
+	switch ctx.Mode {
+	case MODE_HELO:
+		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
+
+	case MODE_MAIL:
+		return ctx.Notify(Reply{503, "5.5.1 Bad sequence of commands."})
+
+	case MODE_RCPT:
+		return ctx.Notify(Reply{503, "5.5.1 RCPT first."})
+	}
+
 	msg, err := ctx.conn.ReadDotLines()
 	if err != nil {
 		log.Printf("Could not read dot lines: %s\n", err)
@@ -134,7 +145,7 @@ func cmdNOOP(ctx *Client, param string) error {
 // for a user lookup. If more than one entry
 // is found, ambigous error is returned
 func cmdVRFY(ctx *Client, param string) error {
-	return nil
+	return ctx.Notify(Reply{252, "2.1.5 Send some mail, I'll try my best"})
 }
 
 func cmdQUIT(ctx *Client, param string) error {
