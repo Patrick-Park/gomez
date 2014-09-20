@@ -77,13 +77,10 @@ func cmdRCPT(ctx *Client, param string) error {
 
 	}
 
-	// Is the address syntax correct?
 	addr, err := gomez.NewAddress(param[len("TO:"):])
 	if err != nil {
 		return ctx.Notify(Reply{501, "5.1.7 Bad recipient address syntax"})
 	}
-
-	flags := ctx.Host.Settings()
 
 	switch ctx.Host.Query(addr) {
 
@@ -91,7 +88,7 @@ func cmdRCPT(ctx *Client, param string) error {
 		return ctx.Notify(Reply{550, "No such user here."})
 
 	case gomez.QUERY_STATUS_NOT_LOCAL:
-		if !flags.Relay {
+		if flags := ctx.Host.Settings(); !flags.Relay {
 			return ctx.Notify(Reply{550, "No such user here. Relaying is not supported."})
 		}
 
