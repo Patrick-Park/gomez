@@ -29,7 +29,7 @@ type MailService interface {
 	Settings() Config
 
 	// Queries the mailbox for a user
-	Query(q interface{}) (*gomez.Address, gomez.QueryStatus)
+	Query(addr gomez.Address) gomez.QueryStatus
 }
 
 // SMTP host server instance
@@ -50,6 +50,7 @@ type Config struct {
 	Hostname   string
 	Relay      bool
 	TLS        bool
+	Vrfy       bool
 }
 
 // Starts the SMTP server given the specified configuration.
@@ -116,7 +117,7 @@ func (s *Server) Run(ctx *Client, msg string) error {
 func (s Server) Settings() Config { return s.config }
 
 // Queries the host mailbox for a user by string or gomez.Address
-func (s Server) Query(q interface{}) (*gomez.Address, gomez.QueryStatus) { return s.Mailbox.Query(q) }
+func (s Server) Query(addr gomez.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
 
 // Creates a new client based on the given connection
 func (s *Server) createClient(conn net.Conn) {

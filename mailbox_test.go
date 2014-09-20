@@ -5,7 +5,7 @@ type MockMailbox struct {
 	Dequeue_  func() ([]*Message, error)
 	Deliver_  func(Message) error
 	Retrieve_ func(Address) []*Message
-	Query_    func(interface{}) (*Address, QueryStatus)
+	Query_    func(Address) QueryStatus
 }
 
 var _ Mailbox = new(MockMailbox)
@@ -42,10 +42,10 @@ func (m MockMailbox) Retrieve(addr Address) []*Message {
 	return nil
 }
 
-func (m MockMailbox) Query(q interface{}) (*Address, QueryStatus) {
+func (m MockMailbox) Query(addr Address) QueryStatus {
 	if m.Query_ != nil {
-		return m.Query_(q)
+		return m.Query_(addr)
 	}
 
-	return nil, QUERY_STATUS_NOT_FOUND
+	return QUERY_STATUS_ERROR
 }

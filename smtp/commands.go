@@ -83,7 +83,7 @@ func cmdRCPT(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "5.1.7 Bad recipient address syntax"})
 	}
 
-	_, status := ctx.Host.Query(addr)
+	status := ctx.Host.Query(addr)
 	flags := ctx.Host.Settings()
 
 	switch status {

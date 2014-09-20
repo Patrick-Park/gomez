@@ -17,7 +17,7 @@ type MockMailService struct {
 	Run_      func(*Client, string) error
 	Digest_   func(*Client) error
 	Settings_ func() Config
-	Query_    func(interface{}) (*gomez.Address, gomez.QueryStatus)
+	Query_    func(gomez.Address) gomez.QueryStatus
 }
 
 func (h MockMailService) Run(c *Client, m string) error {
@@ -44,12 +44,12 @@ func (h MockMailService) Settings() Config {
 	return Config{}
 }
 
-func (h MockMailService) Query(q interface{}) (*gomez.Address, gomez.QueryStatus) {
+func (h MockMailService) Query(addr gomez.Address) gomez.QueryStatus {
 	if h.Query_ != nil {
-		return h.Query_(q)
+		return h.Query_(addr)
 	}
 
-	return nil, gomez.QUERY_STATUS_NOT_FOUND
+	return gomez.QUERY_STATUS_ERROR
 }
 
 // Should correctly run commands from spec, echo parameters

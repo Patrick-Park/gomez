@@ -18,7 +18,7 @@ type Mailbox interface {
 	Retrieve(usr Address) []*Message
 
 	// Queries the server for a user
-	Query(q interface{}) (*Address, QueryStatus)
+	Query(addr Address) QueryStatus
 }
 
 // QueryStatus reflects the outcome of the result of querying the mailbox
