@@ -110,9 +110,10 @@ func TestCmdMAIL_with_bad_address(t *testing.T) {
 
 func TestCmdMAIL_Success(t *testing.T) {
 	client, pipe := getTestClient()
+	client.Mode = MODE_MAIL
 
 	testAddr := gomez.Address{"First Last", "asd", "box.com"}
-	client.Mode = MODE_MAIL
+
 	go cmdMAIL(client, "from:First Last <asd@box.com>")
 	_, _, err := pipe.ReadResponse(250)
 	if err != nil || client.Mode != MODE_RCPT || testAddr.String() != client.msg.From().String() {

@@ -82,8 +82,16 @@ func TestServerRun(t *testing.T) {
 		{"HELO", "100 "},
 	}
 
+	var wg sync.WaitGroup
+
 	for _, test := range testCases {
-		go srv.Run(testClient, test.Message)
+		wg.Add(1)
+
+		go func() {
+			srv.Run(testClient, test.Message)
+			wg.Done()
+		}()
+
 		rpl, err := cconn.ReadLine()
 		if err != nil {
 			t.Errorf("Error reading response %s", err)
@@ -92,6 +100,8 @@ func TestServerRun(t *testing.T) {
 		if rpl != test.Reply {
 			t.Errorf("Expected '%s' but got '%s'", test.Reply, rpl)
 		}
+
+		wg.Wait()
 	}
 }
 
@@ -114,6 +124,7 @@ func TestServerCreateClient(t *testing.T) {
 	}
 
 	wg.Add(1)
+
 	go func() {
 		testServer.createClient(sc)
 		wg.Done()
