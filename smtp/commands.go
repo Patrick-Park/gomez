@@ -37,7 +37,6 @@ func cmdEHLO(ctx *Client, param string) error {
 // Format is: MAIL FROM:<address>
 func cmdMAIL(ctx *Client, param string) error {
 	switch {
-
 	case ctx.Mode == MODE_HELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
 
@@ -46,7 +45,6 @@ func cmdMAIL(ctx *Client, param string) error {
 
 	case !strings.HasPrefix(strings.ToUpper(param), "FROM:"):
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: MAIL FROM:<address>"})
-
 	}
 
 	addr, err := gomez.NewAddress(param[len("FROM:"):])
@@ -65,7 +63,6 @@ func cmdMAIL(ctx *Client, param string) error {
 // Format: RCPT TO:<address>
 func cmdRCPT(ctx *Client, param string) error {
 	switch {
-
 	case ctx.Mode == MODE_HELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
 
@@ -74,7 +71,6 @@ func cmdRCPT(ctx *Client, param string) error {
 
 	case !strings.HasPrefix(strings.ToUpper(param), "TO:"):
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: RCPT TO:<address>"})
-
 	}
 
 	addr, err := gomez.NewAddress(param[len("TO:"):])
@@ -83,7 +79,6 @@ func cmdRCPT(ctx *Client, param string) error {
 	}
 
 	switch ctx.Host.Query(addr) {
-
 	case gomez.QUERY_STATUS_NOT_FOUND:
 		return ctx.Notify(Reply{550, "No such user here."})
 
@@ -102,7 +97,6 @@ func cmdRCPT(ctx *Client, param string) error {
 		ctx.Mode = MODE_DATA
 
 		return ctx.Notify(Reply{250, "OK"})
-
 	}
 
 	return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
