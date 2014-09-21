@@ -3,6 +3,7 @@ package smtp
 import (
 	"net"
 	"net/textproto"
+	"strings"
 	"testing"
 
 	"github.com/gbbr/gomez"
@@ -243,6 +244,113 @@ func TestCmdRCPT_Internal_Error(t *testing.T) {
 	}
 
 	pipe.Close()
+}
+
+func TestCmdDATA_Wrong_Mode(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	testSuite := []struct {
+		Mode      InputMode
+		ReplyCode int
+	}{
+		{MODE_HELO, 503},
+		{MODE_MAIL, 503},
+		{MODE_RCPT, 503},
+	}
+
+	go func() {
+		for _, test := range testSuite {
+			client.Mode = test.Mode
+			cmdDATA(client, "")
+		}
+	}()
+
+	for _, test := range testSuite {
+		_, _, err := pipe.ReadResponse(test.ReplyCode)
+		if err != nil {
+			t.Errorf("Expected code '%d', but got: '%s'", test.ReplyCode, err)
+		}
+	}
+}
+
+func TestCmdDATA_Success(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	digestCalled := false
+
+	client.Host = &MockMailService{
+		Digest_: func(ctx *Client) error {
+			digestCalled = true
+
+			if !strings.HasPrefix(ctx.msg.Body(), "Line 1 of") {
+				t.Errorf("Digest was not called with desired message, got: %s", ctx.msg.Body())
+			}
+
+			return nil
+		},
+	}
+
+	client.Mode = MODE_DATA
+	go cmdDATA(client, "these params are ignored")
+
+	pipe.PrintfLine("Line 1 of text")
+	pipe.PrintfLine("Line 2 of text")
+	pipe.PrintfLine(".")
+
+	_, _, err := pipe.ReadResponse(250)
+	if err != nil || !digestCalled || client.msg.Body() != "" || client.Mode != MODE_MAIL || client.Id != "" {
+		t.Errorf("Expected response 250, to call digest and reset client, but got: %s and digestCalled == %+v", err, digestCalled)
+	}
+}
+
+func TestCmdRSET(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	client.Mode = MODE_DATA
+	client.msg.SetBody("ABCD")
+	client.Id = "Jonah"
+
+	go cmdRSET(client, "")
+	_, _, err := pipe.ReadResponse(250)
+	if err != nil || client.Id != "" || client.msg.Body() != "" || client.Mode != MODE_MAIL {
+		t.Error("Did not reset client correctly")
+	}
+}
+
+func TestCmdNOOP(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	go cmdNOOP(client, "")
+	_, _, err := pipe.ReadResponse(250)
+	if err != nil {
+		t.Error("Did not receive OK on NOOP")
+	}
+}
+
+func TestCmdQUIT(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	go cmdQUIT(client, "")
+	_, _, err := pipe.ReadResponse(221)
+	if err != nil || client.Mode != MODE_QUIT {
+		t.Error("QUIT did not work as expected")
+	}
+}
+
+func TestCmdVRFY_Is_Disabled(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	go cmdVRFY(client, "some@name.com")
+	_, _, err := pipe.ReadResponse(252)
+	if err != nil {
+		t.Error("VRFY did not work as expected")
+	}
 }
 
 // Returns a test client and the end of a connection pipe
