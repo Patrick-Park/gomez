@@ -43,7 +43,7 @@ func (c *Client) Serve() {
 		}
 
 		err = c.Host.Run(c, msg)
-		if c.Mode == MODE_QUIT || !isConnectionActive(err) {
+		if !isConnectionActive(err) || c.Mode == MODE_QUIT {
 			break
 		}
 	}
