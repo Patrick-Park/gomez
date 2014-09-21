@@ -326,7 +326,7 @@ func TestCmdRSET(t *testing.T) {
 
 	go cmdRSET(client, "")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Id != "" || client.msg.Body() != "" || client.Mode != MODE_MAIL {
+	if err != nil || client.msg.Body() != "" || client.Mode != MODE_MAIL {
 		t.Error("Did not reset client correctly")
 	}
 }

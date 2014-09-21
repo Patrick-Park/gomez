@@ -17,22 +17,24 @@ var (
 )
 
 type MailService interface {
-	// Runs a command with arguments in the context
-	// of a given client.
+	// Runs a command from the MailService's CommandSpec in the
+	// context of a connected client.
 	Run(ctx *Client, msg string) error
 
-	// Digests a client's contents and tries to deliver
-	// the message.
+	// Digests a client. It attaches necessarry headers to the message
+	// and inserts it into the MailBox or queues it for relaying.
 	Digest(c *Client) error
 
-	// Returns the server configuration flags
+	// Returns the server configuration flags.
 	Settings() Config
 
-	// Queries the mailbox for a user
+	// Queries the mailbox for a user. See gomez.QueryStatus for
+	// information on response types.
 	Query(addr gomez.Address) gomez.QueryStatus
 }
 
-// SMTP host server instance
+// SMTP host server instance. Holds the CommandSpec, configuration flags
+// and an attached MailBox.
 type Server struct {
 	sync.Mutex
 	spec    *CommandSpec
