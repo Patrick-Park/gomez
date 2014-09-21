@@ -300,7 +300,7 @@ func TestCmdDATA_Success(t *testing.T) {
 	pipe.PrintfLine(".")
 
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || !digestCalled || client.msg.Body() != "" || client.Mode != MODE_MAIL || client.Id != "" {
+	if err != nil || !digestCalled || client.msg.Body() != "" || client.Mode != MODE_MAIL {
 		t.Errorf("Expected response 250, to call digest and reset client, but got: %s and digestCalled == %+v", err, digestCalled)
 	}
 }
