@@ -92,7 +92,7 @@ func cmdRCPT(ctx *Client, param string) error {
 
 		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
 
-	case gomez.QUERY_STATUS_SUCCESSFUL:
+	case gomez.QUERY_STATUS_SUCCESS:
 		ctx.msg.AddRcpt(addr)
 		ctx.Mode = MODE_DATA
 
@@ -120,6 +120,7 @@ func cmdDATA(ctx *Client, param string) error {
 	msg, err := ctx.conn.ReadDotLines()
 	if err != nil {
 		log.Printf("Could not read dot lines: %s\n", err)
+		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
 	ctx.msg.SetBody(strings.Join(msg, ""))

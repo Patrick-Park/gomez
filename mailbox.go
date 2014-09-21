@@ -33,7 +33,7 @@ const (
 	QUERY_STATUS_NOT_LOCAL
 
 	// Query was successful
-	QUERY_STATUS_SUCCESSFUL
+	QUERY_STATUS_SUCCESS
 
 	// An error has occurred
 	QUERY_STATUS_ERROR

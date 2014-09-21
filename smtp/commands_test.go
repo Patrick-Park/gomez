@@ -123,6 +123,128 @@ func TestCmdMAIL_Success(t *testing.T) {
 	pipe.Close()
 }
 
+func TestCmdRCPT_in_MODE_HELO(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_HELO
+
+	go cmdRCPT(client, "")
+	_, _, err := pipe.ReadResponse(503)
+	if err != nil {
+		t.Errorf("Expected to get a 503 response, got: %s", err)
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_in_MODE_MAIL(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_MAIL
+
+	go cmdRCPT(client, "")
+	_, _, err := pipe.ReadResponse(503)
+	if err != nil {
+		t.Errorf("Expected to get a 503 response, got: %s", err)
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_Bad_Syntax(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_RCPT
+
+	go cmdRCPT(client, "invalid")
+	_, _, err := pipe.ReadResponse(501)
+	if err != nil {
+		t.Errorf("Expected to get a 501 response, got: %s", err)
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_Bad_Address(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_RCPT
+
+	go cmdRCPT(client, "TO:<guyhost.tld>")
+	_, _, err := pipe.ReadResponse(501)
+	if err != nil {
+		t.Errorf("Expected to get a 501 response, got: %s", err)
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_User_Not_Found(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_RCPT
+
+	go cmdRCPT(client, "TO:Guy <not_found@host.tld>")
+	_, _, err := pipe.ReadResponse(550)
+	if err != nil {
+		t.Errorf("Expected to get a 550 response, got: %s", err)
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_Relay_Disabled_User_Not_Local(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_RCPT
+
+	go cmdRCPT(client, "TO:<not_local@host.tld>")
+	_, _, err := pipe.ReadResponse(550)
+	if err != nil {
+		t.Errorf("Expected to get a 550 response, got: %s", err)
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_Relay_Enabled_User_Not_Local(t *testing.T) {
+	client, pipe := getTestClient()
+
+	client.Mode = MODE_RCPT
+	client.Host = &MockMailService{
+		Query_:    func(addr gomez.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
+		Settings_: func() Config { return Config{Relay: true} },
+	}
+
+	go cmdRCPT(client, "TO:<not_local@host.tld>")
+	_, _, err := pipe.ReadResponse(251)
+	if err != nil || client.Mode != MODE_DATA || client.msg.Rcpt()[0].Host != "host.tld" || client.msg.Rcpt()[0].User != "not_local" {
+		t.Errorf("Expected to get a 251 response and a recipient, got: %s and '%s'", err, client.msg.Rcpt()[0])
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_Success(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_RCPT
+
+	go cmdRCPT(client, "TO:<success@host.tld>")
+	_, _, err := pipe.ReadResponse(250)
+	if err != nil || client.Mode != MODE_DATA || client.msg.Rcpt()[0].Host != "host.tld" || client.msg.Rcpt()[0].User != "success" {
+		t.Errorf("Expected to get a 250 response and a recipient, got: %s and '%s'", err, client.msg.Rcpt()[0])
+	}
+
+	pipe.Close()
+}
+
+func TestCmdRCPT_Internal_Error(t *testing.T) {
+	client, pipe := getTestClient()
+	client.Mode = MODE_RCPT
+
+	go cmdRCPT(client, "TO:<error@host.tld>")
+	_, _, err := pipe.ReadResponse(451)
+	if err != nil || client.Mode != MODE_RCPT || len(client.msg.Rcpt()) != 0 {
+		t.Errorf("Expected to get a 451 response and a recipient, got: %s and '%s'", err, client.msg.Rcpt()[0])
+	}
+
+	pipe.Close()
+}
+
 // Returns a test client and the end of a connection pipe
 func getTestClient() (*Client, *textproto.Conn) {
 	sc, cc := net.Pipe()
@@ -132,7 +254,20 @@ func getTestClient() (*Client, *textproto.Conn) {
 		conn: sconn,
 		Mode: MODE_HELO,
 		msg:  new(gomez.Message),
-		Host: new(MockMailService),
+		Host: &MockMailService{
+			Query_: func(addr gomez.Address) gomez.QueryStatus {
+				switch addr.User {
+				case "not_found":
+					return gomez.QUERY_STATUS_NOT_FOUND
+				case "not_local":
+					return gomez.QUERY_STATUS_NOT_LOCAL
+				case "success":
+					return gomez.QUERY_STATUS_SUCCESS
+				}
+
+				return gomez.QUERY_STATUS_ERROR
+			},
+		},
 	}
 
 	return client, cconn
