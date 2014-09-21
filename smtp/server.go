@@ -11,11 +11,6 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-var (
-	commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
-	badCommand    = Reply{502, "5.5.2 Error: command not recoginized"}
-)
-
 type MailService interface {
 	// Runs a command from the MailService's CommandSpec in the
 	// context of a connected client.
@@ -97,6 +92,11 @@ func (s Server) Digest(c *Client) error {
 
 	return nil
 }
+
+var (
+	commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
+	badCommand    = Reply{502, "5.5.2 Error: command not recoginized"}
+)
 
 // Runs a command in the context of a child connection
 func (s Server) Run(ctx *Client, msg string) error {
