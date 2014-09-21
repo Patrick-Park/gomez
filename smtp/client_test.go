@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"io"
 	"net"
 	"net/textproto"
 	"sync"
@@ -80,6 +81,43 @@ func TestClientServe(t *testing.T) {
 		}
 	}
 
+	wg.Wait()
+}
+
+// This test assures that serve does not go into infinite loops
+// when clients close connections and that the error branches are hit
+func TestClientServe_Error(t *testing.T) {
+	cc, sc := net.Pipe()
+	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
+
+	testClient := &Client{
+		Host: &MockMailService{
+			Run_: func(ctx *Client, msg string) error {
+				return io.EOF
+			},
+		},
+		Mode: MODE_HELO,
+		conn: sconn,
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		testClient.Serve()
+		wg.Done()
+	}()
+
+	cc.Close()
+	wg.Wait()
+
+	wg.Add(1)
+	go func() {
+		testClient.Serve()
+		wg.Done()
+	}()
+
+	cconn.PrintfLine("Message")
 	wg.Wait()
 }
 

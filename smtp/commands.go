@@ -7,8 +7,6 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-// SMTP HELO command: initiates handshake by
-// identifying foreign host
 func cmdHELO(ctx *Client, param string) error {
 	if len(param) == 0 {
 		return ctx.Notify(Reply{501, "Syntax: HELO hostname"})
@@ -20,8 +18,6 @@ func cmdHELO(ctx *Client, param string) error {
 	return ctx.Notify(Reply{250, "Gomez SMTPd"})
 }
 
-// SMTP EHLO command: same as HELO but provides information
-// about server capabilities and support
 func cmdEHLO(ctx *Client, param string) error {
 	if len(param) == 0 {
 		return ctx.Notify(Reply{501, "Syntax: EHLO hostname"})
@@ -33,8 +29,6 @@ func cmdEHLO(ctx *Client, param string) error {
 	return ctx.Notify(Reply{250, "Gomez SMTPd\nVRFY"})
 }
 
-// SMTP MAIL command: sets sender address.
-// Format is: MAIL FROM:<address>
 func cmdMAIL(ctx *Client, param string) error {
 	switch {
 	case ctx.Mode == MODE_HELO:
@@ -58,9 +52,6 @@ func cmdMAIL(ctx *Client, param string) error {
 	return ctx.Notify(Reply{250, "2.1.0 Ok"})
 }
 
-// SMTP RCPT command: set receipient. Can be executed
-// multiple times for multiple receipients.
-// Format: RCPT TO:<address>
 func cmdRCPT(ctx *Client, param string) error {
 	switch {
 	case ctx.Mode == MODE_HELO:
@@ -102,9 +93,6 @@ func cmdRCPT(ctx *Client, param string) error {
 	return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 }
 
-// SMTP DATA command: sets the message body. Can
-// also include headers as per RFC 821 / RFC 2821
-// Ends with <CR>.<CR>
 func cmdDATA(ctx *Client, param string) error {
 	switch ctx.Mode {
 	case MODE_HELO:
@@ -130,21 +118,15 @@ func cmdDATA(ctx *Client, param string) error {
 	return ctx.Notify(Reply{250, "Message queued"})
 }
 
-// SMTP RSET command: reset client state
-// and message
 func cmdRSET(ctx *Client, param string) error {
 	ctx.Reset()
 	return ctx.Notify(Reply{250, "2.0.0 Ok"})
 }
 
-// SMTP NOOP command: no operation
 func cmdNOOP(ctx *Client, param string) error {
 	return ctx.Notify(Reply{250, "2.0.0 Ok"})
 }
 
-// SMTP VRFY command: queries the mailbox
-// for a user lookup. If more than one entry
-// is found, ambigous error is returned
 func cmdVRFY(ctx *Client, param string) error {
 	return ctx.Notify(Reply{252, "2.1.5 Send some mail, I'll try my best"})
 }
