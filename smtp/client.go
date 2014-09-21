@@ -38,24 +38,12 @@ func (c *Client) Notify(r Reply) error { return c.conn.PrintfLine("%s", r) }
 func (c *Client) Serve() {
 	for {
 		msg, err := c.conn.ReadLine()
-		if err != nil {
-			log.Printf("Could not read input: %s\n", err)
-
-			if err == io.EOF {
-				break
-			}
+		if !isConnectionActive(err) {
+			break
 		}
 
 		err = c.Host.Run(c, msg)
-		if err != nil {
-			log.Printf("Error running command '%s': %s", msg, err)
-
-			if err == io.EOF {
-				break
-			}
-		}
-
-		if c.Mode == MODE_QUIT {
+		if c.Mode == MODE_QUIT || !isConnectionActive(err) {
 			break
 		}
 	}
@@ -69,6 +57,20 @@ func (c *Client) Reset() {
 	c.msg = new(gomez.Message)
 	c.Mode = MODE_MAIL
 	c.Id = ""
+}
+
+// Checks if an error was returned and logs it.
+// If the error was EOF it returns true
+func isConnectionActive(err error) bool {
+	if err != nil {
+		log.Printf("Error processing I/O: %s", err)
+
+		if err == io.EOF {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Reply is an SMTP reply. It contains a status
