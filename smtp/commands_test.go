@@ -305,6 +305,17 @@ func TestCmdDATA_Success(t *testing.T) {
 	}
 }
 
+func TestCmdDATA_Error(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	client.Mode = MODE_DATA
+	go cmdDATA(client, "these params are ignored")
+
+	pipe.PrintfLine("Line 1 of text")
+	pipe.PrintfLine("Line 2 of text")
+}
+
 func TestCmdRSET(t *testing.T) {
 	client, pipe := getTestClient()
 	defer pipe.Close()

@@ -139,4 +139,32 @@ func TestServerCreateClient(t *testing.T) {
 	wg.Wait()
 }
 
+func TestServer_Settings(t *testing.T) {
+	testServer := &Server{
+		config: Config{Hostname: "test", Relay: true},
+	}
+
+	flags := testServer.Settings()
+	if flags.Hostname != "test" || !flags.Relay {
+		t.Error("Did not retrieve correct flags via Settings()")
+	}
+}
+
+func TestServer_Query_Calls_MailBox(t *testing.T) {
+	queryCalled := false
+	testServer := &Server{
+		Mailbox: &gomez.MockMailbox{
+			Query_: func(addr gomez.Address) gomez.QueryStatus {
+				queryCalled = true
+				return gomez.QUERY_STATUS_SUCCESS
+			},
+		},
+	}
+
+	testServer.Query(gomez.Address{})
+	if !queryCalled {
+		t.Error("Server Query did not call Mailbox query")
+	}
+}
+
 // Test E2E
