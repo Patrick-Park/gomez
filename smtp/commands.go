@@ -124,13 +124,13 @@ func cmdDATA(ctx *Client, param string) error {
 		return ctx.Notify(Reply{503, "5.5.1 RCPT first."})
 	}
 
-	msg, err := ctx.conn.ReadDotLines()
+	msg, err := ctx.conn.ReadDotBytes()
 	if err != nil {
 		log.Printf("Could not read dot lines: %s\n", err)
 		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
-	err = ctx.msg.FromRaw(strings.Join(msg, "\r\n"))
+	err = ctx.msg.FromRaw(string(msg))
 	if err != nil {
 		return ctx.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
