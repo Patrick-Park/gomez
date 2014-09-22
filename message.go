@@ -13,7 +13,7 @@ import (
 type Message struct {
 	from    Address
 	rcpt    []Address
-	headers textproto.MIMEHeader
+	Headers textproto.MIMEHeader
 	body    string
 }
 
@@ -35,9 +35,6 @@ func (m *Message) SetBody(msg string) { m.body = msg }
 // Returns the message body
 func (m Message) Body() string { return m.body }
 
-// Returns the message headers
-func (m Message) Headers() textproto.MIMEHeader { return m.headers }
-
 // This error is returned by the FromRaw function when the passed
 // message body is not RFC 2822 compliant
 var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC compliant.")
@@ -48,8 +45,8 @@ var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC compliant.")
 func (m *Message) FromRaw(raw string) error {
 	r := textproto.NewReader(bufio.NewReader(strings.NewReader(raw)))
 
-	headers, err := r.ReadMIMEHeader()
-	if err != nil || len(headers.Get("From")) == 0 || len(headers.Get("Date")) == 0 {
+	Headers, err := r.ReadMIMEHeader()
+	if err != nil || len(Headers.Get("From")) == 0 || len(Headers.Get("Date")) == 0 {
 		return ERR_MESSAGE_NOT_COMPLIANT
 	}
 
@@ -58,7 +55,7 @@ func (m *Message) FromRaw(raw string) error {
 		return ERR_MESSAGE_NOT_COMPLIANT
 	}
 
-	m.headers = headers
+	m.Headers = Headers
 	m.body = strings.Join(body, "\r\n")
 
 	return nil
