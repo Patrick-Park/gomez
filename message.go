@@ -35,6 +35,9 @@ func (m *Message) SetBody(msg string) { m.body = msg }
 // Returns the message body
 func (m Message) Body() string { return m.body }
 
+// Returns the message headers
+func (m Message) Headers() textproto.MIMEHeader { return m.headers }
+
 // This error is returned by the FromRaw function when the passed
 // message body is not RFC 2822 compliant
 var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC compliant.")
