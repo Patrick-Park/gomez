@@ -35,21 +35,24 @@ func (m *Message) SetBody(msg string) { m.body = msg }
 // Returns the message body
 func (m Message) Body() string { return m.body }
 
+// This error is returned by the FromRaw function when the passed
+// message body is not RFC 2822 compliant
+var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC compliant.")
+
 // Sets the headers and the body from a raw message. If the message
 // does not contain the RFC 2822 headers (From and Date) or if it's
-// uncompliant, an error is returned.
+// uncompliant, ERR_MESSAGE_NOT_COMPLIANT error is returned.
 func (m *Message) FromRaw(raw string) error {
-	var errorMessageNotCompliant = errors.New("Headers not RFC compliant.")
-
 	r := textproto.NewReader(bufio.NewReader(strings.NewReader(raw)))
+
 	headers, err := r.ReadMIMEHeader()
 	if err != nil || len(headers.Get("From")) == 0 || len(headers.Get("Date")) == 0 {
-		return errorMessageNotCompliant
+		return ERR_MESSAGE_NOT_COMPLIANT
 	}
 
 	body, err := r.ReadDotLines()
 	if err != nil && err.Error() != "unexpected EOF" {
-		return errorMessageNotCompliant
+		return ERR_MESSAGE_NOT_COMPLIANT
 	}
 
 	m.headers = headers
