@@ -2,6 +2,8 @@ package smtp
 
 import (
 	"io"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/textproto"
 	"sync"
@@ -89,6 +91,8 @@ func TestClientServe(t *testing.T) {
 func TestClientServe_Error(t *testing.T) {
 	cc, sc := net.Pipe()
 	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
+
+	log.SetOutput(ioutil.Discard)
 
 	testClient := &Client{
 		Host: &MockMailService{

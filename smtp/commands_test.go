@@ -1,6 +1,8 @@
 package smtp
 
 import (
+	"io/ioutil"
+	"log"
 	"net"
 	"net/textproto"
 	"strings"
@@ -236,6 +238,8 @@ func TestCmdRCPT_Success(t *testing.T) {
 func TestCmdRCPT_Internal_Error(t *testing.T) {
 	client, pipe := getTestClient()
 	client.Mode = MODE_RCPT
+
+	log.SetOutput(ioutil.Discard)
 
 	go cmdRCPT(client, "TO:<error@host.tld>")
 	_, _, err := pipe.ReadResponse(451)
