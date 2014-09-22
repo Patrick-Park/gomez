@@ -299,6 +299,9 @@ func TestCmdDATA_Success(t *testing.T) {
 	client.Mode = MODE_DATA
 	go cmdDATA(client, "these params are ignored")
 
+	pipe.PrintfLine("Date: Fri, 14 Nov 2003 14:00:01 -0500")
+	pipe.PrintfLine("From: Jimmy")
+	pipe.PrintfLine("")
 	pipe.PrintfLine("Line 1 of text")
 	pipe.PrintfLine("Line 2 of text")
 	pipe.PrintfLine(".")

@@ -111,8 +111,17 @@ func cmdDATA(ctx *Client, param string) error {
 		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
-	ctx.msg.SetBody(strings.Join(msg, "\r\n"))
-	ctx.Host.Digest(ctx)
+	err = ctx.msg.FromRaw(strings.Join(msg, "\r\n"))
+	if err != nil {
+		return ctx.Notify(Reply{550, "Message not RFC 2822 compliant."})
+	}
+
+	err = ctx.Host.Digest(ctx)
+	if err != nil {
+		log.Printf("Error digesting message: %s\n", err)
+		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
+	}
+
 	ctx.Reset()
 
 	return ctx.Notify(Reply{250, "Message queued"})

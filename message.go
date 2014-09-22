@@ -1,6 +1,11 @@
 package gomez
 
-import "net/textproto"
+import (
+	"bufio"
+	"errors"
+	"net/textproto"
+	"strings"
+)
 
 // A message represents an e-mail message and
 // holds information about sender, recepients
@@ -30,8 +35,26 @@ func (m *Message) SetBody(msg string) { m.body = msg }
 // Returns the message body
 func (m Message) Body() string { return m.body }
 
-// Sets the headers and the body from a raw message
+// Sets the headers and the body from a raw message. If the message
+// does not contain the RFC 2822 headers (From and Date) or if it's
+// uncompliant, an error is returned.
 func (m *Message) FromRaw(raw string) error {
+	var errorMessageNotCompliant = errors.New("Headers not RFC compliant.")
+
+	r := textproto.NewReader(bufio.NewReader(strings.NewReader(raw)))
+	headers, err := r.ReadMIMEHeader()
+	if err != nil || len(headers.Get("From")) == 0 || len(headers.Get("Date")) == 0 {
+		return errorMessageNotCompliant
+	}
+
+	body, err := r.ReadDotLines()
+	if err != nil && err.Error() != "unexpected EOF" {
+		return errorMessageNotCompliant
+	}
+
+	m.headers = headers
+	m.body = strings.Join(body, "\r\n")
+
 	return nil
 }
 
