@@ -1,12 +1,15 @@
 package gomez
 
+import "net/textproto"
+
 // A message represents an e-mail message and
 // holds information about sender, recepients
 // and the message body
 type Message struct {
-	from Address
-	rcpt []Address
-	body string
+	from    Address
+	rcpt    []Address
+	headers textproto.MIMEHeader
+	body    string
 }
 
 // Adds a new recepient to the message
@@ -26,3 +29,13 @@ func (m *Message) SetBody(msg string) { m.body = msg }
 
 // Returns the message body
 func (m Message) Body() string { return m.body }
+
+// Sets the headers and the body from a raw message
+func (m *Message) FromRaw(raw string) error {
+	return nil
+}
+
+// Returns the raw message with all headers
+func (m Message) Raw() string {
+	return ""
+}

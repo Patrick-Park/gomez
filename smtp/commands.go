@@ -111,7 +111,7 @@ func cmdDATA(ctx *Client, param string) error {
 		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
-	ctx.msg.SetBody(strings.Join(msg, ""))
+	ctx.msg.SetBody(strings.Join(msg, "\r\n"))
 	ctx.Host.Digest(ctx)
 	ctx.Reset()
 
