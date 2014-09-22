@@ -23,10 +23,10 @@ func (m *Message) AddRcpt(addr ...Address) { m.rcpt = append(m.rcpt, addr...) }
 // Returns the message recepients
 func (m Message) Rcpt() []Address { return m.rcpt }
 
-// Adds a Reply-To address
+// Adds a Return-Path address
 func (m *Message) SetFrom(addr Address) { m.from = addr }
 
-// Returns the Reply-To address
+// Gets the Return-Path address
 func (m Message) From() Address { return m.from }
 
 // Sets the message body
