@@ -14,10 +14,12 @@ func TestMessage_AddHeader(t *testing.T) {
 	m.Headers.Prepend("Names", "Bob")
 
 	m.Headers.Set("Types", "Blue")
+	m.Headers.Prepend("Types", "Green")
+	m.Headers.Add("Types", "Red")
 
 	if !reflect.DeepEqual(OrderedHeader{textproto.MIMEHeader{
 		"Names": {"Bob", "Jane", "Andy"},
-		"Types": {"Blue"},
+		"Types": {"Green", "Blue", "Red"},
 	}}, m.Headers) {
 		t.Errorf("Got unexpected result: %#v", m.Headers)
 	}
