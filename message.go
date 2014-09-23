@@ -23,9 +23,8 @@ func (h OrderedHeader) Prepend(key, value string) {
 	}
 }
 
-// A message represents an e-mail message and
-// holds information about sender, recepients
-// and the message body
+// A message represents an e-mail message and  holds information about
+// sender, recepients and the message body
 type Message struct {
 	from    Address
 	rcpt    []Address
