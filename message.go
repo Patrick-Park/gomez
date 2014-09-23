@@ -88,6 +88,5 @@ func (m Message) Raw() string {
 	}
 
 	raw.WriteString("\r\n\r\n" + m.Body)
-
 	return raw.String()
 }
