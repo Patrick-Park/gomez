@@ -74,7 +74,7 @@ func (m *Message) FromRaw(raw string) error {
 	m.Body = strings.Join(body, "\r\n")
 	m.Body = strings.TrimLeft(m.Body, "\r\n")
 
-	return err
+	return nil
 }
 
 // Returns the raw message with all headers
