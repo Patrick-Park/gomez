@@ -2,6 +2,7 @@ package gomez
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"net/textproto"
 	"strings"
@@ -71,11 +72,22 @@ func (m *Message) FromRaw(raw string) error {
 
 	m.Headers.MIMEHeader = headers
 	m.Body = strings.Join(body, "\r\n")
+	m.Body = strings.TrimLeft(m.Body, "\r\n")
 
 	return nil
 }
 
 // Returns the raw message with all headers
 func (m Message) Raw() string {
-	return ""
+	var raw bytes.Buffer
+
+	for key, values := range m.Headers.MIMEHeader {
+		for _, value := range values {
+			raw.WriteString(key + ": " + value + "\r\n")
+		}
+	}
+
+	raw.WriteString("\r\n\r\n" + m.Body)
+
+	return raw.String()
 }

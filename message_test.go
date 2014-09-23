@@ -79,3 +79,35 @@ Hey what's up?`, Message{}, false},
 		}
 	}
 }
+
+func TestMessage_Raw_And_Back(t *testing.T) {
+	testSuite := []Message{
+		Message{
+			Headers: OrderedHeader{textproto.MIMEHeader{
+				"From": []string{"Jim"},
+				"Date": []string{"1 Jan 1989"},
+				"To":   []string{"Gophers"},
+			}},
+			Body: "Hey Gophers!\r\nHow's it going these days?"},
+
+		Message{
+			Headers: OrderedHeader{textproto.MIMEHeader{
+				"Subject":  []string{"Hello"},
+				"Date":     []string{"1 Jan 1989"},
+				"From":     []string{"Gophers"},
+				"Received": []string{"John at 123", "Jim at 250"},
+			}},
+			Body: "Hey Foo!\r\nHow's it going these days?"},
+	}
+
+	for _, test := range testSuite {
+		m := NewMessage()
+
+		m.FromRaw(test.Raw())
+		m.FromRaw(m.Raw())
+
+		if !reflect.DeepEqual(*m, test) {
+			t.Errorf("Expected: \r\n%#v, got:\r\n\r\n%#v\r\n\r\n", test, m)
+		}
+	}
+}
