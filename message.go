@@ -13,8 +13,7 @@ import (
 type OrderedHeader struct{ textproto.MIMEHeader }
 
 // Prepends a message to an existing key if it already exists, otherwise
-// it creates it. Some headers need to be in reverse order for validity,
-// such as the "Recieved" key.
+// it creates it. Some headers need to be in reverse order for validity.
 func (h OrderedHeader) Prepend(key, value string) {
 	if _, ok := h.MIMEHeader[key]; !ok {
 		h.MIMEHeader.Set(key, value)
