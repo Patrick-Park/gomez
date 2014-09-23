@@ -119,8 +119,8 @@ func TestCmdMAIL_Success(t *testing.T) {
 
 	go cmdMAIL(client, "from:First Last <asd@box.com>")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_RCPT || testAddr.String() != client.msg.From().String() {
-		t.Errorf("Expected code 250, address %s got: %#v, %s", testAddr, err, client.msg.From())
+	if err != nil || client.Mode != MODE_RCPT || testAddr.String() != client.Message.From().String() {
+		t.Errorf("Expected code 250, address %s got: %#v, %s", testAddr, err, client.Message.From())
 	}
 
 	pipe.Close()
@@ -208,15 +208,15 @@ func TestCmdRCPT_Relay_Enabled_User_Not_Local(t *testing.T) {
 	client, pipe := getTestClient()
 
 	client.Mode = MODE_RCPT
-	client.Host = &MockMailService{
+	client.host = &MockMailService{
 		Query_:    func(addr gomez.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
 		Settings_: func() Config { return Config{Relay: true} },
 	}
 
 	go cmdRCPT(client, "TO:<not_local@host.tld>")
 	_, _, err := pipe.ReadResponse(251)
-	if err != nil || client.Mode != MODE_DATA || client.msg.Rcpt()[0].Host != "host.tld" || client.msg.Rcpt()[0].User != "not_local" {
-		t.Errorf("Expected to get a 251 response and a recipient, got: %s and '%s'", err, client.msg.Rcpt()[0])
+	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Host != "host.tld" || client.Message.Rcpt()[0].User != "not_local" {
+		t.Errorf("Expected to get a 251 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
 	pipe.Close()
@@ -228,8 +228,8 @@ func TestCmdRCPT_Success(t *testing.T) {
 
 	go cmdRCPT(client, "TO:<success@host.tld>")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_DATA || client.msg.Rcpt()[0].Host != "host.tld" || client.msg.Rcpt()[0].User != "success" {
-		t.Errorf("Expected to get a 250 response and a recipient, got: %s and '%s'", err, client.msg.Rcpt()[0])
+	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Host != "host.tld" || client.Message.Rcpt()[0].User != "success" {
+		t.Errorf("Expected to get a 250 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
 	pipe.Close()
@@ -243,8 +243,8 @@ func TestCmdRCPT_Internal_Error(t *testing.T) {
 
 	go cmdRCPT(client, "TO:<error@host.tld>")
 	_, _, err := pipe.ReadResponse(451)
-	if err != nil || client.Mode != MODE_RCPT || len(client.msg.Rcpt()) != 0 {
-		t.Errorf("Expected to get a 451 response and a recipient, got: %s and '%s'", err, client.msg.Rcpt()[0])
+	if err != nil || client.Mode != MODE_RCPT || len(client.Message.Rcpt()) != 0 {
+		t.Errorf("Expected to get a 451 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
 	pipe.Close()
@@ -284,12 +284,12 @@ func TestCmdDATA_Success(t *testing.T) {
 
 	digestCalled := false
 
-	client.Host = &MockMailService{
+	client.host = &MockMailService{
 		Digest_: func(ctx *Client) error {
 			digestCalled = true
 
-			if !strings.HasPrefix(ctx.msg.Body(), "Line 1 of") {
-				t.Errorf("Digest was not called with desired message, got: %s", ctx.msg.Body())
+			if !strings.HasPrefix(ctx.Message.Body(), "Line 1 of") {
+				t.Errorf("Digest was not called with desired message, got: %s", ctx.Message.Body())
 			}
 
 			return nil
@@ -307,7 +307,7 @@ func TestCmdDATA_Success(t *testing.T) {
 	pipe.PrintfLine(".")
 
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || !digestCalled || client.msg.Body() != "" || client.Mode != MODE_MAIL {
+	if err != nil || !digestCalled || client.Message.Body() != "" || client.Mode != MODE_MAIL {
 		t.Errorf("Expected response 250, to call digest and reset client, but got: %s and digestCalled == %+v", err, digestCalled)
 	}
 }
@@ -328,12 +328,12 @@ func TestCmdRSET(t *testing.T) {
 	defer pipe.Close()
 
 	client.Mode = MODE_DATA
-	client.msg.SetBody("ABCD")
+	client.Message.SetBody("ABCD")
 	client.Id = "Jonah"
 
 	go cmdRSET(client, "")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.msg.Body() != "" || client.Mode != MODE_MAIL {
+	if err != nil || client.Message.Body() != "" || client.Mode != MODE_MAIL {
 		t.Error("Did not reset client correctly")
 	}
 }
@@ -377,10 +377,10 @@ func getTestClient() (*Client, *textproto.Conn) {
 	sconn, cconn := textproto.NewConn(sc), textproto.NewConn(cc)
 
 	client := &Client{
-		conn: sconn,
-		Mode: MODE_HELO,
-		msg:  gomez.NewMessage(),
-		Host: &MockMailService{
+		conn:    sconn,
+		Mode:    MODE_HELO,
+		Message: gomez.NewMessage(),
+		host: &MockMailService{
 			Query_: func(addr gomez.Address) gomez.QueryStatus {
 				switch addr.User {
 				case "not_found":

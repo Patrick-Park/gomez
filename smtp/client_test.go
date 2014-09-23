@@ -51,7 +51,7 @@ func TestClientServe(t *testing.T) {
 	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
 
 	testClient := &Client{
-		Host: hostMock,
+		host: hostMock,
 		Mode: MODE_HELO,
 		conn: sconn,
 	}
@@ -95,7 +95,7 @@ func TestClientServe_Error(t *testing.T) {
 	log.SetOutput(ioutil.Discard)
 
 	testClient := &Client{
-		Host: &MockMailService{
+		host: &MockMailService{
 			Run_: func(ctx *Client, msg string) error {
 				return io.EOF
 			},
@@ -128,15 +128,15 @@ func TestClientServe_Error(t *testing.T) {
 // It should reset the client's state (ID, InputMode and Message)
 func TestClientReset(t *testing.T) {
 	testClient := &Client{
-		Mode: MODE_RCPT,
-		msg:  gomez.NewMessage(),
-		Id:   "Mike",
+		Mode:    MODE_RCPT,
+		Message: gomez.NewMessage(),
+		Id:      "Mike",
 	}
 
-	testClient.msg.SetBody("Message body.")
+	testClient.Message.SetBody("Message body.")
 
 	testClient.Reset()
-	if testClient.Mode != MODE_MAIL || testClient.msg.Body() != "" {
+	if testClient.Mode != MODE_MAIL || testClient.Message.Body() != "" {
 		t.Error("Did not reset client correctly.")
 	}
 }

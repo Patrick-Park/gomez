@@ -80,7 +80,7 @@ func Start(mb gomez.Mailbox, conf Config) {
 			log.Print("Error accepting an incoming connection.")
 		}
 
-		go srv.createClient(conn)
+		go srv.CreateClient(conn)
 	}
 }
 
@@ -122,12 +122,13 @@ func (s Server) Settings() Config { return s.config }
 func (s Server) Query(addr gomez.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
 
 // Creates a new client based on the given connection
-func (s Server) createClient(conn net.Conn) {
+func (s Server) CreateClient(conn net.Conn) {
 	c := &Client{
-		msg:  gomez.NewMessage(),
-		Mode: MODE_HELO,
-		conn: textproto.NewConn(conn),
-		Host: s,
+		Message: gomez.NewMessage(),
+		Mode:    MODE_HELO,
+		host:    s,
+		conn:    textproto.NewConn(conn),
+		rawConn: conn,
 	}
 
 	c.Notify(Reply{220, s.config.Hostname + " Gomez SMTP"})

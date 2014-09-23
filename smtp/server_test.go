@@ -83,7 +83,7 @@ func TestServerCreateClient(t *testing.T) {
 	wg.Add(1)
 
 	go func() {
-		testServer.createClient(sc)
+		testServer.CreateClient(sc)
 		wg.Done()
 	}()
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/textproto"
 	"strings"
 
@@ -26,11 +27,12 @@ const (
 // It holds the current SMTP state and the created message,
 // as well as exposes the host mail service.
 type Client struct {
-	Id   string
-	msg  *gomez.Message
-	Mode InputMode
-	conn *textproto.Conn
-	Host MailService
+	Id      string
+	Message *gomez.Message
+	Mode    InputMode
+	host    MailService
+	conn    *textproto.Conn
+	rawConn net.Conn
 }
 
 // Replies to the client via the attached connection. To find
@@ -49,7 +51,7 @@ func (c *Client) Serve() {
 			break
 		}
 
-		err = c.Host.Run(c, msg)
+		err = c.host.Run(c, msg)
 		if isEOF(err) || c.Mode == MODE_QUIT {
 			break
 		}
@@ -62,7 +64,7 @@ func (c *Client) Serve() {
 // reverts the mode to MODE_MAIL. The only thing that is kept is the ID
 // of the client received via the EHLO/HELO command.
 func (c *Client) Reset() {
-	c.msg = gomez.NewMessage()
+	c.Message = gomez.NewMessage()
 	c.Mode = MODE_MAIL
 }
 

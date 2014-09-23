@@ -57,7 +57,7 @@ func cmdMAIL(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "5.1.7 Bad sender address syntax"})
 	}
 
-	ctx.msg.SetFrom(addr)
+	ctx.Message.SetFrom(addr)
 	ctx.Mode = MODE_RCPT
 
 	return ctx.Notify(Reply{250, "2.1.0 Ok"})
@@ -84,22 +84,22 @@ func cmdRCPT(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "5.1.7 Bad recipient address syntax"})
 	}
 
-	switch ctx.Host.Query(addr) {
+	switch ctx.host.Query(addr) {
 	case gomez.QUERY_STATUS_NOT_FOUND:
 		return ctx.Notify(Reply{550, "No such user here."})
 
 	case gomez.QUERY_STATUS_NOT_LOCAL:
-		if flags := ctx.Host.Settings(); !flags.Relay {
+		if flags := ctx.host.Settings(); !flags.Relay {
 			return ctx.Notify(Reply{550, "No such user here. Relaying is not supported."})
 		}
 
-		ctx.msg.AddRcpt(addr)
+		ctx.Message.AddRcpt(addr)
 		ctx.Mode = MODE_DATA
 
 		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
 
 	case gomez.QUERY_STATUS_SUCCESS:
-		ctx.msg.AddRcpt(addr)
+		ctx.Message.AddRcpt(addr)
 		ctx.Mode = MODE_DATA
 
 		return ctx.Notify(Reply{250, "OK"})
@@ -130,12 +130,12 @@ func cmdDATA(ctx *Client, param string) error {
 		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
-	err = ctx.msg.FromRaw(strings.Join(msg, "\r\n"))
+	err = ctx.Message.FromRaw(strings.Join(msg, "\r\n"))
 	if err != nil {
 		return ctx.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
 
-	err = ctx.Host.Digest(ctx)
+	err = ctx.host.Digest(ctx)
 	if err != nil {
 		log.Printf("Error digesting message: %s\n", err)
 		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
