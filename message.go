@@ -13,13 +13,13 @@ import (
 type Message struct {
 	from    Address
 	rcpt    []Address
-	Headers textproto.MIMEHeader
+	Headers OrderedHeader
 	body    string
 }
 
 // Creates a new empty message with all values initialized
 func NewMessage() *Message {
-	return &Message{Headers: make(textproto.MIMEHeader)}
+	return &Message{Headers: OrderedHeader{make(textproto.MIMEHeader)}}
 }
 
 // Adds a new recepient to the message
@@ -39,17 +39,6 @@ func (m *Message) SetBody(msg string) { m.body = msg }
 
 // Returns the message body
 func (m Message) Body() string { return m.body }
-
-// Prepends a message to an existing key if it already exists, otherwise
-// it creates it. Some headers need to be in reverse order for validity,
-// such as the "Recieved" key.
-func (m *Message) PrependHeader(key, value string) {
-	if _, ok := m.Headers[key]; !ok {
-		m.Headers.Set(key, value)
-	} else {
-		m.Headers[key] = append([]string{value}, m.Headers[key]...)
-	}
-}
 
 // This error is returned by the FromRaw function when the passed
 // message body is not RFC 2822 compliant
@@ -71,7 +60,7 @@ func (m *Message) FromRaw(raw string) error {
 		return ERR_MESSAGE_NOT_COMPLIANT
 	}
 
-	m.Headers = headers
+	m.Headers.MIMEHeader = headers
 	m.body = strings.Join(body, "\r\n")
 
 	return nil
@@ -80,4 +69,19 @@ func (m *Message) FromRaw(raw string) error {
 // Returns the raw message with all headers
 func (m Message) Raw() string {
 	return ""
+}
+
+// OrderedHeader is a wrapper on textproto.MIMEHeader providing additional
+// functionalities, such as ordered headers (as needed for "Received")
+type OrderedHeader struct{ textproto.MIMEHeader }
+
+// Prepends a message to an existing key if it already exists, otherwise
+// it creates it. Some headers need to be in reverse order for validity,
+// such as the "Recieved" key.
+func (h OrderedHeader) Prepend(key, value string) {
+	if _, ok := h.MIMEHeader[key]; !ok {
+		h.MIMEHeader.Set(key, value)
+	} else {
+		h.MIMEHeader[key] = append([]string{value}, h.MIMEHeader[key]...)
+	}
 }
