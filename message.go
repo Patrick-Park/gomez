@@ -77,7 +77,9 @@ func (m *Message) FromRaw(raw string) error {
 	return nil
 }
 
-// Returns the raw message with all headers
+// Returns the raw message with all headers. The order of the keys
+// will vary on each call but the order of the values will be always
+// be as is.
 func (m Message) Raw() string {
 	var raw bytes.Buffer
 
