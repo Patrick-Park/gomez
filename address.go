@@ -15,7 +15,7 @@ type Address struct {
 }
 
 // Implements the Stringer interface for pretty printing
-func (a Address) String() string { return fmt.Sprintf(`"%s" <%s@%s>`, a.Name, a.User, a.Host) }
+func (a Address) String() string { return fmt.Sprintf(`%s <%s@%s>`, a.Name, a.User, a.Host) }
 
 // Address format, can be <user_name123@host.tld> or First Last <user@host.tld>
 var pathFormat = regexp.MustCompile("^(?:([a-zA-Z ]{1,})(?: ))?<([a-zA-Z1-9_]{1,})@([a-zA-Z1-9.]{4,})>$")
