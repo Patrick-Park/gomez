@@ -288,8 +288,8 @@ func TestCmdDATA_Success(t *testing.T) {
 		Digest_: func(ctx *Client) error {
 			digestCalled = true
 
-			if !strings.HasPrefix(ctx.Message.Body(), "Line 1 of") {
-				t.Errorf("Digest was not called with desired message, got: %s", ctx.Message.Body())
+			if !strings.HasPrefix(ctx.Message.Body, "Line 1 of") {
+				t.Errorf("Digest was not called with desired message, got: %s", ctx.Message.Body)
 			}
 
 			return nil
@@ -307,7 +307,7 @@ func TestCmdDATA_Success(t *testing.T) {
 	pipe.PrintfLine(".")
 
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || !digestCalled || client.Message.Body() != "" || client.Mode != MODE_MAIL {
+	if err != nil || !digestCalled || client.Message.Body != "" || client.Mode != MODE_MAIL {
 		t.Errorf("Expected response 250, to call digest and reset client, but got: %s and digestCalled == %+v", err, digestCalled)
 	}
 }
@@ -328,12 +328,12 @@ func TestCmdRSET(t *testing.T) {
 	defer pipe.Close()
 
 	client.Mode = MODE_DATA
-	client.Message.SetBody("ABCD")
+	client.Message.Body = "ABCD"
 	client.Id = "Jonah"
 
 	go cmdRSET(client, "")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Message.Body() != "" || client.Mode != MODE_MAIL {
+	if err != nil || client.Message.Body != "" || client.Mode != MODE_MAIL {
 		t.Error("Did not reset client correctly")
 	}
 }

@@ -7,6 +7,21 @@ import (
 	"strings"
 )
 
+// OrderedHeader is a wrapper on textproto.MIMEHeader providing additional
+// functionalities, such as ordered headers (as needed for "Received")
+type OrderedHeader struct{ textproto.MIMEHeader }
+
+// Prepends a message to an existing key if it already exists, otherwise
+// it creates it. Some headers need to be in reverse order for validity,
+// such as the "Recieved" key.
+func (h OrderedHeader) Prepend(key, value string) {
+	if _, ok := h.MIMEHeader[key]; !ok {
+		h.MIMEHeader.Set(key, value)
+	} else {
+		h.MIMEHeader[key] = append([]string{value}, h.MIMEHeader[key]...)
+	}
+}
+
 // A message represents an e-mail message and
 // holds information about sender, recepients
 // and the message body
@@ -14,7 +29,7 @@ type Message struct {
 	from    Address
 	rcpt    []Address
 	Headers OrderedHeader
-	body    string
+	Body    string
 }
 
 // Creates a new empty message with all values initialized
@@ -33,12 +48,6 @@ func (m *Message) SetFrom(addr Address) { m.from = addr }
 
 // Gets the Return-Path address
 func (m Message) From() Address { return m.from }
-
-// Sets the message body
-func (m *Message) SetBody(msg string) { m.body = msg }
-
-// Returns the message body
-func (m Message) Body() string { return m.body }
 
 // This error is returned by the FromRaw function when the passed
 // message body is not RFC 2822 compliant
@@ -61,7 +70,7 @@ func (m *Message) FromRaw(raw string) error {
 	}
 
 	m.Headers.MIMEHeader = headers
-	m.body = strings.Join(body, "\r\n")
+	m.Body = strings.Join(body, "\r\n")
 
 	return nil
 }
@@ -69,19 +78,4 @@ func (m *Message) FromRaw(raw string) error {
 // Returns the raw message with all headers
 func (m Message) Raw() string {
 	return ""
-}
-
-// OrderedHeader is a wrapper on textproto.MIMEHeader providing additional
-// functionalities, such as ordered headers (as needed for "Received")
-type OrderedHeader struct{ textproto.MIMEHeader }
-
-// Prepends a message to an existing key if it already exists, otherwise
-// it creates it. Some headers need to be in reverse order for validity,
-// such as the "Recieved" key.
-func (h OrderedHeader) Prepend(key, value string) {
-	if _, ok := h.MIMEHeader[key]; !ok {
-		h.MIMEHeader.Set(key, value)
-	} else {
-		h.MIMEHeader[key] = append([]string{value}, h.MIMEHeader[key]...)
-	}
 }
