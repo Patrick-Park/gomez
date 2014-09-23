@@ -379,7 +379,7 @@ func getTestClient() (*Client, *textproto.Conn) {
 	client := &Client{
 		conn: sconn,
 		Mode: MODE_HELO,
-		msg:  new(gomez.Message),
+		msg:  gomez.NewMessage(),
 		Host: &MockMailService{
 			Query_: func(addr gomez.Address) gomez.QueryStatus {
 				switch addr.User {

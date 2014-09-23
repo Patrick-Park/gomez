@@ -124,7 +124,7 @@ func (s Server) Query(addr gomez.Address) gomez.QueryStatus { return s.Mailbox.Q
 // Creates a new client based on the given connection
 func (s Server) createClient(conn net.Conn) {
 	c := &Client{
-		msg:  new(gomez.Message),
+		msg:  gomez.NewMessage(),
 		Mode: MODE_HELO,
 		conn: textproto.NewConn(conn),
 		Host: s,

@@ -129,7 +129,7 @@ func TestClientServe_Error(t *testing.T) {
 func TestClientReset(t *testing.T) {
 	testClient := &Client{
 		Mode: MODE_RCPT,
-		msg:  new(gomez.Message),
+		msg:  gomez.NewMessage(),
 		Id:   "Mike",
 	}
 

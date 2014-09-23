@@ -17,6 +17,11 @@ type Message struct {
 	body    string
 }
 
+// Creates a new empty message with all values initialized
+func NewMessage() *Message {
+	return &Message{Headers: make(textproto.MIMEHeader)}
+}
+
 // Adds a new recepient to the message
 func (m *Message) AddRcpt(addr ...Address) { m.rcpt = append(m.rcpt, addr...) }
 
@@ -38,11 +43,7 @@ func (m Message) Body() string { return m.body }
 // Prepends a message to an existing key if it already exists, otherwise
 // it creates it. Some headers need to be in reverse order for validity,
 // such as the "Recieved" key.
-func (m *Message) AddHeader(key, value string) {
-	if m.Headers == nil {
-		m.Headers = make(textproto.MIMEHeader)
-	}
-
+func (m *Message) PrependHeader(key, value string) {
 	if _, ok := m.Headers[key]; !ok {
 		m.Headers.Set(key, value)
 	} else {

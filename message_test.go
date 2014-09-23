@@ -7,13 +7,13 @@ import (
 )
 
 func TestMessage_AddHeader(t *testing.T) {
-	m := new(Message)
+	m := NewMessage()
 
-	m.AddHeader("Names", "Andy")
-	m.AddHeader("Names", "Jane")
-	m.AddHeader("Names", "Bob")
+	m.PrependHeader("Names", "Andy")
+	m.PrependHeader("Names", "Jane")
+	m.PrependHeader("Names", "Bob")
 
-	m.AddHeader("Types", "Blue")
+	m.PrependHeader("Types", "Blue")
 
 	if !reflect.DeepEqual(textproto.MIMEHeader{
 		"Names": {"Bob", "Jane", "Andy"},
