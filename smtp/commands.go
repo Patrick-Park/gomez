@@ -126,7 +126,7 @@ func cmdDATA(ctx *Client, param string) error {
 
 	err := ctx.Notify(Reply{354, "End data with <CR><LF>.<CR><LF>"})
 	if err != nil {
-		return err
+		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
 	msg, err := ctx.conn.ReadDotLines()
