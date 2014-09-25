@@ -1,7 +1,6 @@
 package smtp
 
 import (
-	"log"
 	"net/mail"
 	"strings"
 
@@ -132,7 +131,6 @@ func cmdDATA(ctx *Client, param string) error {
 
 	msg, err := ctx.conn.ReadDotLines()
 	if err != nil {
-		log.Printf("Could not read dot lines: %s\n", err)
 		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
@@ -147,7 +145,6 @@ func cmdDATA(ctx *Client, param string) error {
 
 	err = ctx.host.Digest(ctx)
 	if err != nil {
-		log.Printf("Error digesting message: %s\n", err)
 		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
 	}
 
