@@ -259,6 +259,8 @@ func TestCmdDATA_Success(t *testing.T) {
 
 			550, MODE_DATA, "", false, false,
 		},
+		{[]string{""}, 550, MODE_DATA, "", false, false},
+		{[]string{"From: Me"}, 550, MODE_DATA, "", false, false},
 	}
 
 	var wg sync.WaitGroup

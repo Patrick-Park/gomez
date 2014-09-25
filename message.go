@@ -66,7 +66,7 @@ func (m *Message) FromRaw(raw string) error {
 
 	body, err := r.ReadDotLines()
 	if err != nil && err.Error() != "unexpected EOF" {
-		return ERR_MESSAGE_NOT_COMPLIANT
+		return err
 	}
 
 	m.Headers.MIMEHeader = headers
