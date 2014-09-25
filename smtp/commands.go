@@ -90,7 +90,7 @@ func cmdRCPT(ctx *Client, param string) error {
 
 	case gomez.QUERY_STATUS_NOT_LOCAL:
 		if flags := ctx.host.Settings(); !flags.Relay {
-			return ctx.Notify(Reply{550, "5.1.1 No such user here. Relaying is not supported."})
+			return ctx.Notify(Reply{550, "5.1.1 No such user here."})
 		}
 
 		ctx.Message.AddRcpt(addr)
@@ -102,7 +102,7 @@ func cmdRCPT(ctx *Client, param string) error {
 		ctx.Message.AddRcpt(addr)
 		ctx.Mode = MODE_DATA
 
-		return ctx.Notify(Reply{250, "OK"})
+		return ctx.Notify(Reply{250, "2.1.5 Ok"})
 	}
 
 	return ctx.Notify(replyErrorProcessing)
