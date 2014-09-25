@@ -64,13 +64,13 @@ func (m *Message) FromRaw(raw string) error {
 		return ERR_MESSAGE_NOT_COMPLIANT
 	}
 
-	body, err := r.ReadDotLines()
+	lines, err := r.ReadDotLines()
 	if err != nil && err.Error() != "unexpected EOF" {
 		return err
 	}
 
 	m.Headers.MIMEHeader = headers
-	m.Body = strings.Join(body, "\r\n")
+	m.Body = strings.Join(lines, "\r\n")
 	m.Body = strings.TrimLeft(m.Body, "\r\n")
 
 	return nil
