@@ -94,15 +94,12 @@ func (s Server) Digest(c *Client) error {
 	return nil
 }
 
-var (
-	commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
-	badCommand    = Reply{502, "5.5.2 Error: command not recoginized"}
-)
+var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 
 // Runs a command in the context of a child connection
 func (s Server) Run(ctx *Client, msg string) error {
 	if !commandFormat.MatchString(msg) {
-		return ctx.Notify(badCommand)
+		return ctx.Notify(replyBadCommand)
 	}
 
 	parts := commandFormat.FindStringSubmatch(msg)
@@ -110,7 +107,7 @@ func (s Server) Run(ctx *Client, msg string) error {
 
 	command, ok := (*s.spec)[cmd]
 	if !ok {
-		return ctx.Notify(badCommand)
+		return ctx.Notify(replyBadCommand)
 	}
 
 	return command(ctx, params)

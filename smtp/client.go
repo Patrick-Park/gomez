@@ -111,3 +111,9 @@ func (r Reply) String() string {
 
 	return output
 }
+
+// Define some commonly used reply codes here, to avoid repetition
+var (
+	replyBadCommand      = Reply{502, "5.5.2 Error: command not recoginized"}
+	replyErrorProcessing = Reply{451, "Requested action aborted: error in processing"}
+)

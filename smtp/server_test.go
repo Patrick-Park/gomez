@@ -33,8 +33,8 @@ func TestServerRun(t *testing.T) {
 		Message string
 		Reply   string
 	}{
-		{"BADFORMAT", badCommand.String()},
-		{"GOOD FORMAT", badCommand.String()},
+		{"BADFORMAT", replyBadCommand.String()},
+		{"GOOD FORMAT", replyBadCommand.String()},
 		{"HELO  world ", "100 world"},
 		{"HELO  world how are you?", "100 world how are you?"},
 		{"HELO", "100 "},

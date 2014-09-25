@@ -105,7 +105,7 @@ func cmdRCPT(ctx *Client, param string) error {
 		return ctx.Notify(Reply{250, "OK"})
 	}
 
-	return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
+	return ctx.Notify(replyErrorProcessing)
 }
 
 // RFC 2821 4.1.1.4 DATA (DATA)
@@ -126,24 +126,24 @@ func cmdDATA(ctx *Client, param string) error {
 
 	err := ctx.Notify(Reply{354, "End data with <CR><LF>.<CR><LF>"})
 	if err != nil {
-		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
+		return ctx.Notify(replyErrorProcessing)
 	}
 
 	msg, err := ctx.conn.ReadDotLines()
 	if err != nil {
-		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
+		return ctx.Notify(replyErrorProcessing)
 	}
 
 	err = ctx.Message.FromRaw(strings.Join(msg, "\r\n"))
 	if err == gomez.ERR_MESSAGE_NOT_COMPLIANT {
 		return ctx.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	} else if err != nil {
-		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
+		return ctx.Notify(replyErrorProcessing)
 	}
 
 	err = ctx.host.Digest(ctx)
 	if err != nil {
-		return ctx.Notify(Reply{451, "Requested action aborted: error in processing"})
+		return ctx.Notify(replyErrorProcessing)
 	}
 
 	ctx.Reset()
