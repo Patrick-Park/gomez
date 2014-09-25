@@ -7,12 +7,85 @@ import (
 	"net/mail"
 	"net/textproto"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/gbbr/gomez"
 )
 
-func TestCmdHELO_Param(t *testing.T) {
+func TestCmd_Modes_and_Codes(t *testing.T) {
+	client, pipe := getTestClient()
+	defer pipe.Close()
+
+	testSuite := []struct {
+		Fn        func(*Client, string) error
+		Param     string
+		ExpCode   int
+		StartMode InputMode
+		ExpMode   InputMode
+		Hint      string
+	}{
+		{cmdHELO, "other name", 250, MODE_HELO, MODE_MAIL, "HELO"},
+		{cmdHELO, "", 501, MODE_HELO, MODE_HELO, "HELO"},
+		{cmdEHLO, "name", 250, MODE_HELO, MODE_MAIL, "EHLO"},
+		{cmdEHLO, "", 501, MODE_HELO, MODE_HELO, "EHLO"},
+
+		{cmdMAIL, "FROM:<asd>", 503, MODE_HELO, MODE_HELO, "MAIL"},
+		{cmdMAIL, "FROM:<asd>", 503, MODE_RCPT, MODE_RCPT, "MAIL"},
+		{cmdMAIL, "bad syntax", 501, MODE_MAIL, MODE_MAIL, "MAIL"},
+		{cmdMAIL, "FROM:<bad_address>", 501, MODE_MAIL, MODE_MAIL, "MAIL"},
+
+		{cmdRCPT, "", 503, MODE_HELO, MODE_HELO, "RCPT"},
+		{cmdRCPT, "", 503, MODE_MAIL, MODE_MAIL, "RCPT"},
+		{cmdRCPT, "invalid", 501, MODE_RCPT, MODE_RCPT, "RCPT"},
+		{cmdRCPT, "TO:<guyhost.tld>", 501, MODE_RCPT, MODE_RCPT, "RCPT"},
+		{cmdRCPT, "TO:Guy <not_found@host.tld>", 550, MODE_RCPT, MODE_RCPT, "RCPT"},
+		{cmdRCPT, "TO:<not_local@host.tld>", 550, MODE_RCPT, MODE_RCPT, "RCPT"},
+		{cmdRCPT, "TO:<success@host.tld>", 250, MODE_RCPT, MODE_DATA, "RCPT"},
+		{cmdRCPT, "TO:<error@host.tld>", 451, MODE_RCPT, MODE_RCPT, "RCPT"},
+
+		{cmdDATA, "", 503, MODE_HELO, MODE_HELO, "DATA"},
+		{cmdDATA, "", 503, MODE_MAIL, MODE_MAIL, "DATA"},
+		{cmdDATA, "", 503, MODE_RCPT, MODE_RCPT, "DATA"},
+
+		{cmdRSET, "", 250, MODE_HELO, MODE_HELO, "RSET"},
+		{cmdRSET, "", 250, MODE_RCPT, MODE_MAIL, "RSET"},
+		{cmdRSET, "", 250, MODE_DATA, MODE_MAIL, "RSET"},
+
+		{cmdNOOP, "", 250, MODE_RCPT, MODE_RCPT, "NOOP"},
+		{cmdNOOP, "", 250, MODE_HELO, MODE_HELO, "NOOP"},
+
+		{cmdQUIT, "", 221, MODE_HELO, MODE_QUIT, "QUIT"},
+		{cmdQUIT, "", 221, MODE_MAIL, MODE_QUIT, "QUIT"},
+		{cmdQUIT, "", 221, MODE_RCPT, MODE_QUIT, "QUIT"},
+		{cmdQUIT, "", 221, MODE_DATA, MODE_QUIT, "QUIT"},
+
+		{cmdVRFY, "", 252, MODE_DATA, MODE_DATA, "VRFY"},
+	}
+
+	go func() {
+		for _, test := range testSuite {
+			client.Mode = test.StartMode
+			test.Fn(client, test.Param)
+		}
+	}()
+
+	for _, test := range testSuite {
+		t.Logf("Testing %s %s %d/%d - %d", test.Hint, test.Param, test.StartMode, test.ExpMode, test.ExpCode)
+		_, _, err := pipe.ReadResponse(test.ExpCode)
+		if err != nil || client.Mode != test.ExpMode {
+			t.Errorf("On function %s %s, expected mode %d and code %d, but got %d and code %+v.",
+				test.Hint,
+				test.Param,
+				test.ExpMode,
+				test.ExpCode,
+				client.Mode,
+				err)
+		}
+	}
+}
+
+func TestCmdHELO_Param_Passing(t *testing.T) {
 	client, pipe := getTestClient()
 
 	go cmdHELO(client, "other name")
@@ -24,19 +97,7 @@ func TestCmdHELO_Param(t *testing.T) {
 	pipe.Close()
 }
 
-func TestCmdHELO_No_Param(t *testing.T) {
-	client, pipe := getTestClient()
-
-	go cmdHELO(client, "")
-	_, _, err := pipe.ReadResponse(501)
-	if err != nil {
-		t.Errorf("Expected 501 but got %+v", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdEHLO_Param(t *testing.T) {
+func TestCmdEHLO_Param_Passing(t *testing.T) {
 	client, pipe := getTestClient()
 
 	go cmdEHLO(client, "name")
@@ -48,71 +109,7 @@ func TestCmdEHLO_Param(t *testing.T) {
 	pipe.Close()
 }
 
-func TestCmdEHLO_No_Param(t *testing.T) {
-	client, pipe := getTestClient()
-
-	go cmdEHLO(client, "")
-	_, _, err := pipe.ReadResponse(501)
-	if err != nil {
-		t.Errorf("Expected 501 but got %+v", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdMAIL_in_MODE_HELO(t *testing.T) {
-	client, pipe := getTestClient()
-
-	client.Mode = MODE_HELO
-	go cmdMAIL(client, "FROM:<asd>")
-	_, _, err := pipe.ReadResponse(503)
-	if err != nil {
-		t.Errorf("Expected code 503, got: %#v", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdMAIL_in_MODE_RCPT(t *testing.T) {
-	client, pipe := getTestClient()
-
-	client.Mode = MODE_RCPT
-	go cmdMAIL(client, "FROM:<asd>")
-	_, _, err := pipe.ReadResponse(503)
-	if err != nil {
-		t.Errorf("Expected code 503, got: %#v", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdMAIL_with_Bad_Syntax(t *testing.T) {
-	client, pipe := getTestClient()
-
-	client.Mode = MODE_MAIL
-	go cmdMAIL(client, "bad syntax <asd>")
-	_, _, err := pipe.ReadResponse(501)
-	if err != nil {
-		t.Errorf("Expected code 501, got: %#v", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdMAIL_with_bad_address(t *testing.T) {
-	client, pipe := getTestClient()
-
-	client.Mode = MODE_MAIL
-	go cmdMAIL(client, "FROM:<asd>")
-	_, _, err := pipe.ReadResponse(501)
-	if err != nil {
-		t.Errorf("Expected code 501, got: %#v", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdMAIL_Success(t *testing.T) {
+func TestCmdMAIL_Param_Passing(t *testing.T) {
 	client, pipe := getTestClient()
 	client.Mode = MODE_MAIL
 
@@ -127,103 +124,51 @@ func TestCmdMAIL_Success(t *testing.T) {
 	pipe.Close()
 }
 
-func TestCmdRCPT_in_MODE_HELO(t *testing.T) {
-	client, pipe := getTestClient()
-	client.Mode = MODE_HELO
-
-	go cmdRCPT(client, "")
-	_, _, err := pipe.ReadResponse(503)
-	if err != nil {
-		t.Errorf("Expected to get a 503 response, got: %s", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdRCPT_in_MODE_MAIL(t *testing.T) {
-	client, pipe := getTestClient()
-	client.Mode = MODE_MAIL
-
-	go cmdRCPT(client, "")
-	_, _, err := pipe.ReadResponse(503)
-	if err != nil {
-		t.Errorf("Expected to get a 503 response, got: %s", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdRCPT_Bad_Syntax(t *testing.T) {
-	client, pipe := getTestClient()
-	client.Mode = MODE_RCPT
-
-	go cmdRCPT(client, "invalid")
-	_, _, err := pipe.ReadResponse(501)
-	if err != nil {
-		t.Errorf("Expected to get a 501 response, got: %s", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdRCPT_Bad_Address(t *testing.T) {
-	client, pipe := getTestClient()
-	client.Mode = MODE_RCPT
-
-	go cmdRCPT(client, "TO:<guyhost.tld>")
-	_, _, err := pipe.ReadResponse(501)
-	if err != nil {
-		t.Errorf("Expected to get a 501 response, got: %s", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdRCPT_User_Not_Found(t *testing.T) {
-	client, pipe := getTestClient()
-	client.Mode = MODE_RCPT
-
-	go cmdRCPT(client, "TO:Guy <not_found@host.tld>")
-	_, _, err := pipe.ReadResponse(550)
-	if err != nil {
-		t.Errorf("Expected to get a 550 response, got: %s", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdRCPT_Relay_Disabled_User_Not_Local(t *testing.T) {
-	client, pipe := getTestClient()
-	client.Mode = MODE_RCPT
-
-	go cmdRCPT(client, "TO:<not_local@host.tld>")
-	_, _, err := pipe.ReadResponse(550)
-	if err != nil {
-		t.Errorf("Expected to get a 550 response, got: %s", err)
-	}
-
-	pipe.Close()
-}
-
-func TestCmdRCPT_Relay_Enabled_User_Not_Local(t *testing.T) {
+func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	client, pipe := getTestClient()
 
 	client.Mode = MODE_RCPT
+
+	// Relay is enabled
 	client.host = &MockMailService{
 		Query_:    func(addr *mail.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
 		Settings_: func() Config { return Config{Relay: true} },
 	}
 
-	go cmdRCPT(client, "TO:<not_local@host.tld>")
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		cmdRCPT(client, "TO:<not_local@host.tld>")
+		wg.Done()
+	}()
+
 	_, _, err := pipe.ReadResponse(251)
 	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Address != "not_local@host.tld" {
 		t.Errorf("Expected to get a 251 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
+	// Relay is disabled
+	client.host = &MockMailService{
+		Query_:    func(addr *mail.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
+		Settings_: func() Config { return Config{Relay: false} },
+	}
+
+	wg.Add(1)
+	go func() {
+		cmdRCPT(client, "TO:<not_local@host.tld>")
+		wg.Done()
+	}()
+
+	_, _, err = pipe.ReadResponse(550)
+	if err != nil || client.Mode != MODE_DATA || len(client.Message.Rcpt()) != 1 {
+		t.Errorf("Expected to get a 550 response and no recipient, got: %+v", err)
+	}
+
 	pipe.Close()
 }
 
-func TestCmdRCPT_Success(t *testing.T) {
+func TestCmdRCPT_Param_Passing(t *testing.T) {
 	client, pipe := getTestClient()
 	client.Mode = MODE_RCPT
 
@@ -241,42 +186,14 @@ func TestCmdRCPT_Internal_Error(t *testing.T) {
 	client.Mode = MODE_RCPT
 
 	log.SetOutput(ioutil.Discard)
-
 	go cmdRCPT(client, "TO:<error@host.tld>")
+
 	_, _, err := pipe.ReadResponse(451)
 	if err != nil || client.Mode != MODE_RCPT || len(client.Message.Rcpt()) != 0 {
 		t.Errorf("Expected to get a 451 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
 	pipe.Close()
-}
-
-func TestCmdDATA_Wrong_Mode(t *testing.T) {
-	client, pipe := getTestClient()
-	defer pipe.Close()
-
-	testSuite := []struct {
-		Mode      InputMode
-		ReplyCode int
-	}{
-		{MODE_HELO, 503},
-		{MODE_MAIL, 503},
-		{MODE_RCPT, 503},
-	}
-
-	go func() {
-		for _, test := range testSuite {
-			client.Mode = test.Mode
-			cmdDATA(client, "")
-		}
-	}()
-
-	for _, test := range testSuite {
-		_, _, err := pipe.ReadResponse(test.ReplyCode)
-		if err != nil {
-			t.Errorf("Expected code '%d', but got: '%s'", test.ReplyCode, err)
-		}
-	}
 }
 
 func TestCmdDATA_Success(t *testing.T) {
@@ -300,6 +217,7 @@ func TestCmdDATA_Success(t *testing.T) {
 	client.Mode = MODE_DATA
 	go cmdDATA(client, "these params are ignored")
 
+	pipe.ReadResponse(354)
 	pipe.PrintfLine("Date: Fri, 14 Nov 2003 14:00:01 -0500")
 	pipe.PrintfLine("From: Jimmy")
 	pipe.PrintfLine("")
@@ -320,6 +238,7 @@ func TestCmdDATA_Error(t *testing.T) {
 	client.Mode = MODE_DATA
 	go cmdDATA(client, "these params are ignored")
 
+	pipe.ReadResponse(354)
 	pipe.PrintfLine("Line 1 of text")
 	pipe.PrintfLine("Line 2 of text")
 }
@@ -336,39 +255,6 @@ func TestCmdRSET(t *testing.T) {
 	_, _, err := pipe.ReadResponse(250)
 	if err != nil || client.Message.Body != "" || client.Mode != MODE_MAIL {
 		t.Error("Did not reset client correctly")
-	}
-}
-
-func TestCmdNOOP(t *testing.T) {
-	client, pipe := getTestClient()
-	defer pipe.Close()
-
-	go cmdNOOP(client, "")
-	_, _, err := pipe.ReadResponse(250)
-	if err != nil {
-		t.Error("Did not receive OK on NOOP")
-	}
-}
-
-func TestCmdQUIT(t *testing.T) {
-	client, pipe := getTestClient()
-	defer pipe.Close()
-
-	go cmdQUIT(client, "")
-	_, _, err := pipe.ReadResponse(221)
-	if err != nil || client.Mode != MODE_QUIT {
-		t.Error("QUIT did not work as expected")
-	}
-}
-
-func TestCmdVRFY_Is_Disabled(t *testing.T) {
-	client, pipe := getTestClient()
-	defer pipe.Close()
-
-	go cmdVRFY(client, "some@name.com")
-	_, _, err := pipe.ReadResponse(252)
-	if err != nil {
-		t.Error("VRFY did not work as expected")
 	}
 }
 

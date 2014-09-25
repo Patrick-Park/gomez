@@ -65,7 +65,10 @@ func (c *Client) Serve() {
 // of the client received via the EHLO/HELO command.
 func (c *Client) Reset() {
 	c.Message = gomez.NewMessage()
-	c.Mode = MODE_MAIL
+
+	if c.Mode > MODE_HELO {
+		c.Mode = MODE_MAIL
+	}
 }
 
 // Checks if the given error is of type io.EOF, otherwise
