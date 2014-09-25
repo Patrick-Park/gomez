@@ -1,13 +1,15 @@
 package gomez
 
+import "net/mail"
+
 var _ Mailbox = new(MockMailbox)
 
 type MockMailbox struct {
 	Queue_    func(Message) error
 	Dequeue_  func() ([]*Message, error)
 	Deliver_  func(Message) error
-	Retrieve_ func(Address) []*Message
-	Query_    func(Address) QueryStatus
+	Retrieve_ func(*mail.Address) []*Message
+	Query_    func(*mail.Address) QueryStatus
 }
 
 func (m MockMailbox) Queue(msg Message) error {
@@ -34,7 +36,7 @@ func (m MockMailbox) Deliver(msg Message) error {
 	return nil
 }
 
-func (m MockMailbox) Retrieve(addr Address) []*Message {
+func (m MockMailbox) Retrieve(addr *mail.Address) []*Message {
 	if m.Retrieve_ != nil {
 		return m.Retrieve_(addr)
 	}
@@ -42,7 +44,7 @@ func (m MockMailbox) Retrieve(addr Address) []*Message {
 	return nil
 }
 
-func (m MockMailbox) Query(addr Address) QueryStatus {
+func (m MockMailbox) Query(addr *mail.Address) QueryStatus {
 	if m.Query_ != nil {
 		return m.Query_(addr)
 	}

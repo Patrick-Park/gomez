@@ -2,6 +2,7 @@ package smtp
 
 import (
 	"log"
+	"net/mail"
 	"strings"
 
 	"github.com/gbbr/gomez"
@@ -52,7 +53,7 @@ func cmdMAIL(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: MAIL FROM:<address>"})
 	}
 
-	addr, err := gomez.NewAddress(param[len("FROM:"):])
+	addr, err := mail.ParseAddress(param[len("FROM:"):])
 	if err != nil {
 		return ctx.Notify(Reply{501, "5.1.7 Bad sender address syntax"})
 	}
@@ -79,7 +80,7 @@ func cmdRCPT(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "5.5.4 Syntax: RCPT TO:<address>"})
 	}
 
-	addr, err := gomez.NewAddress(param[len("TO:"):])
+	addr, err := mail.ParseAddress(param[len("TO:"):])
 	if err != nil {
 		return ctx.Notify(Reply{501, "5.1.7 Bad recipient address syntax"})
 	}

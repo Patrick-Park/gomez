@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"net/mail"
 	"net/textproto"
 	"strings"
 	"testing"
@@ -115,7 +116,7 @@ func TestCmdMAIL_Success(t *testing.T) {
 	client, pipe := getTestClient()
 	client.Mode = MODE_MAIL
 
-	testAddr := gomez.Address{"First Last", "asd", "box.com"}
+	testAddr := mail.Address{"First Last", "asd@box.com"}
 
 	go cmdMAIL(client, "from:First Last <asd@box.com>")
 	_, _, err := pipe.ReadResponse(250)
@@ -209,13 +210,13 @@ func TestCmdRCPT_Relay_Enabled_User_Not_Local(t *testing.T) {
 
 	client.Mode = MODE_RCPT
 	client.host = &MockMailService{
-		Query_:    func(addr gomez.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
+		Query_:    func(addr *mail.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
 		Settings_: func() Config { return Config{Relay: true} },
 	}
 
 	go cmdRCPT(client, "TO:<not_local@host.tld>")
 	_, _, err := pipe.ReadResponse(251)
-	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Host != "host.tld" || client.Message.Rcpt()[0].User != "not_local" {
+	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Address != "not_local@host.tld" {
 		t.Errorf("Expected to get a 251 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
@@ -228,7 +229,7 @@ func TestCmdRCPT_Success(t *testing.T) {
 
 	go cmdRCPT(client, "TO:<success@host.tld>")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Host != "host.tld" || client.Message.Rcpt()[0].User != "success" {
+	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Address != "success@host.tld" {
 		t.Errorf("Expected to get a 250 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
@@ -381,8 +382,8 @@ func getTestClient() (*Client, *textproto.Conn) {
 		Mode:    MODE_HELO,
 		Message: gomez.NewMessage(),
 		host: &MockMailService{
-			Query_: func(addr gomez.Address) gomez.QueryStatus {
-				switch addr.User {
+			Query_: func(addr *mail.Address) gomez.QueryStatus {
+				switch strings.Split(addr.Address, "@")[0] {
 				case "not_found":
 					return gomez.QUERY_STATUS_NOT_FOUND
 				case "not_local":

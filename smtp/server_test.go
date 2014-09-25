@@ -2,6 +2,7 @@ package smtp
 
 import (
 	"net"
+	"net/mail"
 	"net/textproto"
 	"sync"
 	"testing"
@@ -111,14 +112,14 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 	queryCalled := false
 	testServer := &Server{
 		Mailbox: &gomez.MockMailbox{
-			Query_: func(addr gomez.Address) gomez.QueryStatus {
+			Query_: func(addr *mail.Address) gomez.QueryStatus {
 				queryCalled = true
 				return gomez.QUERY_STATUS_SUCCESS
 			},
 		},
 	}
 
-	testServer.Query(gomez.Address{})
+	testServer.Query(&mail.Address{})
 	if !queryCalled {
 		t.Error("Server Query did not call Mailbox query")
 	}

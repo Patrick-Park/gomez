@@ -3,6 +3,7 @@ package smtp
 import (
 	"log"
 	"net"
+	"net/mail"
 	"net/textproto"
 	"regexp"
 	"strings"
@@ -25,7 +26,7 @@ type MailService interface {
 
 	// Queries the mailbox for a user. See gomez.QueryStatus for
 	// information on response types.
-	Query(addr gomez.Address) gomez.QueryStatus
+	Query(addr *mail.Address) gomez.QueryStatus
 }
 
 // SMTP host server instance. Holds the CommandSpec, configuration flags
@@ -118,8 +119,8 @@ func (s Server) Run(ctx *Client, msg string) error {
 // Returns the configuration of the server
 func (s Server) Settings() Config { return s.config }
 
-// Queries the host mailbox for a user by string or gomez.Address
-func (s Server) Query(addr gomez.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
+// Queries the host mailbox for a user by string or Address
+func (s Server) Query(addr *mail.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
 
 // Creates a new client based on the given connection
 func (s Server) CreateClient(conn net.Conn) {

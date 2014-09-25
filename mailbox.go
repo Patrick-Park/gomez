@@ -1,5 +1,7 @@
 package gomez
 
+import "net/mail"
+
 // Mailbox implements message queueing and
 // dequeueing system
 type Mailbox interface {
@@ -15,10 +17,10 @@ type Mailbox interface {
 
 	// Retrieves all messages for a given address and
 	// empties mailbox
-	Retrieve(usr Address) []*Message
+	Retrieve(usr *mail.Address) []*Message
 
 	// Queries the server for a user
-	Query(addr Address) QueryStatus
+	Query(addr *mail.Address) QueryStatus
 }
 
 // QueryStatus reflects the outcome of the result of querying the mailbox

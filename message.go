@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"net/mail"
 	"net/textproto"
 	"strings"
 )
@@ -25,8 +26,8 @@ func (h OrderedHeader) Prepend(key, value string) {
 // A message represents an e-mail message and  holds information about
 // sender, recepients and the message body
 type Message struct {
-	from    Address
-	rcpt    []Address
+	from    *mail.Address
+	rcpt    []*mail.Address
 	Headers OrderedHeader
 	Body    string
 }
@@ -37,16 +38,16 @@ func NewMessage() *Message {
 }
 
 // Adds a new recepient to the message
-func (m *Message) AddRcpt(addr ...Address) { m.rcpt = append(m.rcpt, addr...) }
+func (m *Message) AddRcpt(addr ...*mail.Address) { m.rcpt = append(m.rcpt, addr...) }
 
 // Returns the message recepients
-func (m Message) Rcpt() []Address { return m.rcpt }
+func (m Message) Rcpt() []*mail.Address { return m.rcpt }
 
 // Adds a Return-Path address
-func (m *Message) SetFrom(addr Address) { m.from = addr }
+func (m *Message) SetFrom(addr *mail.Address) { m.from = addr }
 
 // Gets the Return-Path address
-func (m Message) From() Address { return m.from }
+func (m Message) From() *mail.Address { return m.from }
 
 // This error is returned by the FromRaw function when the passed
 // message body is not RFC 2822 compliant
