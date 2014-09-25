@@ -125,4 +125,13 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 	}
 }
 
+func TestServer_Mock(t *testing.T) {
+	var mock MailService = &MockMailService{}
+
+	mock.Digest(&Client{})
+	mock.Settings()
+	mock.Query(&mail.Address{})
+	mock.Run(&Client{}, "")
+}
+
 // Test E2E

@@ -6,8 +6,6 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-var _ MailService = new(MockMailService)
-
 type MockMailService struct {
 	Run_      func(*Client, string) error
 	Digest_   func(*Client) error
