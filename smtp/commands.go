@@ -157,7 +157,7 @@ func cmdDATA(ctx *Client, param string) error {
 // buffers and state tables cleared.
 func cmdRSET(ctx *Client, param string) error {
 	ctx.Reset()
-	return ctx.Notify(Reply{250, "2.0.0 Ok"})
+	return ctx.Notify(Reply{250, "2.1.5 Flushed"})
 }
 
 // RFC 2821 4.1.1.9 NOOP (NOOP)
