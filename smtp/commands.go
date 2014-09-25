@@ -86,11 +86,11 @@ func cmdRCPT(ctx *Client, param string) error {
 
 	switch ctx.host.Query(addr) {
 	case gomez.QUERY_STATUS_NOT_FOUND:
-		return ctx.Notify(Reply{550, "No such user here."})
+		return ctx.Notify(Reply{550, "5.1.1 No such user here."})
 
 	case gomez.QUERY_STATUS_NOT_LOCAL:
 		if flags := ctx.host.Settings(); !flags.Relay {
-			return ctx.Notify(Reply{550, "No such user here. Relaying is not supported."})
+			return ctx.Notify(Reply{550, "5.1.1 No such user here. Relaying is not supported."})
 		}
 
 		ctx.Message.AddRcpt(addr)
