@@ -54,7 +54,7 @@ var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC compliant.")
 
 // Sets the headers and the body from a raw message. If the message
 // does not contain the RFC 2822 headers (From and Date) or if it's
-// uncompliant, ERR_MESSAGE_NOT_COMPLIANT error is returned.
+// uncompliant, ERR_MESSAGE_NOT_COMPLIANT is returned.
 func (m *Message) FromRaw(raw string) error {
 	r := textproto.NewReader(bufio.NewReader(strings.NewReader(raw)))
 
