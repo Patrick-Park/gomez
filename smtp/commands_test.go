@@ -215,6 +215,7 @@ func TestCmdDATA_Success(t *testing.T) {
 	go cmdDATA(client, "these params are ignored")
 
 	pipe.ReadResponse(354)
+
 	pipe.PrintfLine("Date: Fri, 14 Nov 2003 14:00:01 -0500")
 	pipe.PrintfLine("From: Jimmy")
 	pipe.PrintfLine("")
@@ -236,6 +237,7 @@ func TestCmdDATA_Error(t *testing.T) {
 	go cmdDATA(client, "these params are ignored")
 
 	pipe.ReadResponse(354)
+
 	pipe.PrintfLine("Line 1 of text")
 	pipe.PrintfLine("Line 2 of text")
 }
