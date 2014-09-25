@@ -154,12 +154,9 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 		Settings_: func() Config { return Config{Relay: false} },
 	}
 
-	wg.Add(1)
-	go func() {
-		cmdRCPT(client, "TO:<not_local@host.tld>")
-		wg.Done()
-	}()
+	wg.Wait()
 
+	go cmdRCPT(client, "TO:<not_local@host.tld>")
 	_, _, err = pipe.ReadResponse(550)
 	if err != nil || client.Mode != MODE_DATA || len(client.Message.Rcpt()) != 1 {
 		t.Errorf("Expected to get a 550 response and no recipient, got: %+v", err)
