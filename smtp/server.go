@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"errors"
 	"log"
 	"net"
 	"net/mail"
@@ -85,9 +86,17 @@ func Start(mb gomez.Mailbox, conf Config) {
 	}
 }
 
+// Return by Digest when the message does not comply with RFC 2822 header specifications
+var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC 2822 compliant")
+
 // Digests a child connection. Delivers or enqueues messages
 // according to reciepients
 func (s Server) Digest(c *Client) error {
+	msg, err := c.Message.Parse()
+	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
+		return ERR_MESSAGE_NOT_COMPLIANT
+	}
+
 	s.Lock()
 	defer s.Unlock()
 
