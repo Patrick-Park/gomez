@@ -66,3 +66,25 @@ one line.`, mail.Header{
 		}
 	}
 }
+
+func TestMessage_Setters_Getters(t *testing.T) {
+	m := new(Message)
+
+	addrList := []*mail.Address{
+		&mail.Address{"James", "james@harding.com"},
+		&mail.Address{"Jones", "jones@google.com"},
+		&mail.Address{"Mike", "mike@harding.com"},
+	}
+
+	for _, address := range addrList {
+		m.AddRcpt(address)
+		m.SetFrom(address)
+		if m.From() != address {
+			t.Error("Did not set FROM correctly")
+		}
+	}
+
+	if !reflect.DeepEqual(m.Rcpt(), addrList) {
+		t.Error("Did not add/retrieve recipients correctly.")
+	}
+}
