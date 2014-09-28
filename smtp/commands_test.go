@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"net"
@@ -188,6 +189,53 @@ func TestCmdRCPT_Internal_Error(t *testing.T) {
 	_, _, err := pipe.ReadResponse(451)
 	if err != nil || client.Mode != MODE_RCPT || len(client.Message.Rcpt()) != 0 {
 		t.Errorf("Expected to get a 451 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
+	}
+
+	pipe.Close()
+}
+
+func TestCmdDATA_Digest(t *testing.T) {
+	client, pipe := getTestClient()
+	client.host = &MockMailService{
+		Digest_: func(c *Client) error {
+			switch c.Id {
+			case "error":
+				return errors.New("Test error")
+			case "not_compliant":
+				return ERR_MESSAGE_NOT_COMPLIANT
+			default:
+				return nil
+			}
+		},
+	}
+
+	var wg sync.WaitGroup
+
+	for _, test := range []struct {
+		Id       string
+		Expected int
+	}{
+		{"error", 451},
+		{"not_compliant", 550},
+		{"valid", 250},
+	} {
+		wg.Add(1)
+		go func() {
+			client.Mode = MODE_DATA
+			client.Id = test.Id
+			cmdDATA(client, "")
+			wg.Done()
+		}()
+
+		pipe.ReadResponse(354)
+		pipe.PrintfLine(".")
+
+		_, _, err := pipe.ReadResponse(test.Expected)
+		if err != nil {
+			t.Errorf("Was expecting %d but got %+v", test.Expected, err)
+		}
+
+		wg.Wait()
 	}
 
 	pipe.Close()
