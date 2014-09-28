@@ -237,7 +237,7 @@ func getTestClient() (*Client, *textproto.Conn) {
 	client := &Client{
 		conn:    sconn,
 		Mode:    MODE_HELO,
-		Message: gomez.NewMessage(),
+		Message: new(gomez.Message),
 		host: &MockMailService{
 			Query_: func(addr *mail.Address) gomez.QueryStatus {
 				switch strings.Split(addr.Address, "@")[0] {

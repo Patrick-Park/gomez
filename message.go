@@ -17,11 +17,6 @@ type Message struct {
 	Raw  string
 }
 
-// Creates a new empty message with all values initialized
-func NewMessage() *Message {
-	return &Message{}
-}
-
 // Adds a new recepient to the message
 func (m *Message) AddRcpt(addr ...*mail.Address) { m.rcpt = append(m.rcpt, addr...) }
 

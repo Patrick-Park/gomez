@@ -64,7 +64,7 @@ func (c *Client) Serve() {
 // reverts the mode to MODE_MAIL. The only thing that is kept is the ID
 // of the client received via the EHLO/HELO command.
 func (c *Client) Reset() {
-	c.Message = gomez.NewMessage()
+	c.Message = new(gomez.Message)
 
 	if c.Mode > MODE_HELO {
 		c.Mode = MODE_MAIL
