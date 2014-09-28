@@ -124,9 +124,8 @@ func cmdDATA(ctx *Client, param string) error {
 		return ctx.Notify(Reply{503, "5.5.1 RCPT first."})
 	}
 
-	err := ctx.Notify(Reply{354, "End data with <CR><LF>.<CR><LF>"})
-	if err != nil {
-		return ctx.Notify(replyErrorProcessing)
+	if err := ctx.Notify(Reply{354, "End data with <CR><LF>.<CR><LF>"}); err != nil {
+		return err
 	}
 
 	msg, err := ctx.conn.ReadDotLines()
