@@ -29,6 +29,12 @@ Hey how are you?`, mail.Header{
 			"Received": []string{"ABCD", "QWER"},
 			"Date":     []string{"Today"},
 		}, false},
+
+		{`Random-Header: My value
+
+`, mail.Header{
+			"Random-Header": []string{"My value"},
+		}, false},
 	}
 
 	for _, test := range testSuite {
