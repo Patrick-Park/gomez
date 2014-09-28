@@ -97,6 +97,11 @@ func (s Server) Digest(c *Client) error {
 		return ERR_MESSAGE_NOT_COMPLIANT
 	}
 
+	// Generate local Message ID
+	// If message has no Message-ID header, use the generated one
+	// Add retrieve header and log/queue message using generated Message ID
+	// Queue message
+
 	s.Lock()
 	defer s.Unlock()
 
