@@ -41,7 +41,7 @@ Hey how are you?`, mail.Header{
 		m := Message{Raw: test.Message}
 		h, err := m.Header()
 
-		if test.HasErr && err != ERR_MESSAGE_NOT_COMPLIANT {
+		if test.HasErr && err == nil {
 			t.Errorf("Was expecting error on %s", test.Message)
 		} else if !test.HasErr && !reflect.DeepEqual(h, test.Header) {
 			t.Errorf("Did not parse headers correctly: expected %+v, got: %+v", test.Header, h)

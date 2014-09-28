@@ -1,13 +1,10 @@
 package gomez
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/mail"
 	"strings"
 )
-
-var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC 2822 compliant")
 
 // A message represents an e-mail message and  holds information about
 // sender, recepients and the message body
@@ -33,7 +30,7 @@ func (m Message) From() *mail.Address { return m.from }
 func (m Message) Header() (mail.Header, error) {
 	msg, err := mail.ReadMessage(strings.NewReader(m.Raw))
 	if err != nil {
-		return mail.Header{}, ERR_MESSAGE_NOT_COMPLIANT
+		return mail.Header{}, err
 	}
 
 	return msg.Header, nil
@@ -44,12 +41,12 @@ func (m Message) Body() (string, error) {
 	r := strings.NewReader(m.Raw)
 	_, err := mail.ReadMessage(r)
 	if err != nil {
-		return "", ERR_MESSAGE_NOT_COMPLIANT
+		return "", err
 	}
 
 	body, err := ioutil.ReadAll(r)
 	if err != nil {
-		return "", ERR_MESSAGE_NOT_COMPLIANT
+		return "", err
 	}
 
 	return string(body), nil
