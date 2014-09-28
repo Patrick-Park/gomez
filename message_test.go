@@ -41,7 +41,6 @@ Hey how are you?`, mail.Header{
 		m := Message{Raw: test.Message}
 		h, err := m.Header()
 
-		// t.Logf("%+v", h)
 		if test.HasErr && err != ERR_MESSAGE_NOT_COMPLIANT {
 			t.Errorf("Was expecting error on %s", test.Message)
 		} else if !test.HasErr && !reflect.DeepEqual(h, test.Header) {
