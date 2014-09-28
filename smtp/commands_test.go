@@ -1,7 +1,6 @@
 package smtp
 
 import (
-	"errors"
 	"io/ioutil"
 	"log"
 	"net"
@@ -194,108 +193,6 @@ func TestCmdRCPT_Internal_Error(t *testing.T) {
 	pipe.Close()
 }
 
-func TestCmdDATA_Success(t *testing.T) {
-	client, pipe := getTestClient()
-	defer pipe.Close()
-
-	digestCalled := false
-	doError := false
-	expectedMessage := ""
-
-	client.host = &MockMailService{
-		Digest_: func(ctx *Client) error {
-			digestCalled = true
-
-			if !strings.HasPrefix(ctx.Message.Body, expectedMessage) {
-				t.Errorf("Digest was not called with desired message, got: %s", ctx.Message.Body)
-			}
-
-			if doError {
-				return errors.New("Mock Error")
-			}
-
-			return nil
-		},
-	}
-
-	testSuite := []struct {
-		Message        []string
-		ExpCode        int
-		ExpMode        InputMode
-		ExpBodyPartial string
-		HasErr         bool
-		HasDigest      bool
-	}{
-		{
-			[]string{
-				"Date: Fri, 14 Nov 2003 14:00:01 -0500",
-				"From: Jimmy",
-				"",
-				"Line 1 of text",
-				"Line 2 of text",
-			},
-
-			250, MODE_MAIL, "Line 1 of text", false, true,
-		},
-		{
-			[]string{
-				"Subject: This message will get a digest error",
-				"Date: Fri, 14 Nov 2003 14:00:01 -0500",
-				"From: Jimmy",
-				"",
-				"Line 1 of text",
-			},
-
-			451, MODE_DATA, "", true, true,
-		},
-		{
-			[]string{
-				"Subject: This message is not compliant",
-				"From: Jimmy",
-				"",
-				"Line 1 of text",
-				"Line 2 of text",
-			},
-
-			550, MODE_DATA, "", false, false,
-		},
-		{[]string{""}, 550, MODE_DATA, "", false, false},
-		{[]string{"From: Me"}, 550, MODE_DATA, "", false, false},
-	}
-
-	var wg sync.WaitGroup
-
-	for _, test := range testSuite {
-		wg.Add(1)
-		go func() {
-			client.Mode = MODE_DATA
-			digestCalled = false
-			expectedMessage = test.ExpBodyPartial
-			doError = test.HasErr
-
-			cmdDATA(client, "")
-			wg.Done()
-		}()
-
-		pipe.ReadResponse(354)
-		for _, line := range test.Message {
-			pipe.PrintfLine(line)
-		}
-		pipe.PrintfLine(".")
-
-		_, _, err := pipe.ReadResponse(test.ExpCode)
-		if err != nil || client.Mode != test.ExpMode {
-			t.Errorf("Expected to get response %d, but got %+v", test.ExpCode, err)
-		}
-
-		if digestCalled != test.HasDigest {
-			t.Errorf("Expected to call Digest() but didn't")
-		}
-
-		wg.Wait()
-	}
-}
-
 func TestCmdDATA_Error_Notify(t *testing.T) {
 	client, pipe := getTestClient()
 	client.Mode = MODE_DATA
@@ -322,12 +219,12 @@ func TestCmdRSET(t *testing.T) {
 	defer pipe.Close()
 
 	client.Mode = MODE_DATA
-	client.Message.Body = "ABCD"
+	client.Message.Raw = "ABCD"
 	client.Id = "Jonah"
 
 	go cmdRSET(client, "")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Message.Body != "" || client.Mode != MODE_MAIL {
+	if err != nil || client.Message.Raw != "" || client.Mode != MODE_MAIL {
 		t.Error("Did not reset client correctly")
 	}
 }

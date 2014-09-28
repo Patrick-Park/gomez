@@ -1,40 +1,25 @@
 package gomez
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
+	"io/ioutil"
 	"net/mail"
-	"net/textproto"
 	"strings"
 )
 
-// OrderedHeader is a wrapper on textproto.MIMEHeader providing additional
-// functionalities, such as ordered headers (as needed for "Received")
-type OrderedHeader struct{ textproto.MIMEHeader }
-
-// Prepends a message to an existing key if it already exists, otherwise
-// it creates it. Some headers need to be in reverse order for validity.
-func (h OrderedHeader) Prepend(key, value string) {
-	if _, ok := h.MIMEHeader[key]; !ok {
-		h.MIMEHeader.Set(key, value)
-	} else {
-		h.MIMEHeader[key] = append([]string{value}, h.MIMEHeader[key]...)
-	}
-}
+var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC 2822 compliant")
 
 // A message represents an e-mail message and  holds information about
 // sender, recepients and the message body
 type Message struct {
-	from    *mail.Address
-	rcpt    []*mail.Address
-	Headers OrderedHeader
-	Body    string
+	from *mail.Address
+	rcpt []*mail.Address
+	Raw  string
 }
 
 // Creates a new empty message with all values initialized
 func NewMessage() *Message {
-	return &Message{Headers: OrderedHeader{make(textproto.MIMEHeader)}}
+	return &Message{}
 }
 
 // Adds a new recepient to the message
@@ -49,45 +34,28 @@ func (m *Message) SetFrom(addr *mail.Address) { m.from = addr }
 // Gets the Return-Path address
 func (m Message) From() *mail.Address { return m.from }
 
-// This error is returned by the FromRaw function when the passed
-// message body is not RFC 2822 compliant
-var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC compliant.")
-
-// Sets the headers and the body from a raw message. If the message
-// does not contain the RFC 2822 headers (From and Date) or if it's
-// uncompliant, ERR_MESSAGE_NOT_COMPLIANT is returned.
-func (m *Message) FromRaw(raw string) error {
-	r := textproto.NewReader(bufio.NewReader(strings.NewReader(raw)))
-
-	headers, err := r.ReadMIMEHeader()
-	if err != nil || len(headers.Get("From")) == 0 || len(headers.Get("Date")) == 0 {
-		return ERR_MESSAGE_NOT_COMPLIANT
+// Retrieves the message headers.
+func (m Message) Header() (mail.Header, error) {
+	msg, err := mail.ReadMessage(strings.NewReader(m.Raw))
+	if err != nil {
+		return mail.Header{}, ERR_MESSAGE_NOT_COMPLIANT
 	}
 
-	lines, err := r.ReadDotLines()
-	if err != nil && err.Error() != "unexpected EOF" {
-		return err
-	}
-
-	m.Headers.MIMEHeader = headers
-	m.Body = strings.Join(lines, "\r\n")
-	m.Body = strings.TrimLeft(m.Body, "\r\n")
-
-	return nil
+	return msg.Header, nil
 }
 
-// Returns the raw message with all headers. The order of the keys
-// will vary on each call but the order of the values will always
-// be as specified.
-func (m Message) Raw() string {
-	var raw bytes.Buffer
-
-	for key, values := range m.Headers.MIMEHeader {
-		for _, value := range values {
-			raw.WriteString(key + ": " + value + "\r\n")
-		}
+// Retrieves the message body
+func (m Message) Body() (string, error) {
+	r := strings.NewReader(m.Raw)
+	_, err := mail.ReadMessage(r)
+	if err != nil {
+		return "", ERR_MESSAGE_NOT_COMPLIANT
 	}
 
-	raw.WriteString("\r\n\r\n" + m.Body)
-	return raw.String()
+	body, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", ERR_MESSAGE_NOT_COMPLIANT
+	}
+
+	return string(body), nil
 }

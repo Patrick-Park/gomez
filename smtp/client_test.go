@@ -133,10 +133,10 @@ func TestClientReset(t *testing.T) {
 		Id:      "Mike",
 	}
 
-	testClient.Message.Body = "Message body."
+	testClient.Message.Raw = "Message body."
 
 	testClient.Reset()
-	if testClient.Mode != MODE_MAIL || testClient.Message.Body != "" {
+	if testClient.Mode != MODE_MAIL || testClient.Message.Raw != "" {
 		t.Error("Did not reset client correctly.")
 	}
 }
