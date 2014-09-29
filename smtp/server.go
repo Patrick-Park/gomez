@@ -13,8 +13,8 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-type MailService interface {
-	// Runs a command from the MailService's CommandSpec in the
+type SMTPServer interface {
+	// Runs a command from the SMTPServer's CommandSpec in the
 	// context of a connected client.
 	Run(ctx *Client, msg string) error
 

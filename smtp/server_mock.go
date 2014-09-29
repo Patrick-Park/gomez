@@ -6,14 +6,14 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-type MockMailService struct {
+type MockSMTPServer struct {
 	Run_      func(*Client, string) error
 	Digest_   func(*Client) error
 	Settings_ func() Config
 	Query_    func(*mail.Address) gomez.QueryStatus
 }
 
-func (h MockMailService) Run(c *Client, m string) error {
+func (h MockSMTPServer) Run(c *Client, m string) error {
 	if h.Run_ != nil {
 		return h.Run_(c, m)
 	}
@@ -21,7 +21,7 @@ func (h MockMailService) Run(c *Client, m string) error {
 	return nil
 }
 
-func (h MockMailService) Digest(c *Client) error {
+func (h MockSMTPServer) Digest(c *Client) error {
 	if h.Digest_ != nil {
 		return h.Digest_(c)
 	}
@@ -29,7 +29,7 @@ func (h MockMailService) Digest(c *Client) error {
 	return nil
 }
 
-func (h MockMailService) Settings() Config {
+func (h MockSMTPServer) Settings() Config {
 	if h.Settings_ != nil {
 		return h.Settings_()
 	}
@@ -37,7 +37,7 @@ func (h MockMailService) Settings() Config {
 	return Config{}
 }
 
-func (h MockMailService) Query(addr *mail.Address) gomez.QueryStatus {
+func (h MockSMTPServer) Query(addr *mail.Address) gomez.QueryStatus {
 	if h.Query_ != nil {
 		return h.Query_(addr)
 	}

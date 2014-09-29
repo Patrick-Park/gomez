@@ -30,7 +30,7 @@ type Client struct {
 	Id      string
 	Message *gomez.Message
 	Mode    InputMode
-	host    MailService
+	host    SMTPServer
 	conn    *textproto.Conn
 	rawConn net.Conn
 }

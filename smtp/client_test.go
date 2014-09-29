@@ -34,7 +34,7 @@ func TestClientServe(t *testing.T) {
 		msg string
 	)
 
-	hostMock := &MockMailService{
+	hostMock := &MockSMTPServer{
 		Run_: func(ctx *Client, params string) error {
 			if params == "MODE" {
 				ctx.Mode = MODE_MAIL
@@ -95,7 +95,7 @@ func TestClientServe_Error(t *testing.T) {
 	log.SetOutput(ioutil.Discard)
 
 	testClient := &Client{
-		host: &MockMailService{
+		host: &MockSMTPServer{
 			Run_: func(ctx *Client, msg string) error {
 				return io.EOF
 			},

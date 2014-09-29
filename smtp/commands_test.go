@@ -131,7 +131,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	client.Mode = MODE_RCPT
 
 	// Relay is enabled
-	client.host = &MockMailService{
+	client.host = &MockSMTPServer{
 		Query_:    func(addr *mail.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
 		Settings_: func() Config { return Config{Relay: true} },
 	}
@@ -150,7 +150,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	}
 
 	// Relay is disabled
-	client.host = &MockMailService{
+	client.host = &MockSMTPServer{
 		Query_:    func(addr *mail.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
 		Settings_: func() Config { return Config{Relay: false} },
 	}
@@ -196,7 +196,7 @@ func TestCmdRCPT_Internal_Error(t *testing.T) {
 
 func TestCmdDATA_Digest(t *testing.T) {
 	client, pipe := getTestClient()
-	client.host = &MockMailService{
+	client.host = &MockSMTPServer{
 		Digest_: func(c *Client) error {
 			switch c.Id {
 			case "error":
@@ -286,7 +286,7 @@ func getTestClient() (*Client, *textproto.Conn) {
 		conn:    sconn,
 		Mode:    MODE_HELO,
 		Message: new(gomez.Message),
-		host: &MockMailService{
+		host: &MockSMTPServer{
 			Query_: func(addr *mail.Address) gomez.QueryStatus {
 				switch strings.Split(addr.Address, "@")[0] {
 				case "not_found":

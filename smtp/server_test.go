@@ -126,7 +126,7 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 }
 
 func TestServer_Mock(t *testing.T) {
-	var mock MailService = &MockMailService{}
+	var mock SMTPServer = &MockSMTPServer{}
 
 	mock.Digest(&Client{})
 	mock.Settings()
