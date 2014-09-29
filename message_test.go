@@ -88,3 +88,35 @@ func TestMessage_Setters_Getters(t *testing.T) {
 		t.Error("Did not add/retrieve recipients correctly.")
 	}
 }
+
+func TestMessage_PrependHeader(t *testing.T) {
+	testSuite := []struct {
+		Message    string
+		Key, Value string
+		Expected   string
+	}{
+		{
+			"", "Key", "Value",
+			"Key: Value\r\n",
+		},
+		{
+			"There is some text", "Key", "Value",
+			"Key: Value\r\nThere is some text",
+		},
+		{
+			"There is some text", "Key", "Value on\r\n\tmultiple lines",
+			"Key: Value on\r\n\tmultiple lines\r\nThere is some text",
+		},
+	}
+
+	for _, test := range testSuite {
+		m := &Message{Raw: test.Message}
+		m.PrependHeader(test.Key, test.Value)
+
+		if m.Raw != test.Expected {
+			t.Errorf("Header not prepended correctly. Was expecting:\r\n\r\n%s\r\n\r\nbut got:\r\n\r\n%s",
+				test.Expected,
+				m.Raw)
+		}
+	}
+}

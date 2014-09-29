@@ -30,3 +30,8 @@ func (m Message) From() *mail.Address { return m.from }
 func (m Message) Parse() (*mail.Message, error) {
 	return mail.ReadMessage(strings.NewReader(m.Raw))
 }
+
+// Prepends a header to the message
+func (m *Message) PrependHeader(name, value string) {
+	m.Raw = name + ": " + value + "\r\n" + m.Raw
+}
