@@ -31,7 +31,8 @@ func (m Message) Parse() (*mail.Message, error) {
 	return mail.ReadMessage(strings.NewReader(m.Raw))
 }
 
-// Prepends a header to the message
+// Prepends a header to the message. If a multiline message is desired,
+// separate lines using <CR><LF> as specified in RFC. Go has \r\n for this.
 func (m *Message) PrependHeader(name, value string) {
 	m.Raw = name + ": " + value + "\r\n" + m.Raw
 }
