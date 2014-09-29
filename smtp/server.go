@@ -96,6 +96,15 @@ func (s Server) Digest(c *Client) error {
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
 		return ERR_MESSAGE_NOT_COMPLIANT
 	}
+	// Received: from
+	// the name the sending computer gave for itself (the name associated with that computer's IP address [its IP address])
+	// by
+	// the receiving computer's name (the software that computer uses) (usually Sendmail, qmail or Postfix)
+	// with protocol (usually SMTP or ESMTP) id id assigned by local computer for logging;
+	// timestamp (usually given in the computer's localtime; see below for how you can convert these all to your time)
+
+	// Received:     from maroon.pobox.com (maroon.pobox.com [208.72.237.40]) by mailstore.pobox.com
+	//        (Postfix) with ESMTP id 847989746 for <address>; Wed, 15 Jun 2011 10:42:09 -0400 (EDT)
 
 	// Generate local Message ID
 	// If message has no Message-ID header, use the generated one
