@@ -106,10 +106,9 @@ func (s Server) Digest(c *Client) error {
 	// Received:     from maroon.pobox.com (maroon.pobox.com [208.72.237.40]) by mailstore.pobox.com
 	//        (Postfix) with ESMTP id 847989746 for <address>; Wed, 15 Jun 2011 10:42:09 -0400 (EDT)
 
-	// Generate local Message ID
-	// If message has no Message-ID header, use the generated one
-	// Add retrieve header and log/queue message using generated Message ID
-	// Queue message
+	// Get ID
+	// Add Header
+	// Queue Message
 
 	s.Lock()
 	defer s.Unlock()
