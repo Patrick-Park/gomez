@@ -65,20 +65,22 @@ func Start(mb gomez.Mailbox, conf Config) {
 		log.Fatalf("Could not listen on %s.", conf.ListenAddr)
 	}
 
+	spec := &CommandSpec{
+		"HELO": cmdHELO,
+		"EHLO": cmdEHLO,
+		"MAIL": cmdMAIL,
+		"RCPT": cmdRCPT,
+		"DATA": cmdDATA,
+		"RSET": cmdRSET,
+		"NOOP": cmdNOOP,
+		"VRFY": cmdVRFY,
+		"QUIT": cmdQUIT,
+	}
+
 	srv := &Server{
 		Mailbox: mb,
 		config:  conf,
-		spec: &CommandSpec{
-			"HELO": cmdHELO,
-			"EHLO": cmdEHLO,
-			"MAIL": cmdMAIL,
-			"RCPT": cmdRCPT,
-			"DATA": cmdDATA,
-			"RSET": cmdRSET,
-			"NOOP": cmdNOOP,
-			"VRFY": cmdVRFY,
-			"QUIT": cmdQUIT,
-		},
+		spec:    spec,
 	}
 
 	for {
