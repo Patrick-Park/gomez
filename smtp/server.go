@@ -130,7 +130,6 @@ func (s Server) Run(ctx *Client, msg string) error {
 // all requirements, if the client can not be validated or if an error occurs, Digest
 // notifies the client connection.
 func (s Server) Digest(client *Client) error {
-	// Check that at least "Date" and "From" headers are here and that the message has them
 	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
 		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
