@@ -26,7 +26,7 @@ func TestServerRun(t *testing.T) {
 
 	testClient := &Client{
 		Mode: MODE_HELO,
-		conn: sconn,
+		text: sconn,
 	}
 
 	testCases := []struct {

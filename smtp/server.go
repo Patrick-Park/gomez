@@ -95,8 +95,8 @@ func (s Server) CreateClient(conn net.Conn) {
 		Message: new(gomez.Message),
 		Mode:    MODE_HELO,
 		host:    s,
-		conn:    textproto.NewConn(conn),
-		rawConn: conn,
+		text:    textproto.NewConn(conn),
+		conn:    conn,
 	}
 
 	c.Notify(Reply{220, s.config.Hostname + " Gomez SMTP"})
@@ -177,7 +177,7 @@ func (s *Server) prependReceivedHeader(client *Client) error {
 	var helloHost string
 
 	// Find the remote connection's IP
-	remoteAddress := client.rawConn.RemoteAddr()
+	remoteAddress := client.conn.RemoteAddr()
 	helloIp, _, err := net.SplitHostPort(remoteAddress.String())
 	if err != nil {
 		return err

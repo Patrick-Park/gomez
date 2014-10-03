@@ -128,7 +128,7 @@ func cmdDATA(ctx *Client, param string) error {
 		return err
 	}
 
-	msg, err := ctx.conn.ReadDotLines()
+	msg, err := ctx.text.ReadDotLines()
 	if err != nil {
 		return ctx.Notify(replyErrorProcessing)
 	}

@@ -31,13 +31,13 @@ type Client struct {
 	Message *gomez.Message
 	Mode    InputMode
 	host    SMTPServer
-	conn    *textproto.Conn
-	rawConn net.Conn
+	text    *textproto.Conn
+	conn    net.Conn
 }
 
 // Replies to the client via the attached connection. To find
 // out more about how Reply is printed look into Reply.String()
-func (c *Client) Notify(r Reply) error { return c.conn.PrintfLine("%s", r) }
+func (c *Client) Notify(r Reply) error { return c.text.PrintfLine("%s", r) }
 
 // Initiates a new channel of communication between the connected
 // client and the attached mailing service. It picks up commands
@@ -46,7 +46,7 @@ func (c *Client) Notify(r Reply) error { return c.conn.PrintfLine("%s", r) }
 // or issues the QUIT command.
 func (c *Client) Serve() {
 	for {
-		msg, err := c.conn.ReadLine()
+		msg, err := c.text.ReadLine()
 		if isEOF(err) {
 			break
 		}
@@ -57,7 +57,7 @@ func (c *Client) Serve() {
 		}
 	}
 
-	c.conn.Close()
+	c.text.Close()
 }
 
 // Resets the state of the client. It resets the accumulated message and

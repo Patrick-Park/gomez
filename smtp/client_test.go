@@ -51,9 +51,9 @@ func TestClientServe(t *testing.T) {
 	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
 
 	testClient := &Client{
-		host: hostMock,
 		Mode: MODE_HELO,
-		conn: sconn,
+		host: hostMock,
+		text: sconn,
 	}
 
 	wg.Add(1)
@@ -101,7 +101,7 @@ func TestClientServe_Error(t *testing.T) {
 			},
 		},
 		Mode: MODE_HELO,
-		conn: sconn,
+		text: sconn,
 	}
 
 	var wg sync.WaitGroup
@@ -146,7 +146,7 @@ func TestClientNotify(t *testing.T) {
 	sc, cc := net.Pipe()
 	cconn := textproto.NewConn(cc)
 
-	testClient := &Client{conn: textproto.NewConn(sc)}
+	testClient := &Client{text: textproto.NewConn(sc)}
 
 	go testClient.Notify(Reply{200, "Hello"})
 	msg, err := cconn.ReadLine()
