@@ -1,7 +1,6 @@
 package smtp
 
 import (
-	"errors"
 	"log"
 	"net"
 	"net/mail"
@@ -86,16 +85,14 @@ func Start(mb gomez.Mailbox, conf Config) {
 	}
 }
 
-// Return by Digest when the message does not comply with RFC 2822 header specifications
-var ERR_MESSAGE_NOT_COMPLIANT = errors.New("Message is not RFC 2822 compliant")
-
 // Digests a child connection. Delivers or enqueues messages
 // according to reciepients
-func (s Server) Digest(c *Client) error {
-	msg, err := c.Message.Parse()
+func (s Server) Digest(client *Client) error {
+	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
-		return ERR_MESSAGE_NOT_COMPLIANT
+		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
+
 	// Received: from
 	// the name the sending computer gave for itself (the name associated with that computer's IP address [its IP address])
 	// by

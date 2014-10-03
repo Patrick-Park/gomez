@@ -134,19 +134,7 @@ func cmdDATA(ctx *Client, param string) error {
 	}
 
 	ctx.Message.Raw = strings.Join(msg, "\r\n")
-	err = ctx.host.Digest(ctx)
-
-	switch {
-	case err == ERR_MESSAGE_NOT_COMPLIANT:
-		return ctx.Notify(Reply{550, "Message not RFC 2822 compliant."})
-
-	case err != nil:
-		return ctx.Notify(replyErrorProcessing)
-	}
-
-	ctx.Reset()
-
-	return ctx.Notify(Reply{250, "Message queued"})
+	return ctx.host.Digest(ctx)
 }
 
 // RFC 2821 4.1.1.5 RESET (RSET)
