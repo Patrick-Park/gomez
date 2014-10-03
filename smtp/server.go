@@ -97,14 +97,15 @@ func (s Server) Digest(client *Client) error {
 		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
 
-	helloIp, _, err := net.SplitHostPort(client.rawConn.RemoteAddr().String())
+	remoteAddress := client.rawConn.RemoteAddr()
+	helloIp, _, err := net.SplitHostPort(remoteAddress.String())
 	if err != nil {
 		return client.Notify(replyErrorProcessing)
 	}
 
 	helloHosts, err := net.LookupAddr(helloIp)
-	if err != nil {
-		return client.Notify(replyErrorProcessing)
+	if len(helloHosts) > 0 {
+		helloHost = helloHosts[0] + " "
 	}
 
 	id, err := s.Mailbox.NextID()
@@ -112,12 +113,9 @@ func (s Server) Digest(client *Client) error {
 		return client.Notify(replyErrorProcessing)
 	}
 
-	if len(helloHosts) > 0 {
-		helloHost = helloHosts[0] + " "
-	}
-
 	if len(msg.Header["Message-ID"]) == 0 {
-		client.Message.PrependHeader("Message-ID", fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), id, s.config.Hostname))
+		messageId := fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), id, s.config.Hostname)
+		client.Message.PrependHeader("Message-ID", messageId)
 	}
 
 	receivedHeader := fmt.Sprintf("from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
@@ -136,7 +134,7 @@ func (s Server) Digest(client *Client) error {
 		return client.Notify(replyErrorProcessing)
 	}
 
-	return nil
+	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
 }
 
 var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
