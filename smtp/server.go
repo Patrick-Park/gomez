@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/mail"
@@ -8,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gbbr/gomez"
 )
@@ -88,27 +90,51 @@ func Start(mb gomez.Mailbox, conf Config) {
 // Digests a child connection. Delivers or enqueues messages
 // according to reciepients
 func (s Server) Digest(client *Client) error {
+	var helloHost string
+
 	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
 		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
 
-	// Received: from
-	// the name the sending computer gave for itself (the name associated with that computer's IP address [its IP address])
-	// by
-	// the receiving computer's name (the software that computer uses) (usually Sendmail, qmail or Postfix)
-	// with protocol (usually SMTP or ESMTP) id id assigned by local computer for logging;
-	// timestamp (usually given in the computer's localtime; see below for how you can convert these all to your time)
+	helloIp, _, err := net.SplitHostPort(client.rawConn.RemoteAddr().String())
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
 
-	// Received:     from maroon.pobox.com (maroon.pobox.com [208.72.237.40]) by mailstore.pobox.com
-	//        (Postfix) with ESMTP id 847989746 for <address>; Wed, 15 Jun 2011 10:42:09 -0400 (EDT)
+	helloHosts, err := net.LookupAddr(helloIp)
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
 
-	// Get ID
-	// Add Header
-	// Queue Message
+	id, err := s.Mailbox.NextID()
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
 
-	s.Lock()
-	defer s.Unlock()
+	if len(helloHosts) > 0 {
+		helloHost = helloHosts[0] + " "
+	}
+
+	if len(msg.Header["Message-ID"]) == 0 {
+		client.Message.PrependHeader("Message-ID", fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), id, s.config.Hostname))
+	}
+
+	receivedHeader := fmt.Sprintf("from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
+		client.Id,
+		helloHost,
+		helloIp,
+		s.config.Hostname,
+		id,
+		client.Message.Rcpt()[0],
+		time.Now())
+
+	client.Message.PrependHeader("Received", receivedHeader)
+
+	err = s.Mailbox.Queue(client.Message)
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
 
 	return nil
 }
