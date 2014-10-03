@@ -44,6 +44,10 @@ type Server struct {
 // of a connected client and a string of params
 type CommandSpec map[string]func(*Client, string) error
 
+// The accepted format of incoming SMTP commands
+// (4 letter commands, followed by an optional space with arguments)
+var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
+
 // Configuration settings for the SMTP server
 type Config struct {
 	ListenAddr string
@@ -87,58 +91,25 @@ func Start(mb gomez.Mailbox, conf Config) {
 	}
 }
 
-// Analyzes and places a complete message into the queue. If the message does not pass
-// all requirements, if the client can not be validated or if an error occurs, Digest
-// notifies the client connection.
-func (s Server) Digest(client *Client) error {
-	var helloHost string
-
-	msg, err := client.Message.Parse()
-	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
-		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
+// Creates a new client based on the given connection
+func (s Server) CreateClient(conn net.Conn) {
+	c := &Client{
+		Message: new(gomez.Message),
+		Mode:    MODE_HELO,
+		host:    s,
+		conn:    textproto.NewConn(conn),
+		rawConn: conn,
 	}
 
-	remoteAddress := client.rawConn.RemoteAddr()
-	helloIp, _, err := net.SplitHostPort(remoteAddress.String())
-	if err != nil {
-		return client.Notify(replyErrorProcessing)
-	}
-
-	helloHosts, err := net.LookupAddr(helloIp)
-	if len(helloHosts) > 0 {
-		helloHost = helloHosts[0] + " "
-	}
-
-	id, err := s.Mailbox.NextID()
-	if err != nil {
-		return client.Notify(replyErrorProcessing)
-	}
-
-	if len(msg.Header["Message-ID"]) == 0 {
-		messageId := fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), id, s.config.Hostname)
-		client.Message.PrependHeader("Message-ID", messageId)
-	}
-
-	receivedHeader := fmt.Sprintf("from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-		client.Id,
-		helloHost,
-		helloIp,
-		s.config.Hostname,
-		id,
-		client.Message.Rcpt()[0],
-		time.Now())
-
-	client.Message.PrependHeader("Received", receivedHeader)
-
-	err = s.Mailbox.Queue(client.Message)
-	if err != nil {
-		return client.Notify(replyErrorProcessing)
-	}
-
-	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
+	c.Notify(Reply{220, s.config.Hostname + " Gomez SMTP"})
+	c.Serve()
 }
 
-var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
+// Returns the configuration of the server
+func (s Server) Settings() Config { return s.config }
+
+// Queries the host mailbox for a user by string or Address
+func (s Server) Query(addr *mail.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
 
 // Runs a command in the context of a child connection
 func (s Server) Run(ctx *Client, msg string) error {
@@ -157,22 +128,60 @@ func (s Server) Run(ctx *Client, msg string) error {
 	return command(ctx, params)
 }
 
-// Returns the configuration of the server
-func (s Server) Settings() Config { return s.config }
+// Analyzes and places a complete message into the queue. If the message does not pass
+// all requirements, if the client can not be validated or if an error occurs, Digest
+// notifies the client connection.
+func (s Server) Digest(client *Client) error {
+	var helloHost string
 
-// Queries the host mailbox for a user by string or Address
-func (s Server) Query(addr *mail.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
-
-// Creates a new client based on the given connection
-func (s Server) CreateClient(conn net.Conn) {
-	c := &Client{
-		Message: new(gomez.Message),
-		Mode:    MODE_HELO,
-		host:    s,
-		conn:    textproto.NewConn(conn),
-		rawConn: conn,
+	// Check that at least "Date" and "From" headers are here and that the message has them
+	msg, err := client.Message.Parse()
+	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
+		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
 
-	c.Notify(Reply{220, s.config.Hostname + " Gomez SMTP"})
-	c.Serve()
+	// Find the remote connection's IP
+	remoteAddress := client.rawConn.RemoteAddr()
+	helloIp, _, err := net.SplitHostPort(remoteAddress.String())
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
+
+	// Try to resolve the IP's host by doing a reverse look-up
+	helloHosts, err := net.LookupAddr(helloIp)
+	if len(helloHosts) > 0 {
+		helloHost = helloHosts[0] + " "
+	}
+
+	// Get the next available ID from the mailbox
+	id, err := s.Mailbox.NextID()
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
+
+	// If the message doesn't have a Message-ID, add it
+	if len(msg.Header["Message-ID"]) == 0 {
+		messageId := fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), id, s.config.Hostname)
+		client.Message.PrependHeader("Message-ID", messageId)
+	}
+
+	// Construct the Received header based on gathered information
+	receivedHeader := fmt.Sprintf("from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
+		client.Id,
+		helloHost,
+		helloIp,
+		s.config.Hostname,
+		id,
+		client.Message.Rcpt()[0],
+		time.Now())
+
+	client.Message.PrependHeader("Received", receivedHeader)
+
+	// Try to enqueue the message
+	err = s.Mailbox.Queue(client.Message)
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
+
+	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
 }
