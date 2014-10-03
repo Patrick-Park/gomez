@@ -77,11 +77,7 @@ func Start(mb gomez.Mailbox, conf Config) {
 		"QUIT": cmdQUIT,
 	}
 
-	srv := &Server{
-		Mailbox: mb,
-		config:  conf,
-		spec:    spec,
-	}
+	srv := &Server{Mailbox: mb, config: conf, spec: spec}
 
 	for {
 		conn, err := ln.Accept()
