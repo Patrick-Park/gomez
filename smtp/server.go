@@ -87,8 +87,9 @@ func Start(mb gomez.Mailbox, conf Config) {
 	}
 }
 
-// Digests a child connection. Delivers or enqueues messages
-// according to reciepients
+// Analyzes and places a complete message into the queue. If the message does not pass
+// all requirements, if the client can not be validated or if an error occurs, Digest
+// notifies the client connection.
 func (s Server) Digest(client *Client) error {
 	var helloHost string
 
