@@ -138,17 +138,9 @@ func (s Server) Digest(client *Client) error {
 		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
 
-	// Get the next available ID from the mailbox
-	id, err := s.Mailbox.NextID()
+	err = s.attachMessageId(client)
 	if err != nil {
 		return client.Notify(replyErrorProcessing)
-	}
-	client.Message.Id = id
-
-	// If the message doesn't have a Message-ID, add it
-	if len(msg.Header["Message-ID"]) == 0 {
-		messageId := fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), client.Message.Id, s.config.Hostname)
-		client.Message.PrependHeader("Message-ID", messageId)
 	}
 
 	err = s.prependReceivedHeader(client)
@@ -163,7 +155,32 @@ func (s Server) Digest(client *Client) error {
 	}
 	client.Reset()
 
-	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
+	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", client.Message.Id)})
+}
+
+func (s *Server) attachMessageId(client *Client) error {
+	msg, err := client.Message.Parse()
+	if err != nil {
+		return err
+	}
+
+	// Get the next available ID from the mailbox
+	id, err := s.Mailbox.NextID()
+	if err != nil {
+		return err
+	}
+
+	client.Message.Id = id
+
+	// If the message doesn't have a Message-ID, add it
+	if len(msg.Header["Message-ID"]) == 0 {
+		client.Message.PrependHeader("Message-ID", fmt.Sprintf("<%x.%d@%s>",
+			time.Now().UnixNano(),
+			client.Message.Id,
+			s.config.Hostname))
+	}
+
+	return nil
 }
 
 // Attaches transitional headers to a client's message, such as "Received:".
