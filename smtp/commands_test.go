@@ -204,20 +204,25 @@ func TestCmdDATA_Digest(t *testing.T) {
 		},
 	}
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 	go func() {
 		client.Mode = MODE_DATA
 		client.Id = "Test_ID"
 		cmdDATA(client, "")
+		wg.Done()
 	}()
 
 	pipe.ReadResponse(354)
 	pipe.PrintfLine(".")
 
+	wg.Wait()
+	pipe.Close()
+
 	if !calledDigest {
 		t.Error("Did not call Digest")
 	}
-
-	pipe.Close()
 }
 
 func TestCmdDATA_Error_Notify(t *testing.T) {
