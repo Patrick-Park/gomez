@@ -183,5 +183,6 @@ func (s Server) Digest(client *Client) error {
 		return client.Notify(replyErrorProcessing)
 	}
 
+	client.Reset()
 	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
 }
