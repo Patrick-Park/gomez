@@ -166,8 +166,7 @@ func (s Server) Digest(client *Client) error {
 	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
 }
 
-// Attaches transitional headers to a client's message, such as "Received:" and
-// "Message-ID" if the message does not have one already
+// Attaches transitional headers to a client's message, such as "Received:".
 func (s *Server) prependReceivedHeader(client *Client) error {
 	var helloHost string
 
