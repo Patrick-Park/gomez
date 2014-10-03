@@ -8,6 +8,7 @@ import (
 // A message represents an e-mail message and  holds information about
 // sender, recepients and the message body
 type Message struct {
+	Id   uint64
 	from *mail.Address
 	rcpt []*mail.Address
 	Raw  string

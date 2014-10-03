@@ -132,19 +132,50 @@ func (s Server) Run(ctx *Client, msg string) error {
 // all requirements, if the client can not be validated or if an error occurs, Digest
 // notifies the client connection.
 func (s Server) Digest(client *Client) error {
-	var helloHost string
-
 	// Check that at least "Date" and "From" headers are here and that the message has them
 	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
 		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
 
+	// Get the next available ID from the mailbox
+	id, err := s.Mailbox.NextID()
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
+	client.Message.Id = id
+
+	// If the message doesn't have a Message-ID, add it
+	if len(msg.Header["Message-ID"]) == 0 {
+		messageId := fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), client.Message.Id, s.config.Hostname)
+		client.Message.PrependHeader("Message-ID", messageId)
+	}
+
+	err = s.prependReceivedHeader(client)
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
+
+	// Try to enqueue the message
+	err = s.Mailbox.Queue(client.Message)
+	if err != nil {
+		return client.Notify(replyErrorProcessing)
+	}
+	client.Reset()
+
+	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
+}
+
+// Attaches transitional headers to a client's message, such as "Received:" and
+// "Message-ID" if the message does not have one already
+func (s *Server) prependReceivedHeader(client *Client) error {
+	var helloHost string
+
 	// Find the remote connection's IP
 	remoteAddress := client.rawConn.RemoteAddr()
 	helloIp, _, err := net.SplitHostPort(remoteAddress.String())
 	if err != nil {
-		return client.Notify(replyErrorProcessing)
+		return err
 	}
 
 	// Try to resolve the IP's host by doing a reverse look-up
@@ -153,36 +184,17 @@ func (s Server) Digest(client *Client) error {
 		helloHost = helloHosts[0] + " "
 	}
 
-	// Get the next available ID from the mailbox
-	id, err := s.Mailbox.NextID()
-	if err != nil {
-		return client.Notify(replyErrorProcessing)
-	}
-
-	// If the message doesn't have a Message-ID, add it
-	if len(msg.Header["Message-ID"]) == 0 {
-		messageId := fmt.Sprintf("<%x.%d@%s>", time.Now().UnixNano(), id, s.config.Hostname)
-		client.Message.PrependHeader("Message-ID", messageId)
-	}
-
 	// Construct the Received header based on gathered information
 	receivedHeader := fmt.Sprintf("from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
 		client.Id,
 		helloHost,
 		helloIp,
 		s.config.Hostname,
-		id,
+		client.Message.Id,
 		client.Message.Rcpt()[0],
 		time.Now())
 
 	client.Message.PrependHeader("Received", receivedHeader)
 
-	// Try to enqueue the message
-	err = s.Mailbox.Queue(client.Message)
-	if err != nil {
-		return client.Notify(replyErrorProcessing)
-	}
-
-	client.Reset()
-	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", id)})
+	return nil
 }
