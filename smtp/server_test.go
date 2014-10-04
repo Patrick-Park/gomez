@@ -410,3 +410,52 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 		t.Errorf("Got: %s", msg.Header["Received"][0])
 	}
 }
+
+// func TestServer_SMTP_Sending(t *testing.T) {
+// 	go Start(&gomez.MockMailbox{
+// 		Queue_: func(msg *gomez.Message) error {
+// 			t.Error(msg)
+// 			return nil
+// 		},
+// 		Query_: func(addr *mail.Address) gomez.QueryStatus {
+// 			return gomez.QUERY_STATUS_SUCCESS
+// 		},
+// 		NextID_: func() (uint64, error) { return 555, nil },
+// 	}, Config{ListenAddr: "127.0.0.1:1234", Hostname: "TestHost"})
+
+// 	time.Sleep(1 * time.Second)
+
+// 	// Connect to the remote SMTP server.
+// 	c, err := smtp.Dial("127.0.0.1:1234")
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+
+// 	// Set the sender and recipient first
+// 	if err := c.Mail("sender@example.org"); err != nil {
+// 		t.Error(err)
+// 	}
+// 	if err := c.Rcpt("recipient@example.net"); err != nil {
+// 		t.Error(err)
+// 	}
+
+// 	// Send the email body.
+// 	wc, err := c.Data()
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	_, err = fmt.Fprintf(wc, "From: Me\r\nDate: Today\r\n\r\nThis is the email body")
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	err = wc.Close()
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+
+// 	// Send the QUIT command and close the connection.
+// 	err = c.Quit()
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// }
