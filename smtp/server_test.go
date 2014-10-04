@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"errors"
 	"net"
 	"net/mail"
 	"net/textproto"
@@ -8,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gbbr/gomez"
+	"github.com/gbbr/mocks"
 )
 
 // Should correctly run commands from spec, echo parameters
@@ -134,4 +136,82 @@ func TestServer_Mock(t *testing.T) {
 	mock.Run(&Client{}, "")
 }
 
-// Test E2E
+func TestServer_Digest_Responses(t *testing.T) {
+	server := Server{config: Config{Hostname: "TestHost"}}
+
+	testSuite := []struct {
+		Message  *gomez.Message
+		Mailbox  gomez.Mailbox
+		Address  string
+		Response int
+	}{
+		{
+			&gomez.Message{Raw: "Message is not valid"},
+			gomez.MockMailbox{},
+			"1.2.3.4:1234", 550,
+		}, {
+			&gomez.Message{Raw: "From: Mary\r\n\r\nMessage is not valid"},
+			gomez.MockMailbox{},
+			"1.2.3.4:1234", 550,
+		}, {
+			&gomez.Message{
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with DB error.",
+			},
+			gomez.MockMailbox{
+				NextID_: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
+			},
+			"1.2.3.4:1234", 451,
+		}, {
+			&gomez.Message{
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
+			},
+			gomez.MockMailbox{
+				NextID_: func() (uint64, error) { return 123, nil },
+				Queue_:  func(*gomez.Message) error { return errors.New("Error queueing message.") },
+			},
+			"1.2.3.4:1234", 451,
+		}, {
+			&gomez.Message{
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
+			},
+			gomez.MockMailbox{
+				NextID_: func() (uint64, error) { return 123, nil },
+				Queue_:  func(*gomez.Message) error { return errors.New("Error queueing message.") },
+			},
+			"1.2.3.4", 451,
+		}, {
+			&gomez.Message{
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors.",
+			},
+			gomez.MockMailbox{
+				NextID_: func() (uint64, error) { return 123, nil },
+				Queue_:  func(*gomez.Message) error { return nil },
+			},
+			"1.2.3.4:123", 250,
+		},
+	}
+
+	var wg sync.WaitGroup
+
+	for _, test := range testSuite {
+		server.Mailbox = test.Mailbox
+		client, pipe := getTestClient()
+		client.conn = &mocks.Conn{RemoteAddress: test.Address}
+		client.Message = test.Message
+		client.Message.AddRcpt(&mail.Address{"Name", "Addr@es"})
+
+		wg.Add(1)
+		go func() {
+			server.Digest(client)
+			wg.Done()
+		}()
+
+		_, _, err := pipe.ReadResponse(test.Response)
+		if err != nil {
+			t.Errorf("Expected %d, but got: %+v", test.Response, err)
+		}
+
+		pipe.Close()
+		wg.Wait()
+	}
+}
