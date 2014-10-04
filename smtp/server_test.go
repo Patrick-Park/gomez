@@ -228,121 +228,70 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 	var called bool
 
 	server := Server{config: Config{Hostname: "TestHost"}}
-	server.Mailbox = gomez.MockMailbox{
-		NextID_: func() (uint64, error) { called = true; return 1, nil },
-	}
-
-	client, pipe := getTestClient()
-	client.conn = &mocks.Conn{RemoteAddress: "invalid_addr"}
-	client.Message = &gomez.Message{
-		Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?",
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		server.Digest(client)
-		wg.Done()
-	}()
-
-	pipe.ReadResponse(451)
-	pipe.Close()
-
-	msg, err := client.Message.Parse()
-	if err != nil || len(msg.Header["Message-Id"]) == 0 {
-		t.Error("Did not set Message-ID header on message")
-	}
-
-	if !strings.HasSuffix(msg.Header["Message-Id"][0], ".1@TestHost") {
-		t.Errorf("Did not set Message-ID header correctly, got: '%s'", msg.Header["Message-Id"][0])
-	}
-
-	if !called || client.Message.Id != 1 {
-		t.Error("Did not set message ID")
-	}
-
-	wg.Wait()
-}
-
-func TestServer_Digest_Has_Header_Message_Id(t *testing.T) {
-	var called bool
-
-	server := Server{config: Config{Hostname: "TestHost"}}
-	server.Mailbox = gomez.MockMailbox{
-		NextID_: func() (uint64, error) { called = true; return 2, nil },
-	}
-
-	client, pipe := getTestClient()
-	client.conn = &mocks.Conn{RemoteAddress: "invalid_addr"}
-	client.Message = &gomez.Message{
-		Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?",
+	testSuite := []struct {
+		Message    *gomez.Message
+		Mailbox    gomez.Mailbox
+		Conn       net.Conn
+		Value      string
+		Id         uint64
+		Response   int
+		ShouldCall bool
+	}{
+		{
+			&gomez.Message{Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?"},
+			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 1, nil }},
+			&mocks.Conn{RemoteAddress: "invalid_addr"},
+			".1@TestHost", 1, 451, true,
+		}, {
+			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?"},
+			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 2, nil }},
+			&mocks.Conn{RemoteAddress: "invalid_addr"},
+			"My_ID", 2, 451, true,
+		}, {
+			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", Id: 53},
+			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 2, nil }},
+			&mocks.Conn{RemoteAddress: "invalid_addr"},
+			"My_ID", 53, 451, false,
+		},
 	}
 
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		server.Digest(client)
-		wg.Done()
-	}()
+	for _, test := range testSuite {
+		called = false
+		server.Mailbox = test.Mailbox
+		client, pipe := getTestClient()
+		client.conn = test.Conn
+		client.Message = test.Message
 
-	pipe.ReadResponse(451)
-	pipe.Close()
+		wg.Add(1)
+		go func() {
+			server.Digest(client)
+			wg.Done()
+		}()
 
-	msg, err := client.Message.Parse()
-	if err != nil || len(msg.Header["Message-Id"]) == 0 {
-		t.Error("Did not set Message-ID header on message")
+		pipe.ReadResponse(test.Response)
+		pipe.Close()
+
+		msg, err := client.Message.Parse()
+		if err != nil || len(msg.Header["Message-Id"]) == 0 {
+			t.Error("Digested and could not parse or Message-ID is missing.")
+		}
+
+		if !strings.HasSuffix(msg.Header["Message-Id"][0], test.Value) {
+			t.Errorf("Did not set Message-ID header correctly, got: '%s'", msg.Header["Message-Id"][0])
+		}
+
+		if test.ShouldCall && !called {
+			t.Error("Did not call mailbox for ID")
+		}
+
+		if client.Message.Id != test.Id {
+			t.Errorf("Did not set message ID. Wanted %d, got %d", test.Id, client.Message.Id)
+		}
+
+		wg.Wait()
 	}
-
-	if msg.Header["Message-Id"][0] != "My_ID" {
-		t.Errorf("Did not set Message-ID header correctly, got: '%s'", msg.Header["Message-Id"][0])
-	}
-
-	if !called || client.Message.Id != 2 {
-		t.Error("Did not set message ID")
-	}
-
-	wg.Wait()
-}
-
-func TestServer_Digest_Has_Message_Id(t *testing.T) {
-	var called bool
-
-	server := Server{config: Config{Hostname: "TestHost"}}
-	server.Mailbox = gomez.MockMailbox{
-		NextID_: func() (uint64, error) { called = true; return 2, nil },
-	}
-
-	client, pipe := getTestClient()
-	client.conn = &mocks.Conn{RemoteAddress: "invalid_addr"}
-
-	client.Message = &gomez.Message{
-		Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?",
-		Id:  53,
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		server.Digest(client)
-		wg.Done()
-	}()
-
-	pipe.ReadResponse(451)
-	pipe.Close()
-
-	msg, err := client.Message.Parse()
-	if err != nil || len(msg.Header["Message-Id"]) == 0 {
-		t.Error("Did not set Message-ID header on message")
-	}
-
-	if called || client.Message.Id != 53 {
-		t.Error("Was not supposed to touch already existing client.Message.Id")
-	}
-
-	wg.Wait()
 }
 
 func TestServer_Digest_Received_Header(t *testing.T) {
