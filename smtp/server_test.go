@@ -432,12 +432,13 @@ func TestServer_SMTP_Sending(t *testing.T) {
 
 	now := time.Now()
 
-	// Connect to the remote SMTP server. Keep trying for 1 second.
+	// Connect to the remote SMTP server. Keep trying for 1 second
+	// because go routine needs to "boot"
 	c, err := smtp.Dial("127.0.0.1:1234")
 	if err != nil {
 		for {
 			c, err = smtp.Dial("127.0.0.1:1234")
-			if err == nil || time.Since(now).Seconds() < 1 {
+			if err == nil || time.Since(now).Seconds() > 1 {
 				break
 			}
 		}
