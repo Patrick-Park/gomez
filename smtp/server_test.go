@@ -2,7 +2,6 @@ package smtp
 
 import (
 	"errors"
-	"flag"
 	"net"
 	"net/mail"
 	"net/textproto"
@@ -13,8 +12,6 @@ import (
 	"github.com/gbbr/gomez"
 	"github.com/gbbr/mocks"
 )
-
-var networkEnabled = flag.Bool("network", false, "Signifies if network is enabled or not")
 
 // Should correctly run commands from spec, echo parameters
 // and reject bad commands or commands that are not in the spec
