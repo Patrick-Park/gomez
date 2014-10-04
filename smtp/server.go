@@ -145,11 +145,11 @@ func (s Server) Digest(client *Client) error {
 	}
 
 	// If the message doesn't have a Message-ID, add it
-	if len(msg.Header["Message-ID"]) == 0 {
+	if len(msg.Header["Message-Id"]) == 0 {
 		client.Message.PrependHeader(
 			"Message-ID",
 			fmt.Sprintf(
-				"<%x.%d@%s>",
+				"%x.%d@%s",
 				time.Now().UnixNano(),
 				client.Message.Id,
 				s.config.Hostname,
@@ -186,7 +186,7 @@ func (s *Server) prependReceivedHeader(client *Client) error {
 	// Try to resolve the IP's host by doing a reverse look-up
 	helloHosts, err := net.LookupAddr(helloIp)
 	if len(helloHosts) > 0 {
-		helloHost = helloHosts[0] + " "
+		helloHost = strings.TrimRight(helloHosts[0], ".") + " "
 	}
 
 	// Construct the Received header based on gathered information
