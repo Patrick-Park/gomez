@@ -27,13 +27,9 @@ func TestServerRun(t *testing.T) {
 		},
 	}
 
-	cc, sc := net.Pipe()
-	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
-
-	testClient := &Client{
-		Mode: MODE_HELO,
-		text: sconn,
-	}
+	testClient, pipe := getTestClient()
+	testClient.Mode = MODE_HELO
+	defer pipe.Close()
 
 	testCases := []struct {
 		Message string
@@ -56,7 +52,7 @@ func TestServerRun(t *testing.T) {
 			wg.Done()
 		}()
 
-		rpl, err := cconn.ReadLine()
+		rpl, err := pipe.ReadLine()
 		if err != nil {
 			t.Errorf("Error reading response %s", err)
 		}
