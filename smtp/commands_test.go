@@ -71,7 +71,6 @@ func TestCmd_Modes_and_Codes(t *testing.T) {
 	}()
 
 	for _, test := range testSuite {
-		t.Logf("Testing %s %s %d/%d - %d", test.Hint, test.Param, test.StartMode, test.ExpMode, test.ExpCode)
 		_, _, err := pipe.ReadResponse(test.ExpCode)
 		if err != nil || client.Mode != test.ExpMode {
 			t.Errorf("On function %s %s, expected mode %d and code %d, but got %d and code %+v.",
