@@ -8,7 +8,6 @@ import (
 	"net/textproto"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gbbr/gomez"
