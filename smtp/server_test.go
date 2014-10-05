@@ -362,38 +362,46 @@ func TestServer_Start_Error(t *testing.T) {
 }
 
 func TestServer_SMTP_Sending(t *testing.T) {
-	go Start(&gomez.MockMailbox{
-		Queue_: func(msg *gomez.Message) error {
-			m, err := msg.Parse()
-			if err != nil {
-				t.Error("Failed to parse queued message")
-			}
+	var err error
 
-			if len(m.Header["Message-Id"]) == 0 {
-				t.Error("Queued message with no ID")
-			}
+	go func() {
+		err = Start(&gomez.MockMailbox{
+			Queue_: func(msg *gomez.Message) error {
+				m, err := msg.Parse()
+				if err != nil {
+					t.Error("Failed to parse queued message")
+				}
 
-			if !strings.HasSuffix(m.Header["Message-Id"][0], ".555@TestHost") {
-				t.Errorf("Got wrong Message-ID: %s", m.Header["Message-Id"][0])
-			}
+				if len(m.Header["Message-Id"]) == 0 {
+					t.Error("Queued message with no ID")
+				}
 
-			buf := make([]byte, 22) // Exact length of "This is the email body"
-			m.Body.Read(buf)
+				if !strings.HasSuffix(m.Header["Message-Id"][0], ".555@TestHost") {
+					t.Errorf("Got wrong Message-ID: %s", m.Header["Message-Id"][0])
+				}
 
-			if string(buf) != "This is the email body" {
-				t.Errorf("Got wrong email body: '%s'", string(buf))
-			}
+				buf := make([]byte, 22) // Exact length of "This is the email body"
+				m.Body.Read(buf)
 
-			return nil
-		},
-		Query_: func(addr *mail.Address) gomez.QueryStatus {
-			return gomez.QUERY_STATUS_SUCCESS
-		},
-		NextID_: func() (uint64, error) { return 555, nil },
-	}, Config{ListenAddr: "127.0.0.1:1234", Hostname: "TestHost"})
+				if string(buf) != "This is the email body" {
+					t.Errorf("Got wrong email body: '%s'", string(buf))
+				}
 
-	now := time.Now()
+				return nil
+			},
+			Query_: func(addr *mail.Address) gomez.QueryStatus {
+				return gomez.QUERY_STATUS_SUCCESS
+			},
+			NextID_: func() (uint64, error) { return 555, nil },
+		}, Config{ListenAddr: "127.0.0.1:1234", Hostname: "TestHost"})
+	}()
 
+	if err != nil {
+		t.Logf("Did not run SMTP test. Failed to start server: %s", err)
+		return
+	}
+
+	firstTry := time.Now()
 	c, err := smtp.Dial("127.0.0.1:1234")
 
 	// If connection fails initially, give server a chance to start
@@ -401,7 +409,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 	if err != nil {
 		for {
 			c, err = smtp.Dial("127.0.0.1:1234")
-			if err == nil || time.Since(now).Seconds() > 1 {
+			if err == nil || time.Since(firstTry).Seconds() > 1 {
 				break
 			}
 		}
