@@ -227,7 +227,6 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 	testSuite := []struct {
 		Message    *gomez.Message
 		Mailbox    gomez.Mailbox
-		Conn       net.Conn
 		Value      string
 		Id         uint64
 		Response   int
@@ -236,17 +235,14 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 		{
 			&gomez.Message{Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?"},
 			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 1, nil }},
-			&mocks.Conn{RemoteAddress: "invalid_addr"},
 			".1@TestHost", 1, 451, true,
 		}, {
 			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?"},
 			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 2, nil }},
-			&mocks.Conn{RemoteAddress: "invalid_addr"},
 			"My_ID", 2, 451, true,
 		}, {
 			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", Id: 53},
 			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 2, nil }},
-			&mocks.Conn{RemoteAddress: "invalid_addr"},
 			"My_ID", 53, 451, false,
 		},
 	}
@@ -257,7 +253,7 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 		called = false
 		server.Mailbox = test.Mailbox
 		client, pipe := getTestClient()
-		client.conn = test.Conn
+		client.conn = &mocks.Conn{RemoteAddress: "invalid_addr"}
 		client.Message = test.Message
 
 		wg.Add(1)
