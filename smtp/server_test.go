@@ -357,6 +357,10 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 	}
 }
 
+func TestServer_Start_Error(t *testing.T) {
+	Start(&gomez.MockMailbox{}, Config{ListenAddr: "bad_addr"})
+}
+
 func TestServer_SMTP_Sending(t *testing.T) {
 	go Start(&gomez.MockMailbox{
 		Queue_: func(msg *gomez.Message) error {
