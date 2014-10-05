@@ -146,15 +146,8 @@ func (s Server) Digest(client *Client) error {
 
 	// If the message doesn't have a Message-ID, add it
 	if len(msg.Header["Message-Id"]) == 0 {
-		client.Message.PrependHeader(
-			"Message-ID",
-			fmt.Sprintf(
-				"%x.%d@%s",
-				time.Now().UnixNano(),
-				client.Message.Id,
-				s.config.Hostname,
-			),
-		)
+		client.Message.PrependHeader("Message-ID", fmt.Sprintf("%x.%d@%s",
+			time.Now().UnixNano(), client.Message.Id, s.config.Hostname))
 	}
 
 	err = s.prependReceivedHeader(client)
@@ -194,15 +187,8 @@ func (s *Server) prependReceivedHeader(client *Client) error {
 		"Received",
 		fmt.Sprintf(
 			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-			client.Id,
-			helloHost,
-			helloIp,
-			s.config.Hostname,
-			client.Message.Id,
-			client.Message.Rcpt()[0],
-			time.Now(),
-		),
-	)
+			client.Id, helloHost, helloIp, s.config.Hostname, client.Message.Id,
+			client.Message.Rcpt()[0], time.Now()))
 
 	return nil
 }
