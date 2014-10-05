@@ -55,10 +55,10 @@ func TestCmd_Modes_and_Codes(t *testing.T) {
 		{cmdNOOP, "", 250, MODE_RCPT, MODE_RCPT, "NOOP"},
 		{cmdNOOP, "", 250, MODE_HELO, MODE_HELO, "NOOP"},
 
-		{cmdQUIT, "", 221, MODE_HELO, MODE_QUIT, "QUIT"},
-		{cmdQUIT, "", 221, MODE_MAIL, MODE_QUIT, "QUIT"},
-		{cmdQUIT, "", 221, MODE_RCPT, MODE_QUIT, "QUIT"},
-		{cmdQUIT, "", 221, MODE_DATA, MODE_QUIT, "QUIT"},
+		{cmdQUIT, "", 221, MODE_HELO, MODE_HELO, "QUIT"},
+		{cmdQUIT, "", 221, MODE_MAIL, MODE_MAIL, "QUIT"},
+		{cmdQUIT, "", 221, MODE_RCPT, MODE_RCPT, "QUIT"},
+		{cmdQUIT, "", 221, MODE_DATA, MODE_DATA, "QUIT"},
 
 		{cmdVRFY, "", 252, MODE_DATA, MODE_DATA, "VRFY"},
 	}

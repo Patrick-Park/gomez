@@ -36,13 +36,15 @@ func TestClientServe(t *testing.T) {
 
 	hostMock := &MockSMTPServer{
 		Run_: func(ctx *Client, params string) error {
+			msg = params
+
 			if params == "MODE" {
 				ctx.Mode = MODE_MAIL
 			} else if params == "QUIT" {
-				ctx.Mode = MODE_QUIT
+				ctx.Mode = MODE_RCPT
+				return io.EOF
 			}
 
-			msg = params
 			return nil
 		},
 	}
@@ -69,7 +71,7 @@ func TestClientServe(t *testing.T) {
 		{"ABCD", MODE_HELO},
 		{"MODE", MODE_MAIL},
 		{"Random message", MODE_MAIL},
-		{"QUIT", MODE_QUIT}, // Serve will stop after QUIT so it must come last
+		{"QUIT", MODE_RCPT}, // Serve will stop after QUIT so it must come last
 	}
 
 	for _, test := range testCases {

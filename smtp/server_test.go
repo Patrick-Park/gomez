@@ -3,6 +3,7 @@ package smtp
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/mail"
 	"net/smtp"
@@ -76,8 +77,7 @@ func TestServerCreateClient(t *testing.T) {
 	testServer := &Server{
 		spec: &CommandSpec{
 			"EXIT": func(ctx *Client, params string) error {
-				ctx.Mode = MODE_QUIT
-				return nil
+				return io.EOF
 			},
 		},
 		config: Config{Hostname: "mecca.local"},

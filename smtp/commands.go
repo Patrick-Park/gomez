@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"io"
 	"net/mail"
 	"strings"
 
@@ -164,6 +165,6 @@ func cmdVRFY(ctx *Client, param string) error {
 // This command specifies that the receiver MUST send an OK reply, and
 // then close the transmission channel.
 func cmdQUIT(ctx *Client, param string) error {
-	ctx.Mode = MODE_QUIT
-	return ctx.Notify(Reply{221, "2.0.0 Adeus"})
+	ctx.Notify(Reply{221, "2.0.0 Adeus"})
+	return io.EOF
 }

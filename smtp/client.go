@@ -20,7 +20,6 @@ const (
 	MODE_MAIL
 	MODE_RCPT
 	MODE_DATA
-	MODE_QUIT
 )
 
 // Client is a form of context for the each connected user.
@@ -52,7 +51,7 @@ func (c *Client) Serve() {
 		}
 
 		err = c.host.Run(c, msg)
-		if isEOF(err) || c.Mode == MODE_QUIT {
+		if isEOF(err) {
 			break
 		}
 	}
