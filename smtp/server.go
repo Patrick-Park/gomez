@@ -146,8 +146,10 @@ func (s Server) Digest(client *Client) error {
 
 	// If the message doesn't have a Message-ID, add it
 	if len(msg.Header["Message-Id"]) == 0 {
-		client.Message.PrependHeader("Message-ID", fmt.Sprintf("%x.%d@%s",
-			time.Now().UnixNano(), client.Message.Id, s.config.Hostname))
+		client.Message.PrependHeader(
+			"Message-ID",
+			fmt.Sprintf(
+				"%x.%d@%s", time.Now().UnixNano(), client.Message.Id, s.config.Hostname))
 	}
 
 	err = s.prependReceivedHeader(client)
