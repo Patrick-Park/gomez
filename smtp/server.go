@@ -80,7 +80,8 @@ func Start(mb gomez.Mailbox, conf Config) error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Print("Error accepting an incoming connection.")
+			log.Printf("Error accepting an incoming connection: %s\r\n", err)
+			continue
 		}
 
 		go srv.CreateClient(conn)
