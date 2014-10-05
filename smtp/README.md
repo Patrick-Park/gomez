@@ -25,7 +25,7 @@ A new server can be spawned using the `smtp.Start` method, for example:
 ```go
 var mailbox gomez.Mailbox
 
-mailbox = new(PostBox)
+mailbox = new(gomez.PostBox)
 config = smtp.Config{
   ListenAddr: ":25",
   Hostname: "mydomain.com",
