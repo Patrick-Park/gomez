@@ -34,7 +34,6 @@ type SMTPServer interface {
 // SMTP host server instance. Holds the CommandSpec, configuration flags
 // and an attached MailBox.
 type Server struct {
-	sync.Mutex
 	spec    *CommandSpec
 	config  Config
 	Mailbox gomez.Mailbox
