@@ -34,7 +34,7 @@ func cmdEHLO(ctx *Client, param string) error {
 	ctx.Id = param
 	ctx.Mode = MODE_MAIL
 
-	return ctx.Notify(Reply{250, "Gomez SMTPd\n8BITMIME\nVRFY"})
+	return ctx.Notify(Reply{250, "Gomez SMTPd\nSMTPUTF8\n8BITMIME\nENHANCEDSTATUSCODES\nVRFY"})
 }
 
 // RFC 2821 4.1.1.2 MAIL (MAIL)
