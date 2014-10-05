@@ -335,6 +335,8 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 		return
 	}
 
+	// Test that reverse lookup is applied in header with known remote address
+	// This might fail in the future if the PTR entry for gmail.com changes
 	client.conn = &mocks.Conn{RemoteAddress: "74.125.230.118:1234"}
 
 	wg.Add(1)
@@ -362,9 +364,24 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 func TestServer_SMTP_Sending(t *testing.T) {
 	go Start(&gomez.MockMailbox{
 		Queue_: func(msg *gomez.Message) error {
-			_, err := msg.Parse()
+			m, err := msg.Parse()
 			if err != nil {
 				t.Error("Failed to parse queued message")
+			}
+
+			if len(m.Header["Message-Id"]) == 0 {
+				t.Error("Queued message with no ID")
+			}
+
+			if !strings.HasSuffix(m.Header["Message-Id"][0], ".555@TestHost") {
+				t.Errorf("Got wrong Message-ID: %s", m.Header["Message-Id"][0])
+			}
+
+			buf := make([]byte, 22) // Exact length of "This is the email body"
+			m.Body.Read(buf)
+
+			if string(buf) != "This is the email body" {
+				t.Errorf("Got wrong email body: '%s'", string(buf))
 			}
 
 			return nil
@@ -377,9 +394,10 @@ func TestServer_SMTP_Sending(t *testing.T) {
 
 	now := time.Now()
 
-	// Connect to the remote SMTP server. Keep trying for 1 second
-	// because go routine needs to "boot"
 	c, err := smtp.Dial("127.0.0.1:1234")
+
+	// If connection fails initially, give server a chance to start
+	// and try reconnecting on a 1 second time-out
 	if err != nil {
 		for {
 			c, err = smtp.Dial("127.0.0.1:1234")
