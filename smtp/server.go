@@ -57,10 +57,10 @@ type Config struct {
 
 // Starts the SMTP server given the specified configuration.
 // Accepts incoming connections and initiates communication.
-func Start(mb gomez.Mailbox, conf Config) {
+func Start(mb gomez.Mailbox, conf Config) error {
 	ln, err := net.Listen("tcp", conf.ListenAddr)
 	if err != nil {
-		log.Fatalf("Could not listen on %s.", conf.ListenAddr)
+		return err
 	}
 
 	spec := &CommandSpec{
