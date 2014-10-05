@@ -73,12 +73,12 @@ func (c *Client) Reset() {
 // Checks if the given error is of type io.EOF, otherwise
 // it logs the error to StdErr and/or returns false
 func isEOF(err error) bool {
+	if err == io.EOF {
+		return true
+	}
+
 	if err != nil {
 		log.Printf("Error processing I/O: %s", err)
-
-		if err == io.EOF {
-			return true
-		}
 	}
 
 	return false
