@@ -176,7 +176,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 			"1.2.3.4:1234", 451,
 		}, {
 			&gomez.Message{
-				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with split-host error.",
 			},
 			gomez.MockMailbox{
 				NextID_: func() (uint64, error) { return 123, nil },
