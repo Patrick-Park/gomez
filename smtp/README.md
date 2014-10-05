@@ -17,17 +17,3 @@ A client is a server-independent connection and serves as context for the curren
 
 ##### Commands
 The commands.go file contains all the commands that are initialized on the server at instantiation.
-
-### Usage
-
-A new server can be spawned using the `smtp.Start` method, for example:
-
-```go
-mailbox := new(gomez.PostBox)
-config := smtp.Config{
-  ListenAddr: ":25",
-  Hostname: "mydomain.com",
-}
-
-smtp.Start(mailbox, config)
-```
