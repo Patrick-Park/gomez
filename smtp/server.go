@@ -149,7 +149,8 @@ func (s Server) Digest(client *Client) error {
 		client.Message.PrependHeader(
 			"Message-ID",
 			fmt.Sprintf(
-				"%x.%d@%s", time.Now().UnixNano(), client.Message.Id, s.config.Hostname))
+				"%x.%d@%s",
+				time.Now().UnixNano(), client.Message.Id, s.config.Hostname))
 	}
 
 	err = s.prependReceivedHeader(client)
