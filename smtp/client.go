@@ -78,7 +78,7 @@ func isEOF(err error) bool {
 	}
 
 	if err != nil {
-		log.Printf("Error processing I/O: %s", err)
+		log.Printf("Error processing I/O: %s\r\n", err)
 	}
 
 	return false
