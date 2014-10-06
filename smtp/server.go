@@ -150,7 +150,7 @@ func (s Server) Digest(client *Client) error {
 		client.Message.PrependHeader(
 			"Message-ID",
 			fmt.Sprintf(
-				"%x.%d@%s",
+				"<%x.%d@%s>",
 				time.Now().UnixNano(), client.Message.Id, s.config.Hostname))
 	}
 

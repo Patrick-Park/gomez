@@ -235,7 +235,7 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 		{
 			&gomez.Message{Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?"},
 			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 1, nil }},
-			".1@TestHost", 1, 451, true,
+			".1@TestHost>", 1, 451, true,
 		}, {
 			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?"},
 			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 2, nil }},
@@ -376,7 +376,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 					t.Error("Queued message with no ID")
 				}
 
-				if !strings.HasSuffix(m.Header["Message-Id"][0], ".555@TestHost") {
+				if !strings.HasSuffix(m.Header["Message-Id"][0], ".555@TestHost>") {
 					t.Errorf("Got wrong Message-ID: %s", m.Header["Message-Id"][0])
 				}
 
