@@ -106,7 +106,9 @@ func (s Server) CreateClient(conn net.Conn) {
 func (s Server) Settings() Config { return s.config }
 
 // Queries the host mailbox for a user by string or Address
-func (s Server) Query(addr *mail.Address) gomez.QueryStatus { return s.Mailbox.Query(addr) }
+func (s Server) Query(addr *mail.Address) gomez.QueryStatus {
+	return s.Mailbox.Query(addr)
+}
 
 // Runs a command in the context of a child connection
 func (s Server) Run(ctx *Client, msg string) error {
