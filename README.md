@@ -1,2 +1,2 @@
-SMTP Package - Complete
-Mailbox - _WORK IN PROGRESS_
+__SMTP Package__ - Complete  
+__Mailbox__ - _WORK IN PROGRESS_
