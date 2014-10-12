@@ -39,11 +39,10 @@ const (
 )
 
 // PostgreSQL implementation of the mailbox
-type postBox struct {
-	db *sql.DB
-}
+type postBox struct{ db *sql.DB }
 
 // Creates a new PostBox based on the given connection string
+// Example connection strings can be seen at: http://godoc.org/github.com/lib/pq
 func NewPostBox(dbString string) (*postBox, error) {
 	pb := new(postBox)
 
@@ -67,6 +66,16 @@ func (p *postBox) NextID() (uint64, error) {
 	}
 
 	return id, nil
+}
+
+// Queues and saves a message
+func (p *postBox) Queue(msg *Message) error {
+	return nil
+}
+
+// Searches for an address in the mailbox
+func (p *postBox) Query(addr *mail.Address) QueryStatus {
+	return QUERY_STATUS_SUCCESS
 }
 
 // Closes the database connection
