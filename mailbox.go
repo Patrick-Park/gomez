@@ -1,6 +1,11 @@
 package gomez
 
-import "net/mail"
+import (
+	"database/sql"
+	"net/mail"
+
+	_ "github.com/lib/pq"
+)
 
 // Mailbox implements message queueing and
 // dequeueing system
@@ -32,3 +37,26 @@ const (
 	// An error has occurred
 	QUERY_STATUS_ERROR
 )
+
+// PostgreSQL implementation of the mailbox
+type postBox struct {
+	db *sql.DB
+}
+
+// Creates a new PostBox based on the given connection string
+func NewPostBox(dbString string) (*postBox, error) {
+	pb := new(postBox)
+
+	db, err := sql.Open("postgres", dbString)
+	if err != nil {
+		return nil, err
+	}
+
+	pb.db = db
+	return pb, nil
+}
+
+// Closes the database connection
+func (p *postBox) Close() error {
+	return p.db.Close()
+}
