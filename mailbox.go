@@ -44,15 +44,12 @@ type postBox struct{ db *sql.DB }
 // Creates a new PostBox based on the given connection string
 // Example connection strings can be seen at: http://godoc.org/github.com/lib/pq
 func NewPostBox(dbString string) (*postBox, error) {
-	pb := new(postBox)
-
 	db, err := sql.Open("postgres", dbString)
 	if err != nil {
 		return nil, err
 	}
 
-	pb.db = db
-	return pb, nil
+	return &postBox{db}, nil
 }
 
 // Extracts a unique ID from a database sequence
