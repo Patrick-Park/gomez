@@ -56,6 +56,19 @@ func NewPostBox(dbString string) (*postBox, error) {
 	return pb, nil
 }
 
+// Extracts a unique ID from a database sequence
+func (p *postBox) NextID() (uint64, error) {
+	var id uint64
+
+	row := p.db.QueryRow("SELECT nextval('message_ids')")
+	err := row.Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
 // Closes the database connection
 func (p *postBox) Close() error {
 	return p.db.Close()
