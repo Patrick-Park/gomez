@@ -334,7 +334,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	// Test that reverse lookup is applied in header with known remote address
 	// This might fail in the future if the PTR entry for gmail.com changes
-	client.conn = &mocks.Conn{RemoteAddress: "74.125.230.118:1234"}
+	client.conn = &mocks.Conn{RemoteAddress: "127.0.0.1:1234"}
 
 	wg.Add(1)
 	go func() {
@@ -353,10 +353,8 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 	}
 
 	if !strings.HasPrefix(msg.Header["Received"][0],
-		`from Doe (lhr14s24-in-f22.1e100.net [74.125.230.118]) by TestHost (Gomez) with ESMTP id 53 for "Name" <Addr@es>;`) {
-		// Do not fail test if DNS servers are unreachable for some reason, but do
-		// inform user
-		t.Logf("Got (on reverse): %s", msg.Header["Received"][0])
+		`from Doe (localhost [127.0.0.1]) by TestHost (Gomez) with ESMTP id 53 for "Name" <Addr@es>;`) {
+		t.Errorf("Got (on reverse): %s", msg.Header["Received"][0])
 	}
 }
 
