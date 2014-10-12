@@ -354,7 +354,8 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	if !strings.HasPrefix(msg.Header["Received"][0],
 		`from Doe (lhr14s24-in-f22.1e100.net [74.125.230.118]) by TestHost (Gomez) with ESMTP id 53 for "Name" <Addr@es>;`) {
-		// t.Errorf("Got (on reverse): %s", msg.Header["Received"][0])
+		// Do not fail test if DNS servers are unreachable for some reason, but do
+		// inform user
 		t.Logf("Got (on reverse): %s", msg.Header["Received"][0])
 	}
 }
