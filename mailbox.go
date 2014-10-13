@@ -65,7 +65,8 @@ func (p *postBox) NextID() (uint64, error) {
 	return id, nil
 }
 
-// Queues and saves a message
+// Queues and saves a message. If the message exists, it increases the attempts,
+// updates the recipients and timestamp.
 func (p *postBox) Queue(msg *Message) error {
 	rcpt := MakeAddressList(msg.Rcpt())
 
