@@ -33,9 +33,9 @@ type SMTPServer interface {
 // SMTP host server instance. Holds the CommandSpec, configuration flags
 // and an attached MailBox.
 type Server struct {
-	spec    *CommandSpec
-	config  Config
-	Mailbox gomez.Mailbox
+	spec     *CommandSpec
+	config   Config
+	Enqueuer gomez.Enqueuer
 }
 
 // Maps commands to their actions. Actions run in the context
@@ -57,7 +57,7 @@ type Config struct {
 
 // Starts the SMTP server given the specified configuration.
 // Accepts incoming connections and initiates communication.
-func Start(mb gomez.Mailbox, conf Config) error {
+func Start(mb gomez.Enqueuer, conf Config) error {
 	ln, err := net.Listen("tcp", conf.ListenAddr)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func Start(mb gomez.Mailbox, conf Config) error {
 		"QUIT": cmdQUIT,
 	}
 
-	srv := &Server{Mailbox: mb, config: conf, spec: spec}
+	srv := &Server{Enqueuer: mb, config: conf, spec: spec}
 
 	for {
 		conn, err := ln.Accept()
@@ -107,7 +107,7 @@ func (s Server) Settings() Config { return s.config }
 
 // Queries the host mailbox for a user by string or Address
 func (s Server) Query(addr *mail.Address) gomez.QueryStatus {
-	return s.Mailbox.Query(addr)
+	return s.Enqueuer.Query(addr)
 }
 
 // Runs a command in the context of a child connection
@@ -137,7 +137,7 @@ func (s Server) Digest(client *Client) error {
 	}
 
 	if client.Message.Id == 0 {
-		id, err := s.Mailbox.NextID()
+		id, err := s.Enqueuer.NextID()
 		if err != nil {
 			return client.Notify(replyErrorProcessing)
 		}
@@ -160,7 +160,7 @@ func (s Server) Digest(client *Client) error {
 	}
 
 	// Try to enqueue the message
-	err = s.Mailbox.Queue(client.Message)
+	err = s.Enqueuer.Enqueue(client.Message)
 	if err != nil {
 		return client.Notify(replyErrorProcessing)
 	}

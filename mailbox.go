@@ -7,14 +7,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Mailbox implements message queueing and
+// Enqueuer implements message queueing and
 // dequeueing system
-type Mailbox interface {
+type Enqueuer interface {
 	// Obtains a new message identification number in 64 bits.
 	NextID() (uint64, error)
 
 	// Places a message onto the queue for delivery at next pick-up.
-	Queue(msg *Message) error
+	Enqueue(msg *Message) error
 
 	// Queries the server for a user
 	Query(addr *mail.Address) QueryStatus
@@ -67,7 +67,7 @@ func (p *postBox) NextID() (uint64, error) {
 
 // Queues and saves a message. If the message exists, it increases the attempts,
 // updates the recipients and timestamp.
-func (p *postBox) Queue(msg *Message) error {
+func (p *postBox) Enqueue(msg *Message) error {
 	rcpt := MakeAddressList(msg.Rcpt())
 
 	_, err := p.db.Exec(

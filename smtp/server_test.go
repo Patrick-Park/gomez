@@ -113,7 +113,7 @@ func TestServer_Settings(t *testing.T) {
 func TestServer_Query_Calls_MailBox(t *testing.T) {
 	queryCalled := false
 	testServer := &Server{
-		Mailbox: &gomez.MockMailbox{
+		Enqueuer: &gomez.MockEnqueuer{
 			Query_: func(addr *mail.Address) gomez.QueryStatus {
 				queryCalled = true
 				return gomez.QUERY_STATUS_SUCCESS
@@ -123,7 +123,7 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 
 	testServer.Query(&mail.Address{})
 	if !queryCalled {
-		t.Error("Server Query did not call Mailbox query")
+		t.Error("Server Query did not call Enqueuer query")
 	}
 }
 
@@ -141,27 +141,27 @@ func TestServer_Digest_Responses(t *testing.T) {
 
 	testSuite := []struct {
 		Message  *gomez.Message
-		Mailbox  gomez.Mailbox
+		Enqueuer gomez.Enqueuer
 		Address  string
 		Response int
 	}{
 		{
 			&gomez.Message{Raw: "Message is not valid"},
-			gomez.MockMailbox{},
+			gomez.MockEnqueuer{},
 			"1.2.3.4:1234", 550,
 		}, {
 			&gomez.Message{Raw: "Subject: Heloo\r\nFrom: Maynard\r\n\r\nMessage is not valid"},
-			gomez.MockMailbox{},
+			gomez.MockEnqueuer{},
 			"1.2.3.4:1234", 550,
 		}, {
 			&gomez.Message{Raw: "From: Mary\r\n\r\nMessage is not valid"},
-			gomez.MockMailbox{},
+			gomez.MockEnqueuer{},
 			"1.2.3.4:1234", 550,
 		}, {
 			&gomez.Message{
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with DB error.",
 			},
-			gomez.MockMailbox{
+			gomez.MockEnqueuer{
 				NextID_: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
 			},
 			"1.2.3.4:1234", 451,
@@ -169,27 +169,27 @@ func TestServer_Digest_Responses(t *testing.T) {
 			&gomez.Message{
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
 			},
-			gomez.MockMailbox{
-				NextID_: func() (uint64, error) { return 123, nil },
-				Queue_:  func(*gomez.Message) error { return errors.New("Error queueing message.") },
+			gomez.MockEnqueuer{
+				NextID_:  func() (uint64, error) { return 123, nil },
+				Enqueue_: func(*gomez.Message) error { return errors.New("Error queueing message.") },
 			},
 			"1.2.3.4:1234", 451,
 		}, {
 			&gomez.Message{
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with split-host error.",
 			},
-			gomez.MockMailbox{
-				NextID_: func() (uint64, error) { return 123, nil },
-				Queue_:  func(*gomez.Message) error { return errors.New("Error queueing message.") },
+			gomez.MockEnqueuer{
+				NextID_:  func() (uint64, error) { return 123, nil },
+				Enqueue_: func(*gomez.Message) error { return errors.New("Error queueing message.") },
 			},
 			"1.2.3.4", 451,
 		}, {
 			&gomez.Message{
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors.",
 			},
-			gomez.MockMailbox{
-				NextID_: func() (uint64, error) { return 123, nil },
-				Queue_:  func(*gomez.Message) error { return nil },
+			gomez.MockEnqueuer{
+				NextID_:  func() (uint64, error) { return 123, nil },
+				Enqueue_: func(*gomez.Message) error { return nil },
 			},
 			"1.2.3.4:123", 250,
 		},
@@ -198,7 +198,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 	var wg sync.WaitGroup
 
 	for _, test := range testSuite {
-		server.Mailbox = test.Mailbox
+		server.Enqueuer = test.Enqueuer
 		client, pipe := getTestClient()
 		client.conn = &mocks.Conn{RemoteAddress: test.Address}
 		client.Message = test.Message
@@ -226,7 +226,7 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 	server := Server{config: Config{Hostname: "TestHost"}}
 	testSuite := []struct {
 		Message    *gomez.Message
-		Mailbox    gomez.Mailbox
+		Enqueuer   gomez.Enqueuer
 		Value      string
 		Id         uint64
 		Response   int
@@ -234,15 +234,15 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 	}{
 		{
 			&gomez.Message{Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?"},
-			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 1, nil }},
+			&gomez.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 1, nil }},
 			".1@TestHost>", 1, 451, true,
 		}, {
 			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?"},
-			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 2, nil }},
+			&gomez.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 2, nil }},
 			"My_ID", 2, 451, true,
 		}, {
 			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", Id: 53},
-			&gomez.MockMailbox{NextID_: func() (uint64, error) { called = true; return 2, nil }},
+			&gomez.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 2, nil }},
 			"My_ID", 53, 451, false,
 		},
 	}
@@ -251,7 +251,7 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 
 	for _, test := range testSuite {
 		called = false
-		server.Mailbox = test.Mailbox
+		server.Enqueuer = test.Enqueuer
 		client, pipe := getTestClient()
 		client.conn = &mocks.Conn{RemoteAddress: "invalid_addr"}
 		client.Message = test.Message
@@ -290,9 +290,9 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 	var called bool
 
 	server := Server{config: Config{Hostname: "TestHost"}}
-	server.Mailbox = gomez.MockMailbox{
-		NextID_: func() (uint64, error) { called = true; return 2, nil },
-		Queue_:  func(*gomez.Message) error { return errors.New("Error processing") },
+	server.Enqueuer = gomez.MockEnqueuer{
+		NextID_:  func() (uint64, error) { called = true; return 2, nil },
+		Enqueue_: func(*gomez.Message) error { return errors.New("Error processing") },
 	}
 
 	client, pipe := getTestClient()
@@ -359,15 +359,15 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 }
 
 func TestServer_Start_Error(t *testing.T) {
-	Start(&gomez.MockMailbox{}, Config{ListenAddr: "bad_addr"})
+	Start(&gomez.MockEnqueuer{}, Config{ListenAddr: "bad_addr"})
 }
 
 func TestServer_SMTP_Sending(t *testing.T) {
 	var err error
 
 	go func() {
-		err = Start(&gomez.MockMailbox{
-			Queue_: func(msg *gomez.Message) error {
+		err = Start(&gomez.MockEnqueuer{
+			Enqueue_: func(msg *gomez.Message) error {
 				m, err := msg.Parse()
 				if err != nil {
 					t.Error("Failed to parse queued message")

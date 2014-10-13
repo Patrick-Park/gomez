@@ -2,23 +2,23 @@ package gomez
 
 import "net/mail"
 
-var _ Mailbox = new(MockMailbox)
+var _ Enqueuer = new(MockEnqueuer)
 
-type MockMailbox struct {
-	NextID_ func() (uint64, error)
-	Queue_  func(*Message) error
-	Query_  func(*mail.Address) QueryStatus
+type MockEnqueuer struct {
+	NextID_  func() (uint64, error)
+	Enqueue_ func(*Message) error
+	Query_   func(*mail.Address) QueryStatus
 }
 
-func (m MockMailbox) Queue(msg *Message) error {
-	if m.Queue_ != nil {
-		return m.Queue_(msg)
+func (m MockEnqueuer) Enqueue(msg *Message) error {
+	if m.Enqueue_ != nil {
+		return m.Enqueue_(msg)
 	}
 
 	return nil
 }
 
-func (m MockMailbox) NextID() (uint64, error) {
+func (m MockEnqueuer) NextID() (uint64, error) {
 	if m.NextID_ != nil {
 		return m.NextID_()
 	}
@@ -26,7 +26,7 @@ func (m MockMailbox) NextID() (uint64, error) {
 	return 0, nil
 }
 
-func (m MockMailbox) Query(addr *mail.Address) QueryStatus {
+func (m MockEnqueuer) Query(addr *mail.Address) QueryStatus {
 	if m.Query_ != nil {
 		return m.Query_(addr)
 	}
