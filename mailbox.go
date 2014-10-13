@@ -67,6 +67,7 @@ func (p *postBox) NextID() (uint64, error) {
 
 // Queues and saves a message
 func (p *postBox) Queue(msg *Message) error {
+	// _, err := p.db.Exec("INSERT INTO messages(id, from, rcpt, raw) VALUES (?, ?, ?, ?)", ...)
 	return nil
 }
 

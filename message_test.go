@@ -120,3 +120,51 @@ func TestMessage_PrependHeader(t *testing.T) {
 		}
 	}
 }
+
+func Test_MakeAddressList(t *testing.T) {
+	testSuite := []struct {
+		list []*mail.Address
+		exp  string
+	}{
+		{
+			[]*mail.Address{
+				&mail.Address{"First Last", "first@last.eu"},
+			},
+			"\"First Last\" <first@last.eu>",
+		}, {
+			[]*mail.Address{
+				&mail.Address{"", "first@last.eu"},
+			},
+			"<first@last.eu>",
+		}, {
+			[]*mail.Address{
+				&mail.Address{"", "a@b.com"},
+				&mail.Address{"First Last", "first@last.eu"},
+			},
+			"<a@b.com>, \"First Last\" <first@last.eu>",
+		}, {
+			[]*mail.Address{
+				&mail.Address{"", "a@b.com"},
+				&mail.Address{"First Last", "first@last.eu"},
+				&mail.Address{"Last", "last@cast.eu"},
+				&mail.Address{"", "jim@jum.bo"},
+			},
+			"<a@b.com>, \"First Last\" <first@last.eu>, \"Last\" <last@cast.eu>, <jim@jum.bo>",
+		}, {[]*mail.Address{}, ""},
+	}
+
+	for _, test := range testSuite {
+		list := MakeAddressList(test.list)
+
+		if list != test.exp {
+			t.Errorf("Expected '%s', got '%s'", test.exp, list)
+		}
+
+		if len(test.list) > 0 {
+			parsed, err := mail.ParseAddressList(list)
+			if err != nil || !reflect.DeepEqual(parsed, test.list) {
+				t.Errorf("Expected to reconstruct %+v, but got %+v", test.list, parsed)
+			}
+		}
+	}
+}
