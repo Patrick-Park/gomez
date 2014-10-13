@@ -67,8 +67,23 @@ func (p *postBox) NextID() (uint64, error) {
 
 // Queues and saves a message
 func (p *postBox) Queue(msg *Message) error {
-	// _, err := p.db.Exec("INSERT INTO messages(id, from, rcpt, raw) VALUES (?, ?, ?, ?)", ...)
-	return nil
+	rcpt := MakeAddressList(msg.Rcpt())
+
+	_, err := p.db.Exec(
+		"INSERT INTO messages VALUES (?, ?, ?, ?)",
+		msg.Id, msg.From().String(), rcpt, msg.Raw,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = p.db.Exec(
+		"INSERT INTO queue VALUES (?, ?, NOW(), ?)",
+		msg.Id, rcpt, 0,
+	)
+
+	return err
 }
 
 // Searches for an address in the mailbox
