@@ -39,9 +39,7 @@ func (m *Message) PrependHeader(name, value string) {
 }
 
 // Makes an AddressList string parseable by mail.ParseAddressList
-func MakeAddressList(list []*mail.Address) string {
-	var r string
-
+func MakeAddressList(list []*mail.Address) (r string) {
 	for i := 0; i < len(list); i++ {
 		r += list[i].String()
 		if i < len(list)-1 {
@@ -49,5 +47,5 @@ func MakeAddressList(list []*mail.Address) string {
 		}
 	}
 
-	return r
+	return
 }
