@@ -81,7 +81,8 @@ func TestClientServe(t *testing.T) {
 		}
 
 		if msg != test.msg || testClient.Mode != test.expMode {
-			t.Errorf("Expected msg (%s) and mode (%s), but got (%s) and (%s).", test.expMode, test.expMode, msg, testClient.Mode)
+			t.Errorf("Expected msg (%v) and mode (%v), but got (%s) and (%v).",
+				test.expMode, test.expMode, msg, testClient.Mode)
 		}
 	}
 
