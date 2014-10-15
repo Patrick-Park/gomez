@@ -171,13 +171,13 @@ func (s *Server) prependReceivedHeader(client *Client) error {
 
 	// Find the remote connection's IP
 	remoteAddress := client.conn.RemoteAddr()
-	helloIp, _, err := net.SplitHostPort(remoteAddress.String())
+	helloIP, _, err := net.SplitHostPort(remoteAddress.String())
 	if err != nil {
 		return err
 	}
 
 	// Try to resolve the IP's host by doing a reverse look-up
-	helloHosts, err := net.LookupAddr(helloIp)
+	helloHosts, err := net.LookupAddr(helloIP)
 	if len(helloHosts) > 0 {
 		helloHost = strings.TrimRight(helloHosts[0], ".") + " "
 	}
@@ -187,7 +187,7 @@ func (s *Server) prependReceivedHeader(client *Client) error {
 		"Received",
 		fmt.Sprintf(
 			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-			client.ID, helloHost, helloIp, s.config.Hostname, client.Message.ID,
+			client.ID, helloHost, helloIP, s.config.Hostname, client.Message.ID,
 			client.Message.Rcpt()[0], time.Now(),
 		),
 	)
