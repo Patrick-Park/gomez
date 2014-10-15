@@ -10,7 +10,7 @@ type MockSMTPServer struct {
 	Run_      func(*Client, string) error
 	Digest_   func(*Client) error
 	Settings_ func() Config
-	Query_    func(*mail.Address) gomez.QueryStatus
+	Query_    func(*mail.Address) gomez.QueryResult
 }
 
 func (h MockSMTPServer) Run(c *Client, m string) error {
@@ -37,10 +37,10 @@ func (h MockSMTPServer) Settings() Config {
 	return Config{}
 }
 
-func (h MockSMTPServer) Query(addr *mail.Address) gomez.QueryStatus {
+func (h MockSMTPServer) Query(addr *mail.Address) gomez.QueryResult {
 	if h.Query_ != nil {
 		return h.Query_(addr)
 	}
 
-	return gomez.QUERY_STATUS_ERROR
+	return gomez.QueryError
 }

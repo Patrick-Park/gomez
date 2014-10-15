@@ -114,9 +114,9 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 	queryCalled := false
 	testServer := &Server{
 		Enqueuer: &gomez.MockEnqueuer{
-			Query_: func(addr *mail.Address) gomez.QueryStatus {
+			Query_: func(addr *mail.Address) gomez.QueryResult {
 				queryCalled = true
-				return gomez.QUERY_STATUS_SUCCESS
+				return gomez.QuerySuccess
 			},
 		},
 	}
@@ -390,8 +390,8 @@ func TestServer_SMTP_Sending(t *testing.T) {
 
 				return nil
 			},
-			Query_: func(addr *mail.Address) gomez.QueryStatus {
-				return gomez.QUERY_STATUS_SUCCESS
+			Query_: func(addr *mail.Address) gomez.QueryResult {
+				return gomez.QuerySuccess
 			},
 			NextID_: func() (uint64, error) { return 555, nil },
 		}, Config{ListenAddr: "127.0.0.1:1234", Hostname: "TestHost"})

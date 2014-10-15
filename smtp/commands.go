@@ -75,10 +75,10 @@ func cmdRCPT(ctx *Client, param string) error {
 	}
 
 	switch ctx.host.Query(addr) {
-	case gomez.QUERY_STATUS_NOT_FOUND:
+	case gomez.QueryNotFound:
 		return ctx.Notify(Reply{550, "5.1.1 No such user here."})
 
-	case gomez.QUERY_STATUS_NOT_LOCAL:
+	case gomez.QueryNotLocal:
 		if flags := ctx.host.Settings(); !flags.Relay {
 			return ctx.Notify(Reply{550, "5.1.1 No such user here."})
 		}
@@ -88,7 +88,7 @@ func cmdRCPT(ctx *Client, param string) error {
 
 		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
 
-	case gomez.QUERY_STATUS_SUCCESS:
+	case gomez.QuerySuccess:
 		ctx.Message.AddRcpt(addr)
 		ctx.Mode = MODE_DATA
 

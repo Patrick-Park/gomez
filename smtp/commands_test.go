@@ -130,7 +130,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is enabled
 	client.host = &MockSMTPServer{
-		Query_:    func(addr *mail.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
+		Query_:    func(addr *mail.Address) gomez.QueryResult { return gomez.QueryNotLocal },
 		Settings_: func() Config { return Config{Relay: true} },
 	}
 
@@ -149,7 +149,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is disabled
 	client.host = &MockSMTPServer{
-		Query_:    func(addr *mail.Address) gomez.QueryStatus { return gomez.QUERY_STATUS_NOT_LOCAL },
+		Query_:    func(addr *mail.Address) gomez.QueryResult { return gomez.QueryNotLocal },
 		Settings_: func() Config { return Config{Relay: false} },
 	}
 
@@ -270,17 +270,17 @@ func getTestClient() (*Client, *textproto.Conn) {
 		Message: new(gomez.Message),
 		text:    sconn,
 		host: &MockSMTPServer{
-			Query_: func(addr *mail.Address) gomez.QueryStatus {
+			Query_: func(addr *mail.Address) gomez.QueryResult {
 				switch strings.Split(addr.Address, "@")[0] {
 				case "not_found":
-					return gomez.QUERY_STATUS_NOT_FOUND
+					return gomez.QueryNotFound
 				case "not_local":
-					return gomez.QUERY_STATUS_NOT_LOCAL
+					return gomez.QueryNotLocal
 				case "success":
-					return gomez.QUERY_STATUS_SUCCESS
+					return gomez.QuerySuccess
 				}
 
-				return gomez.QUERY_STATUS_ERROR
+				return gomez.QueryError
 			},
 		},
 	}

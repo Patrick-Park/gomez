@@ -16,24 +16,24 @@ type Enqueuer interface {
 	NextID() (uint64, error)
 
 	// Queries the server for an address.
-	Query(addr *mail.Address) QueryStatus
+	Query(addr *mail.Address) QueryResult
 }
 
-// QueryStatus reflects the outcome of the result of querying the mailbox
-type QueryStatus int
+// QueryResult reflects the outcome of the result of querying the mailbox
+type QueryResult int
 
 const (
 	// This state indicates that a user is local, but not found.
-	QUERY_STATUS_NOT_FOUND QueryStatus = iota
+	QueryNotFound QueryResult = iota
 
 	// Query was successful, and user was found locally.
-	QUERY_STATUS_SUCCESS
+	QuerySuccess
 
 	// This status reflects that the user is not local.
-	QUERY_STATUS_NOT_LOCAL
+	QueryNotLocal
 
 	// An error has occurred
-	QUERY_STATUS_ERROR
+	QueryError
 )
 
 // PostgreSQL implementation of the mailbox
@@ -84,9 +84,9 @@ func (p *postBox) Enqueue(msg *Message) error {
 	return err
 }
 
-// Does a query for the given address. See QueryStatus for return types.
-func (p *postBox) Query(addr *mail.Address) QueryStatus {
-	return QUERY_STATUS_SUCCESS
+// Does a query for the given address. See QueryResult for return types.
+func (p *postBox) Query(addr *mail.Address) QueryResult {
+	return QuerySuccess
 }
 
 // Closes the database connection.

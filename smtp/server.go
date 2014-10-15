@@ -24,7 +24,7 @@ type SMTPServer interface {
 	Settings() Config
 
 	// Queries the server for a given address.
-	Query(addr *mail.Address) gomez.QueryStatus
+	Query(addr *mail.Address) gomez.QueryResult
 }
 
 // Host server instance.
@@ -100,7 +100,7 @@ func (s Server) CreateClient(conn net.Conn) {
 func (s Server) Settings() Config { return s.config }
 
 // Queries the host mailbox for a user by string or Address
-func (s Server) Query(addr *mail.Address) gomez.QueryStatus {
+func (s Server) Query(addr *mail.Address) gomez.QueryResult {
 	return s.Enqueuer.Query(addr)
 }
 

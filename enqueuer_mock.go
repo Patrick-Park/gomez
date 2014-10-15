@@ -7,7 +7,7 @@ var _ Enqueuer = new(MockEnqueuer)
 type MockEnqueuer struct {
 	NextID_  func() (uint64, error)
 	Enqueue_ func(*Message) error
-	Query_   func(*mail.Address) QueryStatus
+	Query_   func(*mail.Address) QueryResult
 }
 
 func (m MockEnqueuer) Enqueue(msg *Message) error {
@@ -26,10 +26,10 @@ func (m MockEnqueuer) NextID() (uint64, error) {
 	return 0, nil
 }
 
-func (m MockEnqueuer) Query(addr *mail.Address) QueryStatus {
+func (m MockEnqueuer) Query(addr *mail.Address) QueryResult {
 	if m.Query_ != nil {
 		return m.Query_(addr)
 	}
 
-	return QUERY_STATUS_ERROR
+	return QueryError
 }
