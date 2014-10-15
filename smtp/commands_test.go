@@ -21,46 +21,46 @@ func TestCmd_Modes_and_Codes(t *testing.T) {
 		Fn        func(*Client, string) error
 		Param     string
 		ExpCode   int
-		StartMode InputMode
-		ExpMode   InputMode
+		StartMode TransactionState
+		ExpMode   TransactionState
 		Hint      string
 	}{
-		{cmdHELO, "other name", 250, MODE_HELO, MODE_MAIL, "HELO"},
-		{cmdHELO, "", 501, MODE_HELO, MODE_HELO, "HELO"},
-		{cmdEHLO, "name", 250, MODE_HELO, MODE_MAIL, "EHLO"},
-		{cmdEHLO, "", 501, MODE_HELO, MODE_HELO, "EHLO"},
+		{cmdHELO, "other name", 250, StateHELO, StateMAIL, "HELO"},
+		{cmdHELO, "", 501, StateHELO, StateHELO, "HELO"},
+		{cmdEHLO, "name", 250, StateHELO, StateMAIL, "EHLO"},
+		{cmdEHLO, "", 501, StateHELO, StateHELO, "EHLO"},
 
-		{cmdMAIL, "FROM:<asd>", 503, MODE_HELO, MODE_HELO, "MAIL"},
-		{cmdMAIL, "FROM:<asd>", 503, MODE_RCPT, MODE_RCPT, "MAIL"},
-		{cmdMAIL, "bad syntax", 501, MODE_MAIL, MODE_MAIL, "MAIL"},
-		{cmdMAIL, "FROM:<bad_address>", 501, MODE_MAIL, MODE_MAIL, "MAIL"},
+		{cmdMAIL, "FROM:<asd>", 503, StateHELO, StateHELO, "MAIL"},
+		{cmdMAIL, "FROM:<asd>", 503, StateRCPT, StateRCPT, "MAIL"},
+		{cmdMAIL, "bad syntax", 501, StateMAIL, StateMAIL, "MAIL"},
+		{cmdMAIL, "FROM:<bad_address>", 501, StateMAIL, StateMAIL, "MAIL"},
 
-		{cmdRCPT, "", 503, MODE_HELO, MODE_HELO, "RCPT"},
-		{cmdRCPT, "", 503, MODE_MAIL, MODE_MAIL, "RCPT"},
-		{cmdRCPT, "invalid", 501, MODE_RCPT, MODE_RCPT, "RCPT"},
-		{cmdRCPT, "TO:<guyhost.tld>", 501, MODE_RCPT, MODE_RCPT, "RCPT"},
-		{cmdRCPT, "TO:Guy <not_found@host.tld>", 550, MODE_RCPT, MODE_RCPT, "RCPT"},
-		{cmdRCPT, "TO:<not_local@host.tld>", 550, MODE_RCPT, MODE_RCPT, "RCPT"},
-		{cmdRCPT, "TO:<success@host.tld>", 250, MODE_RCPT, MODE_DATA, "RCPT"},
-		{cmdRCPT, "TO:<error@host.tld>", 451, MODE_RCPT, MODE_RCPT, "RCPT"},
+		{cmdRCPT, "", 503, StateHELO, StateHELO, "RCPT"},
+		{cmdRCPT, "", 503, StateMAIL, StateMAIL, "RCPT"},
+		{cmdRCPT, "invalid", 501, StateRCPT, StateRCPT, "RCPT"},
+		{cmdRCPT, "TO:<guyhost.tld>", 501, StateRCPT, StateRCPT, "RCPT"},
+		{cmdRCPT, "TO:Guy <not_found@host.tld>", 550, StateRCPT, StateRCPT, "RCPT"},
+		{cmdRCPT, "TO:<not_local@host.tld>", 550, StateRCPT, StateRCPT, "RCPT"},
+		{cmdRCPT, "TO:<success@host.tld>", 250, StateRCPT, StateDATA, "RCPT"},
+		{cmdRCPT, "TO:<error@host.tld>", 451, StateRCPT, StateRCPT, "RCPT"},
 
-		{cmdDATA, "", 503, MODE_HELO, MODE_HELO, "DATA"},
-		{cmdDATA, "", 503, MODE_MAIL, MODE_MAIL, "DATA"},
-		{cmdDATA, "", 503, MODE_RCPT, MODE_RCPT, "DATA"},
+		{cmdDATA, "", 503, StateHELO, StateHELO, "DATA"},
+		{cmdDATA, "", 503, StateMAIL, StateMAIL, "DATA"},
+		{cmdDATA, "", 503, StateRCPT, StateRCPT, "DATA"},
 
-		{cmdRSET, "", 250, MODE_HELO, MODE_HELO, "RSET"},
-		{cmdRSET, "", 250, MODE_RCPT, MODE_MAIL, "RSET"},
-		{cmdRSET, "", 250, MODE_DATA, MODE_MAIL, "RSET"},
+		{cmdRSET, "", 250, StateHELO, StateHELO, "RSET"},
+		{cmdRSET, "", 250, StateRCPT, StateMAIL, "RSET"},
+		{cmdRSET, "", 250, StateDATA, StateMAIL, "RSET"},
 
-		{cmdNOOP, "", 250, MODE_RCPT, MODE_RCPT, "NOOP"},
-		{cmdNOOP, "", 250, MODE_HELO, MODE_HELO, "NOOP"},
+		{cmdNOOP, "", 250, StateRCPT, StateRCPT, "NOOP"},
+		{cmdNOOP, "", 250, StateHELO, StateHELO, "NOOP"},
 
-		{cmdQUIT, "", 221, MODE_HELO, MODE_HELO, "QUIT"},
-		{cmdQUIT, "", 221, MODE_MAIL, MODE_MAIL, "QUIT"},
-		{cmdQUIT, "", 221, MODE_RCPT, MODE_RCPT, "QUIT"},
-		{cmdQUIT, "", 221, MODE_DATA, MODE_DATA, "QUIT"},
+		{cmdQUIT, "", 221, StateHELO, StateHELO, "QUIT"},
+		{cmdQUIT, "", 221, StateMAIL, StateMAIL, "QUIT"},
+		{cmdQUIT, "", 221, StateRCPT, StateRCPT, "QUIT"},
+		{cmdQUIT, "", 221, StateDATA, StateDATA, "QUIT"},
 
-		{cmdVRFY, "", 252, MODE_DATA, MODE_DATA, "VRFY"},
+		{cmdVRFY, "", 252, StateDATA, StateDATA, "VRFY"},
 	}
 
 	go func() {
@@ -89,7 +89,7 @@ func TestCmdHELO_Param_Passing(t *testing.T) {
 
 	go cmdHELO(client, "other name")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_MAIL || client.ID != "other name" {
+	if err != nil || client.Mode != StateMAIL || client.ID != "other name" {
 		t.Errorf("Expected 250, Mode 0 and ID 'name' but got %+v, %d, %s", err, client.Mode, client.ID)
 	}
 
@@ -101,7 +101,7 @@ func TestCmdEHLO_Param_Passing(t *testing.T) {
 
 	go cmdEHLO(client, "name")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_MAIL || client.ID != "name" {
+	if err != nil || client.Mode != StateMAIL || client.ID != "name" {
 		t.Errorf("Expected 250, Mode 0 and ID 'name' but got %+v, %d, %s", err, client.Mode, client.ID)
 	}
 
@@ -110,13 +110,13 @@ func TestCmdEHLO_Param_Passing(t *testing.T) {
 
 func TestCmdMAIL_Param_Passing(t *testing.T) {
 	client, pipe := getTestClient()
-	client.Mode = MODE_MAIL
+	client.Mode = StateMAIL
 
 	testAddr := mail.Address{"First Last", "asd@box.com"}
 
 	go cmdMAIL(client, "from:First Last <asd@box.com>")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_RCPT || testAddr.String() != client.Message.From().String() {
+	if err != nil || client.Mode != StateRCPT || testAddr.String() != client.Message.From().String() {
 		t.Errorf("Expected code 250, address %s got: %#v, %s", testAddr, err, client.Message.From())
 	}
 
@@ -126,7 +126,7 @@ func TestCmdMAIL_Param_Passing(t *testing.T) {
 func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	client, pipe := getTestClient()
 
-	client.Mode = MODE_RCPT
+	client.Mode = StateRCPT
 
 	// Relay is enabled
 	client.host = &MockSMTPServer{
@@ -143,7 +143,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	}()
 
 	_, _, err := pipe.ReadResponse(251)
-	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Address != "not_local@host.tld" {
+	if err != nil || client.Mode != StateDATA || client.Message.Rcpt()[0].Address != "not_local@host.tld" {
 		t.Errorf("Expected to get a 251 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
@@ -157,7 +157,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	go cmdRCPT(client, "TO:<not_local@host.tld>")
 	_, _, err = pipe.ReadResponse(550)
-	if err != nil || client.Mode != MODE_DATA || len(client.Message.Rcpt()) != 1 {
+	if err != nil || client.Mode != StateDATA || len(client.Message.Rcpt()) != 1 {
 		t.Errorf("Expected to get a 550 response and no recipient, got: %+v", err)
 	}
 
@@ -166,11 +166,11 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 func TestCmdRCPT_Param_Passing(t *testing.T) {
 	client, pipe := getTestClient()
-	client.Mode = MODE_RCPT
+	client.Mode = StateRCPT
 
 	go cmdRCPT(client, "TO:<success@host.tld>")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_DATA || client.Message.Rcpt()[0].Address != "success@host.tld" {
+	if err != nil || client.Mode != StateDATA || client.Message.Rcpt()[0].Address != "success@host.tld" {
 		t.Errorf("Expected to get a 250 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
@@ -179,13 +179,13 @@ func TestCmdRCPT_Param_Passing(t *testing.T) {
 
 func TestCmdRCPT_Internal_Error(t *testing.T) {
 	client, pipe := getTestClient()
-	client.Mode = MODE_RCPT
+	client.Mode = StateRCPT
 
 	log.SetOutput(ioutil.Discard)
 	go cmdRCPT(client, "TO:<error@host.tld>")
 
 	_, _, err := pipe.ReadResponse(451)
-	if err != nil || client.Mode != MODE_RCPT || len(client.Message.Rcpt()) != 0 {
+	if err != nil || client.Mode != StateRCPT || len(client.Message.Rcpt()) != 0 {
 		t.Errorf("Expected to get a 451 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
@@ -207,7 +207,7 @@ func TestCmdDATA_Digest(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
-		client.Mode = MODE_DATA
+		client.Mode = StateDATA
 		client.ID = "Test_ID"
 		cmdDATA(client, "")
 		wg.Done()
@@ -226,7 +226,7 @@ func TestCmdDATA_Digest(t *testing.T) {
 
 func TestCmdDATA_Error_Notify(t *testing.T) {
 	client, pipe := getTestClient()
-	client.Mode = MODE_DATA
+	client.Mode = StateDATA
 
 	defer pipe.Close()
 	go cmdDATA(client, "these params are ignored")
@@ -236,7 +236,7 @@ func TestCmdDATA_Error_ReadLines(t *testing.T) {
 	client, pipe := getTestClient()
 	defer pipe.Close()
 
-	client.Mode = MODE_DATA
+	client.Mode = StateDATA
 	go cmdDATA(client, "these params are ignored")
 
 	pipe.ReadResponse(354)
@@ -249,13 +249,13 @@ func TestCmdRSET(t *testing.T) {
 	client, pipe := getTestClient()
 	defer pipe.Close()
 
-	client.Mode = MODE_DATA
+	client.Mode = StateDATA
 	client.Message.Raw = "ABCD"
 	client.ID = "Jonah"
 
 	go cmdRSET(client, "")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Message.Raw != "" || client.Mode != MODE_MAIL {
+	if err != nil || client.Message.Raw != "" || client.Mode != StateMAIL {
 		t.Error("Did not reset client correctly")
 	}
 }
@@ -266,7 +266,7 @@ func getTestClient() (*Client, *textproto.Conn) {
 	sconn, cconn := textproto.NewConn(sc), textproto.NewConn(cc)
 
 	client := &Client{
-		Mode:    MODE_HELO,
+		Mode:    StateHELO,
 		Message: new(gomez.Message),
 		text:    sconn,
 		host: &MockSMTPServer{

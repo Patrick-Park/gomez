@@ -27,7 +27,7 @@ func TestReplyString(t *testing.T) {
 }
 
 // It should pass the correct message to the host's Run
-// and it should be able to alter the client's InputMode
+// and it should be able to alter the client's TransactionState
 func TestClientServe(t *testing.T) {
 	var (
 		wg  sync.WaitGroup
@@ -39,9 +39,9 @@ func TestClientServe(t *testing.T) {
 			msg = params
 
 			if params == "MODE" {
-				ctx.Mode = MODE_MAIL
+				ctx.Mode = StateMAIL
 			} else if params == "QUIT" {
-				ctx.Mode = MODE_RCPT
+				ctx.Mode = StateRCPT
 				return io.EOF
 			}
 
@@ -53,7 +53,7 @@ func TestClientServe(t *testing.T) {
 	cconn, sconn := textproto.NewConn(cc), textproto.NewConn(sc)
 
 	testClient := &Client{
-		Mode: MODE_HELO,
+		Mode: StateHELO,
 		host: hostMock,
 		text: sconn,
 	}
@@ -66,12 +66,12 @@ func TestClientServe(t *testing.T) {
 
 	testCases := []struct {
 		msg     string
-		expMode InputMode
+		expMode TransactionState
 	}{
-		{"ABCD", MODE_HELO},
-		{"MODE", MODE_MAIL},
-		{"Random message", MODE_MAIL},
-		{"QUIT", MODE_RCPT}, // Serve will stop after QUIT so it must come last
+		{"ABCD", StateHELO},
+		{"MODE", StateMAIL},
+		{"Random message", StateMAIL},
+		{"QUIT", StateRCPT}, // Serve will stop after QUIT so it must come last
 	}
 
 	for _, test := range testCases {
@@ -103,7 +103,7 @@ func TestClientServe_Error(t *testing.T) {
 				return io.EOF
 			},
 		},
-		Mode: MODE_HELO,
+		Mode: StateHELO,
 		text: sconn,
 	}
 
@@ -128,10 +128,10 @@ func TestClientServe_Error(t *testing.T) {
 	wg.Wait()
 }
 
-// It should reset the client's state (ID, InputMode and Message)
+// It should reset the client's state (ID, TransactionState and Message)
 func TestClientReset(t *testing.T) {
 	testClient := &Client{
-		Mode:    MODE_RCPT,
+		Mode:    StateRCPT,
 		Message: new(gomez.Message),
 		ID:      "Mike",
 	}
@@ -139,7 +139,7 @@ func TestClientReset(t *testing.T) {
 	testClient.Message.Raw = "Message body."
 
 	testClient.Reset()
-	if testClient.Mode != MODE_MAIL || testClient.Message.Raw != "" {
+	if testClient.Mode != StateMAIL || testClient.Message.Raw != "" {
 		t.Error("Did not reset client correctly.")
 	}
 }

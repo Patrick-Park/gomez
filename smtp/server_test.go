@@ -29,7 +29,7 @@ func TestServerRun(t *testing.T) {
 	}
 
 	testClient, pipe := getTestClient()
-	testClient.Mode = MODE_HELO
+	testClient.Mode = StateHELO
 	defer pipe.Close()
 
 	testCases := []struct {

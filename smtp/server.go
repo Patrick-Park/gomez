@@ -86,7 +86,7 @@ func Start(mq gomez.Enqueuer, conf Config) error {
 func (s Server) CreateClient(conn net.Conn) {
 	c := &Client{
 		Message: new(gomez.Message),
-		Mode:    MODE_HELO,
+		Mode:    StateHELO,
 		host:    s,
 		text:    textproto.NewConn(conn),
 		conn:    conn,

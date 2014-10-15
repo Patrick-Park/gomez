@@ -11,21 +11,21 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-// Holds the current state that the connected client is in.
-type InputMode int
+// TransactionState is the state an SMTP transaction is in.
+type TransactionState int
 
 const (
 	// Initial state. Expecting HELO/EHLO handshake.
-	MODE_HELO InputMode = iota
+	StateHELO TransactionState = iota
 
 	// The Return-Path address is expected.
-	MODE_MAIL
+	StateMAIL
 
 	// The recipient data is expected.
-	MODE_RCPT
+	StateRCPT
 
 	// Eligible to receive data or further recipients.
-	MODE_DATA
+	StateDATA
 )
 
 // Holds information about an SMTP transaction.
@@ -37,7 +37,7 @@ type Client struct {
 	Message *gomez.Message
 
 	// The current state of the transaction.
-	Mode InputMode
+	Mode TransactionState
 
 	host SMTPServer      // Host server instance
 	conn net.Conn        // Network connection
@@ -68,8 +68,8 @@ func (c *Client) Serve() {
 func (c *Client) Reset() {
 	c.Message = new(gomez.Message)
 
-	if c.Mode > MODE_HELO {
-		c.Mode = MODE_MAIL
+	if c.Mode > StateHELO {
+		c.Mode = StateMAIL
 	}
 }
 

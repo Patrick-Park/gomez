@@ -15,7 +15,7 @@ func cmdHELO(ctx *Client, param string) error {
 	}
 
 	ctx.ID = param
-	ctx.Mode = MODE_MAIL
+	ctx.Mode = StateMAIL
 
 	return ctx.Notify(Reply{250, "Gomez SMTPd"})
 }
@@ -27,7 +27,7 @@ func cmdEHLO(ctx *Client, param string) error {
 	}
 
 	ctx.ID = param
-	ctx.Mode = MODE_MAIL
+	ctx.Mode = StateMAIL
 
 	return ctx.Notify(Reply{250, "Gomez SMTPd\nSMTPUTF8\n8BITMIME\nENHANCEDSTATUSCODES\nVRFY"})
 }
@@ -35,10 +35,10 @@ func cmdEHLO(ctx *Client, param string) error {
 // RFC 2821 4.1.1.2 MAIL (MAIL)
 func cmdMAIL(ctx *Client, param string) error {
 	switch {
-	case ctx.Mode == MODE_HELO:
+	case ctx.Mode == StateHELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
 
-	case ctx.Mode > MODE_MAIL:
+	case ctx.Mode > StateMAIL:
 		return ctx.Notify(Reply{503, "5.5.1 Error: nested MAIL command"})
 
 	case !strings.HasPrefix(strings.ToUpper(param), "FROM:"):
@@ -51,7 +51,7 @@ func cmdMAIL(ctx *Client, param string) error {
 	}
 
 	ctx.Message.SetFrom(addr)
-	ctx.Mode = MODE_RCPT
+	ctx.Mode = StateRCPT
 
 	return ctx.Notify(Reply{250, "2.1.0 Ok"})
 }
@@ -59,10 +59,10 @@ func cmdMAIL(ctx *Client, param string) error {
 // RFC 2821 4.1.1.3 RECIPIENT (RCPT)
 func cmdRCPT(ctx *Client, param string) error {
 	switch {
-	case ctx.Mode == MODE_HELO:
+	case ctx.Mode == StateHELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
 
-	case ctx.Mode == MODE_MAIL:
+	case ctx.Mode == StateMAIL:
 		return ctx.Notify(Reply{503, "5.5.1 Error: need MAIL command"})
 
 	case !strings.HasPrefix(strings.ToUpper(param), "TO:"):
@@ -84,13 +84,13 @@ func cmdRCPT(ctx *Client, param string) error {
 		}
 
 		ctx.Message.AddRcpt(addr)
-		ctx.Mode = MODE_DATA
+		ctx.Mode = StateDATA
 
 		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
 
 	case gomez.QuerySuccess:
 		ctx.Message.AddRcpt(addr)
-		ctx.Mode = MODE_DATA
+		ctx.Mode = StateDATA
 
 		return ctx.Notify(Reply{250, "2.1.5 Ok"})
 	}
@@ -101,13 +101,13 @@ func cmdRCPT(ctx *Client, param string) error {
 // RFC 2821 4.1.1.4 DATA (DATA)
 func cmdDATA(ctx *Client, param string) error {
 	switch ctx.Mode {
-	case MODE_HELO:
+	case StateHELO:
 		return ctx.Notify(Reply{503, "5.5.1 Say HELO/EHLO first."})
 
-	case MODE_MAIL:
+	case StateMAIL:
 		return ctx.Notify(Reply{503, "5.5.1 Bad sequence of commands."})
 
-	case MODE_RCPT:
+	case StateRCPT:
 		return ctx.Notify(Reply{503, "5.5.1 RCPT first."})
 	}
 
