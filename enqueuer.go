@@ -9,11 +9,11 @@ import (
 
 // Enqueuer is used to enqueue messages for delivery and to query for addresses.
 type Enqueuer interface {
-	// Obtains a new message identification number in 64 bits.
-	NextID() (uint64, error)
-
 	// Places a message onto the queue for delivery at next pick-up.
 	Enqueue(msg *Message) error
+
+	// Obtains a new message identification number in 64 bits.
+	NextID() (uint64, error)
 
 	// Queries the server for an address.
 	Query(addr *mail.Address) QueryStatus
