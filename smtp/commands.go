@@ -17,7 +17,7 @@ func cmdHELO(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "Syntax: HELO hostname"})
 	}
 
-	ctx.Id = param
+	ctx.ID = param
 	ctx.Mode = MODE_MAIL
 
 	return ctx.Notify(Reply{250, "Gomez SMTPd"})
@@ -32,7 +32,7 @@ func cmdEHLO(ctx *Client, param string) error {
 		return ctx.Notify(Reply{501, "Syntax: EHLO hostname"})
 	}
 
-	ctx.Id = param
+	ctx.ID = param
 	ctx.Mode = MODE_MAIL
 
 	return ctx.Notify(Reply{250, "Gomez SMTPd\nSMTPUTF8\n8BITMIME\nENHANCEDSTATUSCODES\nVRFY"})

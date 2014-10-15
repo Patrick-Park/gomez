@@ -132,7 +132,7 @@ func TestClientReset(t *testing.T) {
 	testClient := &Client{
 		Mode:    MODE_RCPT,
 		Message: new(gomez.Message),
-		Id:      "Mike",
+		ID:      "Mike",
 	}
 
 	testClient.Message.Raw = "Message body."

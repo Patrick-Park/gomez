@@ -89,8 +89,8 @@ func TestCmdHELO_Param_Passing(t *testing.T) {
 
 	go cmdHELO(client, "other name")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_MAIL || client.Id != "other name" {
-		t.Errorf("Expected 250, Mode 0 and Id 'name' but got %+v, %d, %s", err, client.Mode, client.Id)
+	if err != nil || client.Mode != MODE_MAIL || client.ID != "other name" {
+		t.Errorf("Expected 250, Mode 0 and ID 'name' but got %+v, %d, %s", err, client.Mode, client.ID)
 	}
 
 	pipe.Close()
@@ -101,8 +101,8 @@ func TestCmdEHLO_Param_Passing(t *testing.T) {
 
 	go cmdEHLO(client, "name")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != MODE_MAIL || client.Id != "name" {
-		t.Errorf("Expected 250, Mode 0 and Id 'name' but got %+v, %d, %s", err, client.Mode, client.Id)
+	if err != nil || client.Mode != MODE_MAIL || client.ID != "name" {
+		t.Errorf("Expected 250, Mode 0 and ID 'name' but got %+v, %d, %s", err, client.Mode, client.ID)
 	}
 
 	pipe.Close()
@@ -208,7 +208,7 @@ func TestCmdDATA_Digest(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		client.Mode = MODE_DATA
-		client.Id = "Test_ID"
+		client.ID = "Test_ID"
 		cmdDATA(client, "")
 		wg.Done()
 	}()
@@ -251,7 +251,7 @@ func TestCmdRSET(t *testing.T) {
 
 	client.Mode = MODE_DATA
 	client.Message.Raw = "ABCD"
-	client.Id = "Jonah"
+	client.ID = "Jonah"
 
 	go cmdRSET(client, "")
 	_, _, err := pipe.ReadResponse(250)

@@ -14,39 +14,34 @@ import (
 )
 
 type SMTPServer interface {
-	// Runs a command from the SMTPServer's CommandSpec in the
-	// context of a connected client.
+	// Executes an SMTP command.
 	Run(ctx *Client, msg string) error
 
-	// Digests a client. It attaches necessarry headers to the message
-	// and inserts it into the MailBox or queues it for relaying.
+	// Attempts to finalize an SMTP transaction.
 	Digest(c *Client) error
 
-	// Returns the server configuration flags.
+	// Returns the server's configuration flags.
 	Settings() Config
 
-	// Queries the mailbox for a user. See gomez.QueryStatus for
-	// information on response types.
+	// Queries the server for a given address.
 	Query(addr *mail.Address) gomez.QueryStatus
 }
 
-// SMTP host server instance. Holds the CommandSpec, configuration flags
-// and an attached MailBox.
+// Host server instance.
 type Server struct {
 	spec     *CommandSpec
 	config   Config
 	Enqueuer gomez.Enqueuer
 }
 
-// Maps commands to their actions. Actions run in the context
-// of a connected client and a string of params
+// Server's set of supported commands. Maps commands to actions.
 type CommandSpec map[string]func(*Client, string) error
 
-// The accepted format of incoming SMTP commands
-// (4 letter commands, followed by an optional space with arguments)
+// Valid command format. Currently commands must be exactly 4 letters, optionally
+// followed by a parameter.
 var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 
-// Configuration settings for the SMTP server
+// Server configuration object
 type Config struct {
 	ListenAddr string
 	Hostname   string
@@ -55,9 +50,8 @@ type Config struct {
 	Vrfy       bool
 }
 
-// Starts the SMTP server given the specified configuration.
-// Accepts incoming connections and initiates communication.
-func Start(mb gomez.Enqueuer, conf Config) error {
+// Starts a new SMTP server given an Enqueuer and a configuration.
+func Start(mq gomez.Enqueuer, conf Config) error {
 	ln, err := net.Listen("tcp", conf.ListenAddr)
 	if err != nil {
 		return err
@@ -75,7 +69,7 @@ func Start(mb gomez.Enqueuer, conf Config) error {
 		"QUIT": cmdQUIT,
 	}
 
-	srv := &Server{Enqueuer: mb, config: conf, spec: spec}
+	srv := &Server{Enqueuer: mq, config: conf, spec: spec}
 
 	for {
 		conn, err := ln.Accept()
@@ -88,7 +82,7 @@ func Start(mb gomez.Enqueuer, conf Config) error {
 	}
 }
 
-// Creates a new client based on the given connection
+// Creates a new client based on the given connection.
 func (s Server) CreateClient(conn net.Conn) {
 	c := &Client{
 		Message: new(gomez.Message),
@@ -127,22 +121,21 @@ func (s Server) Run(ctx *Client, msg string) error {
 	return command(ctx, params)
 }
 
-// Analyzes and places a complete message into the queue. If the message does not pass
-// all requirements, if the client can not be validated or if an error occurs, Digest
-// notifies the client connection.
+// Finalizes the SMTP transaction by validating the message headers and attempting
+// to enqueue it. This method attaches transitional headers as per RFC 5321
 func (s Server) Digest(client *Client) error {
 	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
 		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
 	}
 
-	if client.Message.Id == 0 {
+	if client.Message.ID == 0 {
 		id, err := s.Enqueuer.NextID()
 		if err != nil {
 			return client.Notify(replyErrorProcessing)
 		}
 
-		client.Message.Id = id
+		client.Message.ID = id
 	}
 
 	// If the message doesn't have a Message-ID, add it
@@ -151,7 +144,9 @@ func (s Server) Digest(client *Client) error {
 			"Message-ID",
 			fmt.Sprintf(
 				"<%x.%d@%s>",
-				time.Now().UnixNano(), client.Message.Id, s.config.Hostname))
+				time.Now().UnixNano(), client.Message.ID, s.config.Hostname,
+			),
+		)
 	}
 
 	err = s.prependReceivedHeader(client)
@@ -164,9 +159,10 @@ func (s Server) Digest(client *Client) error {
 	if err != nil {
 		return client.Notify(replyErrorProcessing)
 	}
+
 	client.Reset()
 
-	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", client.Message.Id)})
+	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})
 }
 
 // Attaches transitional headers to a client's message, such as "Received:".
@@ -191,8 +187,10 @@ func (s *Server) prependReceivedHeader(client *Client) error {
 		"Received",
 		fmt.Sprintf(
 			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-			client.Id, helloHost, helloIp, s.config.Hostname, client.Message.Id,
-			client.Message.Rcpt()[0], time.Now()))
+			client.ID, helloHost, helloIp, s.config.Hostname, client.Message.ID,
+			client.Message.Rcpt()[0], time.Now(),
+		),
+	)
 
 	return nil
 }

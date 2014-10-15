@@ -220,7 +220,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 	}
 }
 
-func TestServer_Digest_Header_Message_Id(t *testing.T) {
+func TestServer_Digest_Header_Message_ID(t *testing.T) {
 	var called bool
 
 	server := Server{config: Config{Hostname: "TestHost"}}
@@ -228,7 +228,7 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 		Message    *gomez.Message
 		Enqueuer   gomez.Enqueuer
 		Value      string
-		Id         uint64
+		ID         uint64
 		Response   int
 		ShouldCall bool
 	}{
@@ -241,7 +241,7 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 			&gomez.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 2, nil }},
 			"My_ID", 2, 451, true,
 		}, {
-			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", Id: 53},
+			&gomez.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", ID: 53},
 			&gomez.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 2, nil }},
 			"My_ID", 53, 451, false,
 		},
@@ -278,8 +278,8 @@ func TestServer_Digest_Header_Message_Id(t *testing.T) {
 			t.Error("Did not call mailbox for ID")
 		}
 
-		if client.Message.Id != test.Id {
-			t.Errorf("Did not set message ID. Wanted %d, got %d", test.Id, client.Message.Id)
+		if client.Message.ID != test.ID {
+			t.Errorf("Did not set message ID. Wanted %d, got %d", test.ID, client.Message.ID)
 		}
 
 		wg.Wait()
@@ -297,11 +297,11 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	client, pipe := getTestClient()
 	client.conn = &mocks.Conn{RemoteAddress: "1.2.3.4:567"}
-	client.Id = "Doe"
+	client.ID = "Doe"
 
 	client.Message = &gomez.Message{
 		Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?",
-		Id:  53,
+		ID:  53,
 	}
 
 	client.Message.AddRcpt(&mail.Address{"Name", "Addr@es"})

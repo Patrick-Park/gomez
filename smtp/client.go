@@ -11,38 +11,43 @@ import (
 	"github.com/gbbr/gomez"
 )
 
-// InputMode is the current state that a client is in and
-// represents a step in the SMTP process.
+// Holds the current state that the connected client is in.
 type InputMode int
 
 const (
+	// Initial state. Expecting HELO/EHLO handshake.
 	MODE_HELO InputMode = iota
+
+	// The Return-Path address is expected.
 	MODE_MAIL
+
+	// The recipient data is expected.
 	MODE_RCPT
+
+	// Eligible to receive data or further recipients.
 	MODE_DATA
 )
 
-// Client is a form of context for the each connected user.
-// It holds the current SMTP state and the created message,
-// as well as exposes the host mail service.
+// Holds information about an SMTP transaction.
 type Client struct {
-	Id      string
+	// The name the client has identified with
+	ID string
+
+	// The message that the client is building via the current transaction.
 	Message *gomez.Message
-	Mode    InputMode
-	host    SMTPServer
-	text    *textproto.Conn
-	conn    net.Conn
+
+	// The current state of the transaction.
+	Mode InputMode
+
+	host SMTPServer      // Host server instance
+	conn net.Conn        // Network connection
+	text *textproto.Conn // Textproto wrapper of network connection
 }
 
-// Replies to the client via the attached connection. To find
-// out more about how Reply is printed look into Reply.String()
+// Replies to the current connection using the given Reply value.
 func (c *Client) Notify(r Reply) error { return c.text.PrintfLine("%s", r) }
 
-// Initiates a new channel of communication between the connected
-// client and the attached mailing service. It picks up commands
-// from the client and executes them on the host. Serve is a blocking
-// operation which completes after the client closes the connection
-// or issues the QUIT command.
+// Handles the transaction by picking up messages and executing them on the host.
 func (c *Client) Serve() {
 	for {
 		msg, err := c.text.ReadLine()
@@ -59,9 +64,7 @@ func (c *Client) Serve() {
 	c.text.Close()
 }
 
-// Resets the state of the client. It resets the accumulated message and
-// reverts the mode to MODE_MAIL. The only thing that is kept is the ID
-// of the client received via the EHLO/HELO command.
+// Cleans the aggregated message and resets the current state of the transaction.
 func (c *Client) Reset() {
 	c.Message = new(gomez.Message)
 
@@ -70,8 +73,7 @@ func (c *Client) Reset() {
 	}
 }
 
-// Checks if the given error is of type io.EOF, otherwise
-// it logs the error to StdErr and/or returns false
+// Logs error and validates whether it was EOF.
 func isEOF(err error) bool {
 	if err == io.EOF {
 		return true
@@ -84,17 +86,14 @@ func isEOF(err error) bool {
 	return false
 }
 
-// Reply is an RFC821 compliant SMTP response. It contains
-// a code and a message which can be one line or multi-line.
-// Multi-line messages should be separated by \n.
+// Reply is an RFC821 compliant SMTP response.
 type Reply struct {
 	Code int
 	Msg  string
 }
 
-// Pretty-print for Reply. Implements the Stringer interface.
-// It prints the Reply in an RFC821 compliant fashion and allows
-// multi-line messages.
+// Pretty-print for the Reply. If a multi-line reply is desired, separate lines
+// via LF (\n)
 func (r Reply) String() string {
 	var output string
 
@@ -111,7 +110,6 @@ func (r Reply) String() string {
 	return output
 }
 
-// Define some commonly used reply codes here, to avoid repetition
 var (
 	replyBadCommand      = Reply{502, "5.5.2 Error: command not recoginized"}
 	replyErrorProcessing = Reply{451, "Requested action aborted: error in processing"}

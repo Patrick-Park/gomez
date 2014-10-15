@@ -8,7 +8,7 @@ import (
 // A message represents an e-mail message and  holds information about
 // sender, recepients and the message body
 type Message struct {
-	Id   uint64
+	ID   uint64
 	from *mail.Address
 	rcpt []*mail.Address
 	Raw  string
@@ -39,7 +39,9 @@ func (m *Message) PrependHeader(name, value string) {
 }
 
 // Makes an AddressList string parseable by mail.ParseAddressList
-func MakeAddressList(list []*mail.Address) (r string) {
+func MakeAddressList(list []*mail.Address) string {
+	var r string
+
 	for i, addr := range list {
 		r += addr.String()
 		if i < len(list)-1 {
@@ -47,5 +49,5 @@ func MakeAddressList(list []*mail.Address) (r string) {
 		}
 	}
 
-	return
+	return r
 }

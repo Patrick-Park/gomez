@@ -7,8 +7,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Enqueuer implements message queueing and
-// dequeueing system
+// Enqueuer is used to enqueue messages for delivery and to query for addresses.
 type Enqueuer interface {
 	// Obtains a new message identification number in 64 bits.
 	NextID() (uint64, error)
@@ -16,7 +15,7 @@ type Enqueuer interface {
 	// Places a message onto the queue for delivery at next pick-up.
 	Enqueue(msg *Message) error
 
-	// Queries the server for a user
+	// Queries the server for an address.
 	Query(addr *mail.Address) QueryStatus
 }
 
@@ -24,15 +23,14 @@ type Enqueuer interface {
 type QueryStatus int
 
 const (
-	// This state indicates that the user was local (judging by host),
-	// but was not found
+	// This state indicates that a user is local, but not found.
 	QUERY_STATUS_NOT_FOUND QueryStatus = iota
 
-	// This status reflects that the user is not local
-	QUERY_STATUS_NOT_LOCAL
-
-	// Query was successful
+	// Query was successful, and user was found locally.
 	QUERY_STATUS_SUCCESS
+
+	// This status reflects that the user is not local.
+	QUERY_STATUS_NOT_LOCAL
 
 	// An error has occurred
 	QUERY_STATUS_ERROR
@@ -41,8 +39,8 @@ const (
 // PostgreSQL implementation of the mailbox
 type postBox struct{ db *sql.DB }
 
-// Creates a new PostBox based on the given connection string
-// Example connection strings can be seen at: http://godoc.org/github.com/lib/pq
+// Creates a new PostBox based on the given connection string. Example
+// connection strings can be seen at: http://godoc.org/github.com/lib/pq
 func NewPostBox(dbString string) (*postBox, error) {
 	db, err := sql.Open("postgres", dbString)
 	if err != nil {
@@ -52,7 +50,7 @@ func NewPostBox(dbString string) (*postBox, error) {
 	return &postBox{db}, nil
 }
 
-// Extracts a unique ID from a database sequence
+// Extracts a unique ID from a database sequence.
 func (p *postBox) NextID() (uint64, error) {
 	var id uint64
 
@@ -65,14 +63,13 @@ func (p *postBox) NextID() (uint64, error) {
 	return id, nil
 }
 
-// Queues and saves a message. If the message exists, it increases the attempts,
-// updates the recipients and timestamp.
+// Places a messages onto the queue.
 func (p *postBox) Enqueue(msg *Message) error {
 	rcpt := MakeAddressList(msg.Rcpt())
 
 	_, err := p.db.Exec(
 		"INSERT INTO messages VALUES (?, ?, ?, ?)",
-		msg.Id, msg.From().String(), rcpt, msg.Raw,
+		msg.ID, msg.From().String(), rcpt, msg.Raw,
 	)
 
 	if err != nil {
@@ -81,18 +78,18 @@ func (p *postBox) Enqueue(msg *Message) error {
 
 	_, err = p.db.Exec(
 		"INSERT INTO queue VALUES (?, ?, NOW(), ?)",
-		msg.Id, rcpt, 0,
+		msg.ID, rcpt, 0,
 	)
 
 	return err
 }
 
-// Searches for an address in the mailbox
+// Does a query for the given address. See QueryStatus for return types.
 func (p *postBox) Query(addr *mail.Address) QueryStatus {
 	return QUERY_STATUS_SUCCESS
 }
 
-// Closes the database connection
+// Closes the database connection.
 func (p *postBox) Close() error {
 	return p.db.Close()
 }
