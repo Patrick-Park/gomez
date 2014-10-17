@@ -14,31 +14,29 @@ type Message struct {
 	Raw  string
 }
 
-// Adds a new recepient to the message
+// AddRcpt adds new recepients to the message.
 func (m *Message) AddRcpt(addr ...*mail.Address) { m.rcpt = append(m.rcpt, addr...) }
 
-// Returns the message recepients
+// Rcpt returns the message recepients.
 func (m Message) Rcpt() []*mail.Address { return m.rcpt }
 
-// Adds a Return-Path address
+// SetFrom adds a Return-Path given an address.
 func (m *Message) SetFrom(addr *mail.Address) { m.from = addr }
 
-// Gets the Return-Path address
+// From retrieves the message Return-Path. 
 func (m Message) From() *mail.Address { return m.from }
 
-// Returns the mail.Message object, containing the parsed headers
-// and the Body as an io.Reader to read from
+// Parse returns the message with the headers parsed and a body reader.
 func (m Message) Parse() (*mail.Message, error) {
 	return mail.ReadMessage(strings.NewReader(m.Raw))
 }
 
-// Prepends a header to the message. If a multiline message is desired,
-// separate lines using <CR><LF> as specified in RFC. Go has \r\n for this.
+// PrependHeader attaches a header at the beginning of the message.
 func (m *Message) PrependHeader(name, value string) {
 	m.Raw = name + ": " + value + "\r\n" + m.Raw
 }
 
-// Makes an AddressList string parseable by mail.ParseAddressList
+// MakeAddressList returns a string parseable by mail.ParseAddressList
 func MakeAddressList(list []*mail.Address) string {
 	var r string
 
