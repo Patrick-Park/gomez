@@ -39,7 +39,7 @@ const (
 // PostgreSQL implementation of the mailbox
 type postBox struct{ db *sql.DB }
 
-// Creates a new PostBox based on the given connection string. Example
+// NewPostBox creates a PostBox using the given connection string. Example
 // connection strings can be seen at: http://godoc.org/github.com/lib/pq
 func NewPostBox(dbString string) (*postBox, error) {
 	db, err := sql.Open("postgres", dbString)
@@ -50,7 +50,7 @@ func NewPostBox(dbString string) (*postBox, error) {
 	return &postBox{db}, nil
 }
 
-// Extracts a unique ID from a database sequence.
+// NextID extracts a unique ID from a database sequence.
 func (p *postBox) NextID() (uint64, error) {
 	var id uint64
 
@@ -63,7 +63,7 @@ func (p *postBox) NextID() (uint64, error) {
 	return id, nil
 }
 
-// Places a messages onto the queue.
+// Enqueue places the given messages onto the queue.
 func (p *postBox) Enqueue(msg *Message) error {
 	rcpt := MakeAddressList(msg.Rcpt())
 
@@ -84,7 +84,7 @@ func (p *postBox) Enqueue(msg *Message) error {
 	return err
 }
 
-// Does a query for the given address. See QueryResult for return types.
+// Query searches for the given address. See QueryResult for return types.
 func (p *postBox) Query(addr *mail.Address) QueryResult {
 	return QuerySuccess
 }
