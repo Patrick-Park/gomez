@@ -14,16 +14,16 @@ import (
 )
 
 type SMTPServer interface {
-	// Executes an SMTP command.
+	// Run executes an SMTP command.
 	Run(ctx *Client, msg string) error
 
-	// Attempts to finalize an SMTP transaction.
+	// Digest attempts to finalize an SMTP transaction.
 	Digest(c *Client) error
 
-	// Returns the server's configuration flags.
+	// Settings returns the server's configuration flags.
 	Settings() Config
 
-	// Queries the server for a given address.
+	// Query searches on the server for a given address.
 	Query(addr *mail.Address) gomez.QueryResult
 }
 
@@ -34,7 +34,7 @@ type Server struct {
 	Enqueuer gomez.Enqueuer
 }
 
-// Server's set of supported commands. Maps commands to actions.
+// CommandSpec holds a set of supported commands, mapping names to actions.
 type CommandSpec map[string]func(*Client, string) error
 
 // Valid command format. Currently commands must be exactly 4 letters, optionally
@@ -82,7 +82,7 @@ func Start(mq gomez.Enqueuer, conf Config) error {
 	}
 }
 
-// Creates a new client based on the given connection.
+// CreateClient creates a new client based on the given connection.
 func (s Server) CreateClient(conn net.Conn) {
 	c := &Client{
 		Message: new(gomez.Message),
@@ -96,15 +96,15 @@ func (s Server) CreateClient(conn net.Conn) {
 	c.Serve()
 }
 
-// Returns the configuration of the server
+// Settings returns the configuration of the server.
 func (s Server) Settings() Config { return s.config }
 
-// Queries the host mailbox for a user by string or Address
+// Query asks the attached enqueuer to search for an address.
 func (s Server) Query(addr *mail.Address) gomez.QueryResult {
 	return s.Enqueuer.Query(addr)
 }
 
-// Runs a command in the context of a child connection
+// Run executes a command in the context of a child connection.
 func (s Server) Run(ctx *Client, msg string) error {
 	if !commandFormat.MatchString(msg) {
 		return ctx.Notify(replyBadCommand)
@@ -121,8 +121,8 @@ func (s Server) Run(ctx *Client, msg string) error {
 	return command(ctx, params)
 }
 
-// Finalizes the SMTP transaction by validating the message headers and attempting
-// to enqueue it. This method attaches transitional headers as per RFC 5321
+// Digest finalizes the SMTP transaction by validating the message and attempting
+// to enqueue it. This method attaches transitional headers as per RFC 5321.
 func (s Server) Digest(client *Client) error {
 	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
