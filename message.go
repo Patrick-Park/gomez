@@ -14,6 +14,8 @@ type Message struct {
 	Raw  string
 }
 
+// AddInbound, AddOutbound
+
 // AddRcpt adds new recepients to the message.
 func (m *Message) AddRcpt(addr ...*mail.Address) { m.rcpt = append(m.rcpt, addr...) }
 
