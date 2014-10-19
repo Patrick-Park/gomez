@@ -70,11 +70,9 @@ func (p *postBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	rcpt := MakeAddressList(msg.Rcpt())
-
 	_, err = tx.Exec(
 		"INSERT INTO messages VALUES (?, ?, ?, ?)",
-		msg.ID, msg.From().String(), rcpt, msg.Raw,
+		msg.ID, msg.From().String(), MakeAddressList(msg.Rcpt()), msg.Raw,
 	)
 
 	if err != nil {
