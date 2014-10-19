@@ -15,20 +15,20 @@ import (
 type TransactionState int
 
 const (
-	// Initial state. Expecting HELO/EHLO handshake.
+	// StateHELO is the initial state. HELO/EHLO command is expected.
 	StateHELO TransactionState = iota
 
-	// The Return-Path address is expected.
+	// StateMAIL is the post-HELO state. The Return-Path address is expected.
 	StateMAIL
 
-	// The recipient data is expected.
+	// StateRCPT is the post-MAIL mode. The recipient data is expected.
 	StateRCPT
 
-	// Eligible to receive data or further recipients.
+	// StateDATA signifies eligibility to receive data.
 	StateDATA
 )
 
-// Holds information about an SMTP transaction.
+// Client holds information about an SMTP transaction.
 type Client struct {
 	// The name the client has identified with
 	ID string
@@ -44,10 +44,10 @@ type Client struct {
 	text *textproto.Conn // Textproto wrapper of network connection
 }
 
-// Replies to the current connection using the given Reply value.
+// Notify sends the given reply back to the connected client.
 func (c *Client) Notify(r Reply) error { return c.text.PrintfLine("%s", r) }
 
-// Handles the transaction by picking up messages and executing them on the host.
+// Serve listens for incoming commands and runs them on the host instance.
 func (c *Client) Serve() {
 	for {
 		msg, err := c.text.ReadLine()
@@ -64,7 +64,7 @@ func (c *Client) Serve() {
 	c.text.Close()
 }
 
-// Cleans the aggregated message and resets the current state of the transaction.
+// Reset empties the message buffer and sets the state back to HELO.
 func (c *Client) Reset() {
 	c.Message = new(gomez.Message)
 
@@ -92,8 +92,8 @@ type Reply struct {
 	Msg  string
 }
 
-// Pretty-print for the Reply. If a multi-line reply is desired, separate lines
-// via LF (\n)
+// String implements the Stringer interface. If a multi-line reply is desired,
+// separate lines via LF (\n)
 func (r Reply) String() string {
 	var output string
 
