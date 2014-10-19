@@ -202,7 +202,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 		client, pipe := getTestClient()
 		client.conn = &mocks.Conn{RemoteAddress: test.Address}
 		client.Message = test.Message
-		client.Message.AddRcpt(&mail.Address{"Name", "Addr@es"})
+		client.Message.AddInbound(&mail.Address{"Name", "Addr@es"})
 
 		wg.Add(1)
 		go func() {
@@ -304,7 +304,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 		ID:  53,
 	}
 
-	client.Message.AddRcpt(&mail.Address{"Name", "Addr@es"})
+	client.Message.AddOutbound(&mail.Address{"Name", "Addr@es"})
 
 	var wg sync.WaitGroup
 

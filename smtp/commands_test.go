@@ -143,7 +143,8 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	}()
 
 	_, _, err := pipe.ReadResponse(251)
-	if err != nil || client.Mode != StateDATA || client.Message.Rcpt()[0].Address != "not_local@host.tld" {
+	if err != nil || client.Mode != StateDATA || client.Message.Rcpt()[0].Address != "not_local@host.tld" ||
+		client.Message.Outbound()[0].Address != "not_local@host.tld" || len(client.Message.Inbound()) != 0 {
 		t.Errorf("Expected to get a 251 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 
@@ -170,7 +171,8 @@ func TestCmdRCPT_Param_Passing(t *testing.T) {
 
 	go cmdRCPT(client, "TO:<success@host.tld>")
 	_, _, err := pipe.ReadResponse(250)
-	if err != nil || client.Mode != StateDATA || client.Message.Rcpt()[0].Address != "success@host.tld" {
+	if err != nil || client.Mode != StateDATA || client.Message.Rcpt()[0].Address != "success@host.tld" ||
+		client.Message.Inbound()[0].Address != "success@host.tld" || len(client.Message.Outbound()) != 0 {
 		t.Errorf("Expected to get a 250 response and a recipient, got: %s and '%s'", err, client.Message.Rcpt()[0])
 	}
 

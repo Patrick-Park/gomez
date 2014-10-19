@@ -77,14 +77,20 @@ func TestMessage_Setters_Getters(t *testing.T) {
 	}
 
 	for _, address := range addrList {
-		m.AddRcpt(address)
+		m.AddInbound(address)
+		m.AddOutbound(address)
+
 		m.SetFrom(address)
 		if m.From() != address {
 			t.Error("Did not set FROM correctly")
 		}
 	}
 
-	if !reflect.DeepEqual(m.Rcpt(), addrList) {
+	if !reflect.DeepEqual(m.Outbound(), addrList) {
+		t.Error("Did not add/retrieve recipients correctly.")
+	}
+
+	if !reflect.DeepEqual(m.Inbound(), addrList) {
 		t.Error("Did not add/retrieve recipients correctly.")
 	}
 }

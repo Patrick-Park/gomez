@@ -83,13 +83,13 @@ func cmdRCPT(ctx *Client, param string) error {
 			return ctx.Notify(Reply{550, "5.1.1 No such user here."})
 		}
 
-		ctx.Message.AddRcpt(addr)
+		ctx.Message.AddOutbound(addr)
 		ctx.Mode = StateDATA
 
 		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
 
 	case gomez.QuerySuccess:
-		ctx.Message.AddRcpt(addr)
+		ctx.Message.AddInbound(addr)
 		ctx.Mode = StateDATA
 
 		return ctx.Notify(Reply{250, "2.1.5 Ok"})

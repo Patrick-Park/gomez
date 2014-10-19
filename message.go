@@ -14,17 +14,35 @@ type Message struct {
 	// Raw holds the message in raw form.
 	Raw string
 
-	from *mail.Address   // Return-Path address
-	rcpt []*mail.Address // Recipients
+	from    *mail.Address   // Return-Path address
+	rcptIn  []*mail.Address // Inbound recipients
+	rcptOut []*mail.Address // Outbount recipients
 }
 
-// AddInbound, AddOutbound
+// AddInbound adds a local recipient
+func (m *Message) AddInbound(rcpt *mail.Address) {
+	m.rcptIn = append(m.rcptIn, rcpt)
+}
 
-// AddRcpt adds new recepients to the message.
-func (m *Message) AddRcpt(addr ...*mail.Address) { m.rcpt = append(m.rcpt, addr...) }
+// Inbound retrieves local recipients
+func (m Message) Inbound() []*mail.Address {
+	return m.rcptIn
+}
 
-// Rcpt returns the message recepients.
-func (m Message) Rcpt() []*mail.Address { return m.rcpt }
+// AddOutbound adds a remote recipient
+func (m *Message) AddOutbound(rcpt *mail.Address) {
+	m.rcptOut = append(m.rcptOut, rcpt)
+}
+
+// Outbound receives all out-bound recipients.
+func (m Message) Outbound() []*mail.Address {
+	return m.rcptOut
+}
+
+// Rcpt returns all inbound and outbound recipients
+func (m Message) Rcpt() []*mail.Address {
+	return append(m.rcptIn, m.rcptOut...)
+}
 
 // SetFrom adds a Return-Path given an address.
 func (m *Message) SetFrom(addr *mail.Address) { m.from = addr }
