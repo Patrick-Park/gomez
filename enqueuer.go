@@ -65,14 +65,20 @@ func (p *postBox) NextID() (uint64, error) {
 
 // Enqueue places the given messages onto the queue.
 func (p *postBox) Enqueue(msg *Message) error {
+	tx, err := p.db.Begin()
+	if err != nil {
+		return err
+	}
+
 	rcpt := MakeAddressList(msg.Rcpt())
 
-	_, err := p.db.Exec(
+	_, err := tx.Exec(
 		"INSERT INTO messages VALUES (?, ?, ?, ?)",
 		msg.ID, msg.From().String(), rcpt, msg.Raw,
 	)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -81,7 +87,12 @@ func (p *postBox) Enqueue(msg *Message) error {
 		msg.ID, MakeAddressList(msg.Outbound()), 0,
 	)
 
-	return err
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // Query searches for the given address. See QueryResult for return types.
