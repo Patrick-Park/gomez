@@ -87,10 +87,14 @@ func TestMessage_Setters_Getters(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(m.Outbound(), addrList) {
-		t.Error("Did not add/retrieve recipients correctly.")
+		t.Error("Did not add/retrieve outbound recipients correctly.")
 	}
 
 	if !reflect.DeepEqual(m.Inbound(), addrList) {
+		t.Error("Did not add/retrieve inbound recipients correctly.")
+	}
+
+	if !reflect.DeepEqual(m.Rcpt(), append(addrList, addrList...)) {
 		t.Error("Did not add/retrieve recipients correctly.")
 	}
 }
