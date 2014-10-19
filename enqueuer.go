@@ -65,7 +65,7 @@ func (p *postBox) NextID() (uint64, error) {
 
 // Enqueue places the given messages onto the queue.
 func (p *postBox) Enqueue(msg *Message) error {
-	rcpt := MakeAddressList(msg.Outbound())
+	rcpt := MakeAddressList(msg.Rcpt())
 
 	_, err := p.db.Exec(
 		"INSERT INTO messages VALUES (?, ?, ?, ?)",
@@ -78,7 +78,7 @@ func (p *postBox) Enqueue(msg *Message) error {
 
 	_, err = p.db.Exec(
 		"INSERT INTO queue VALUES (?, ?, NOW(), ?)",
-		msg.ID, rcpt, 0,
+		msg.ID, MakeAddressList(msg.Outbound()), 0,
 	)
 
 	return err
