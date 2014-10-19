@@ -8,10 +8,14 @@ import (
 // A message represents an e-mail message and  holds information about
 // sender, recepients and the message body
 type Message struct {
-	ID   uint64
-	from *mail.Address
-	rcpt []*mail.Address
-	Raw  string
+	// ID holds the internal Message-ID.
+	ID uint64
+
+	// Raw holds the message in raw form.
+	Raw string
+
+	from *mail.Address   // Return-Path address
+	rcpt []*mail.Address // Recipients
 }
 
 // AddInbound, AddOutbound
@@ -25,7 +29,7 @@ func (m Message) Rcpt() []*mail.Address { return m.rcpt }
 // SetFrom adds a Return-Path given an address.
 func (m *Message) SetFrom(addr *mail.Address) { m.from = addr }
 
-// From retrieves the message Return-Path. 
+// From retrieves the message Return-Path.
 func (m Message) From() *mail.Address { return m.from }
 
 // Parse returns the message with the headers parsed and a body reader.
