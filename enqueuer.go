@@ -81,8 +81,8 @@ func (p *postBox) Enqueue(msg *Message) error {
 	}
 
 	_, err = p.db.Exec(
-		"INSERT INTO queue VALUES (?, ?, NOW(), ?)",
-		msg.ID, MakeAddressList(msg.Outbound()), 0,
+		"INSERT INTO queue VALUES (?, ?, NOW(), 0)",
+		msg.ID, MakeAddressList(msg.Outbound()),
 	)
 
 	if err != nil {
