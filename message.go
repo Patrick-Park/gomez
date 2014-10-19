@@ -19,17 +19,17 @@ type Message struct {
 	rcptOut []*mail.Address // Outbount recipients
 }
 
-// AddInbound adds a local recipient
+// AddInbound adds a local recipient.
 func (m *Message) AddInbound(rcpt *mail.Address) {
 	m.rcptIn = append(m.rcptIn, rcpt)
 }
 
-// Inbound retrieves local recipients
+// Inbound retrieves local recipients.
 func (m Message) Inbound() []*mail.Address {
 	return m.rcptIn
 }
 
-// AddOutbound adds a remote recipient
+// AddOutbound adds a remote recipient.
 func (m *Message) AddOutbound(rcpt *mail.Address) {
 	m.rcptOut = append(m.rcptOut, rcpt)
 }
@@ -39,7 +39,7 @@ func (m Message) Outbound() []*mail.Address {
 	return m.rcptOut
 }
 
-// Rcpt returns all inbound and outbound recipients
+// Rcpt returns a list of all recipients on this message.
 func (m Message) Rcpt() []*mail.Address {
 	return append(m.rcptIn, m.rcptOut...)
 }
