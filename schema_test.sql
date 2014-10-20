@@ -18,7 +18,7 @@ SET client_min_messages = warning;
 -- Name: gomez; Type: DATABASE; Schema: -; Owner: -
 --
 
-DROP DATABASE gomez_test
+DROP DATABASE gomez_test;
 CREATE DATABASE gomez_test WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'en_US.UTF-8' LC_CTYPE = 'en_US.UTF-8';
 
 
