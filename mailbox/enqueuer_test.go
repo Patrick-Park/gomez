@@ -6,10 +6,9 @@ import (
 	"net/mail"
 	"os"
 	"os/exec"
+	"reflect"
 	"sync"
 	"testing"
-
-	"github.com/lib/pq"
 )
 
 const (
@@ -55,21 +54,6 @@ func setUpTestDB() {
 	}
 }
 
-func TestPostBox_DB_Connection(t *testing.T) {
-	EnsureTestDB()
-
-	pb, err := NewPostBox(dbString)
-	if err != nil {
-		t.Errorf("Could not open DB:", err)
-	}
-	defer pb.Close()
-
-	_, err = pb.db.Query("SELECT * FROM messages LIMIT 1")
-	if err != nil {
-		t.Errorf("Cannot query: %s", err)
-	}
-}
-
 func TestPostBox_NextID_Error(t *testing.T) {
 	pb, err := NewPostBox("bogus")
 	if err != nil {
@@ -101,13 +85,12 @@ func TestPostBox_NextID_Success(t *testing.T) {
 }
 
 type queueRow struct {
-	ID       uint64
+	MID      uint64
 	Rcpt     string
-	Date     pq.NullTime
 	Attempts int
 }
 
-type messageRow struct {
+type mailboxRow struct {
 	MID uint64
 	UID uint64
 }
@@ -119,66 +102,115 @@ func TestPostBox_Enqueuer(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to extract sequence val: %s", err)
 	}
-	defer pb.Close()
 
-	// Setup
-	_, err = pb.db.Exec(`INSERT INTO users (id, name, address) VALUES 
-		(5, 'a b', 'a@b.com'),
-		(7, 'c d', 'c@d.com')`)
+	for k, test := range []struct {
+		Users        string
+		Msg          *Message
+		QueueItem    queueRow
+		MailboxItems []mailboxRow
+		HasErr       bool // Expect error
+	}{
+		{
+			// Mixed
+			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			&Message{
+				ID:      123,
+				Raw:     "MessageBody",
+				from:    &mail.Address{"Dummy Guy", "dummy@guy.com"},
+				rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"c d", "c@d.com"}},
+				rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
+			},
+			queueRow{123, `"x z" <x@z.com>, "q w" <q@w.eu>`, 0},
+			[]mailboxRow{{123, 5}, {123, 7}}, false,
+		}, {
+			// Only local
+			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			&Message{
+				ID:      123,
+				Raw:     "MessageBody",
+				from:    &mail.Address{"Dummy Guy", "dummy@guy.com"},
+				rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"c d", "c@d.com"}},
+				rcptOut: []*mail.Address{},
+			},
+			queueRow{}, []mailboxRow{{123, 5}, {123, 7}}, false,
+		}, {
+			// Only remote
+			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			&Message{
+				ID:      123,
+				Raw:     "MessageBody",
+				from:    &mail.Address{"Dummy Guy", "dummy@guy.com"},
+				rcptIn:  []*mail.Address{},
+				rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
+			},
+			queueRow{123, `"x z" <x@z.com>, "q w" <q@w.eu>`, 0}, []mailboxRow{}, false,
+		}, {
+			// Error (duplicate inbound)
+			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			&Message{
+				ID:      123,
+				Raw:     "MessageBody",
+				from:    &mail.Address{"Dummy Guy", "dummy@guy.com"},
+				rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"a b", "a@b.com"}},
+				rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
+			},
+			queueRow{}, []mailboxRow{}, true,
+		},
+	} {
+		// Teardown
+		CleanDB(pb.db)
 
-	if err != nil {
-		t.Errorf("Error setting up test: %s", err)
+		// Setup
+		_, err = pb.db.Exec(`INSERT INTO users (id, name, address) VALUES ` + test.Users)
+		if err != nil {
+			t.Errorf("Error setting up test: %s", err)
+		}
+
+		err = pb.Enqueue(test.Msg)
+		if !test.HasErr && err != nil {
+			t.Errorf("Error enqueuing message: %s", err)
+		}
+
+		if test.HasErr {
+			if err == nil {
+				t.Errorf("Expected error on test #%d.", k)
+			}
+
+			continue
+		}
+
+		// Test that outbound messages were queued
+		var q queueRow
+
+		r := pb.db.QueryRow("SELECT message_id, rcpt, attempts FROM queue")
+		err = r.Scan(&q.MID, &q.Rcpt, &q.Attempts)
+		if err != nil && err != sql.ErrNoRows {
+			t.Errorf("Failed to query queue: %s", err)
+		}
+
+		if !reflect.DeepEqual(q, test.QueueItem) {
+			t.Errorf("Expected %+v, got %+v", test.QueueItem, q)
+		}
+
+		// Test that inbound messages were delivered
+		m := make([]mailboxRow, 0, 10)
+		rows, err := pb.db.Query("SELECT user_id, message_id FROM mailbox")
+		if err != nil {
+			t.Errorf("Failed to query queue: %s", err)
+		}
+
+		for rows.Next() {
+			var mr mailboxRow
+			rows.Scan(&mr.UID, &mr.MID)
+			m = append(m, mr)
+		}
+
+		if !reflect.DeepEqual(m, test.MailboxItems) {
+			t.Errorf("Expected %+v, got %+v", test.MailboxItems, m)
+		}
+
+		rows.Close()
 	}
 
-	msg := &Message{
-		ID:      123,
-		Raw:     "MessageBody",
-		from:    &mail.Address{"Dummy Guy", "dummy@guy.com"},
-		rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"c d", "c@d.com"}},
-		rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
-	}
-
-	// Test
-	err = pb.Enqueue(msg)
-	if err != nil {
-		t.Errorf("Error enqueuing message: %s", err)
-	}
-
-	r, err := pb.db.Query("SELECT message_id, rcpt, date_added, attempts FROM queue")
-	if err != nil {
-		t.Errorf("Failed to query queue: %s", err)
-	}
-
-	q := make([]queueRow, 0, 10)
-
-	for r.Next() {
-		var qr queueRow
-
-		r.Scan(&qr.ID, &qr.Rcpt, qr.Date, &qr.Attempts)
-		q = append(q, qr)
-	}
-
-	// fmt.Println(q)
-
-	r.Close()
-
-	r, err = pb.db.Query("SELECT user_id, message_id FROM mailbox")
-	if err != nil {
-		t.Errorf("Failed to query queue: %s", err)
-	}
-
-	m := make([]messageRow, 0, 10)
-
-	for r.Next() {
-		var mr messageRow
-		r.Scan(&mr.UID, &mr.MID)
-		m = append(m, mr)
-	}
-
-	// fmt.Println(m)
-
-	r.Close()
-
-	// Teardown
-	CleanDB(pb.db)
+	pb.Close()
 }
