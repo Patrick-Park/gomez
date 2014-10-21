@@ -3,14 +3,14 @@ package smtp
 import (
 	"net/mail"
 
-	"github.com/gbbr/gomez"
+	"github.com/gbbr/gomez/mailbox"
 )
 
 type MockSMTPServer struct {
 	Run_      func(*Client, string) error
 	Digest_   func(*Client) error
 	Settings_ func() Config
-	Query_    func(*mail.Address) gomez.QueryResult
+	Query_    func(*mail.Address) mailbox.QueryResult
 }
 
 func (h MockSMTPServer) Run(c *Client, m string) error {
@@ -37,10 +37,10 @@ func (h MockSMTPServer) Settings() Config {
 	return Config{}
 }
 
-func (h MockSMTPServer) Query(addr *mail.Address) gomez.QueryResult {
+func (h MockSMTPServer) Query(addr *mail.Address) mailbox.QueryResult {
 	if h.Query_ != nil {
 		return h.Query_(addr)
 	}
 
-	return gomez.QueryError
+	return mailbox.QueryError
 }

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gbbr/gomez"
+	"github.com/gbbr/gomez/mailbox"
 )
 
 func TestCmd_Modes_and_Codes(t *testing.T) {
@@ -130,7 +130,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is enabled
 	client.host = &MockSMTPServer{
-		Query_:    func(addr *mail.Address) gomez.QueryResult { return gomez.QueryNotLocal },
+		Query_:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
 		Settings_: func() Config { return Config{Relay: true} },
 	}
 
@@ -150,7 +150,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is disabled
 	client.host = &MockSMTPServer{
-		Query_:    func(addr *mail.Address) gomez.QueryResult { return gomez.QueryNotLocal },
+		Query_:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
 		Settings_: func() Config { return Config{Relay: false} },
 	}
 
@@ -269,20 +269,20 @@ func getTestClient() (*Client, *textproto.Conn) {
 
 	client := &Client{
 		Mode:    StateHELO,
-		Message: new(gomez.Message),
+		Message: new(mailbox.Message),
 		text:    sconn,
 		host: &MockSMTPServer{
-			Query_: func(addr *mail.Address) gomez.QueryResult {
+			Query_: func(addr *mail.Address) mailbox.QueryResult {
 				switch strings.Split(addr.Address, "@")[0] {
 				case "not_found":
-					return gomez.QueryNotFound
+					return mailbox.QueryNotFound
 				case "not_local":
-					return gomez.QueryNotLocal
+					return mailbox.QueryNotLocal
 				case "success":
-					return gomez.QuerySuccess
+					return mailbox.QuerySuccess
 				}
 
-				return gomez.QueryError
+				return mailbox.QueryError
 			},
 		},
 	}

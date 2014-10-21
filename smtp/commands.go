@@ -5,7 +5,7 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/gbbr/gomez"
+	"github.com/gbbr/gomez/mailbox"
 )
 
 // RFC 2821 4.1.1.1  Extended HELLO (EHLO) or HELLO (HELO)
@@ -75,10 +75,10 @@ func cmdRCPT(ctx *Client, param string) error {
 	}
 
 	switch ctx.host.Query(addr) {
-	case gomez.QueryNotFound:
+	case mailbox.QueryNotFound:
 		return ctx.Notify(Reply{550, "5.1.1 No such user here."})
 
-	case gomez.QueryNotLocal:
+	case mailbox.QueryNotLocal:
 		if flags := ctx.host.Settings(); !flags.Relay {
 			return ctx.Notify(Reply{550, "5.1.1 No such user here."})
 		}
@@ -88,7 +88,7 @@ func cmdRCPT(ctx *Client, param string) error {
 
 		return ctx.Notify(Reply{251, "User not local; will forward to <forward-path>"})
 
-	case gomez.QuerySuccess:
+	case mailbox.QuerySuccess:
 		ctx.Message.AddInbound(addr)
 		ctx.Mode = StateDATA
 

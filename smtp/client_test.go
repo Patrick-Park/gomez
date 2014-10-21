@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gbbr/gomez"
+	"github.com/gbbr/gomez/mailbox"
 )
 
 // Test that Reply's stringer implentation correctly outputs
@@ -132,7 +132,7 @@ func TestClientServe_Error(t *testing.T) {
 func TestClientReset(t *testing.T) {
 	testClient := &Client{
 		Mode:    StateRCPT,
-		Message: new(gomez.Message),
+		Message: new(mailbox.Message),
 		ID:      "Mike",
 	}
 

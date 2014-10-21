@@ -8,7 +8,7 @@ import (
 	"net/textproto"
 	"strings"
 
-	"github.com/gbbr/gomez"
+	"github.com/gbbr/gomez/mailbox"
 )
 
 // TransactionState is the state an SMTP transaction is in.
@@ -34,7 +34,7 @@ type Client struct {
 	ID string
 
 	// The message that the client is building via the current transaction.
-	Message *gomez.Message
+	Message *mailbox.Message
 
 	// The current state of the transaction.
 	Mode TransactionState
@@ -66,7 +66,7 @@ func (c *Client) Serve() {
 
 // Reset empties the message buffer and sets the state back to HELO.
 func (c *Client) Reset() {
-	c.Message = new(gomez.Message)
+	c.Message = new(mailbox.Message)
 
 	if c.Mode > StateHELO {
 		c.Mode = StateMAIL

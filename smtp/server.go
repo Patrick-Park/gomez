@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gbbr/gomez"
+	"github.com/gbbr/gomez/mailbox"
 )
 
 type SMTPServer interface {
@@ -24,14 +24,14 @@ type SMTPServer interface {
 	Settings() Config
 
 	// Query searches on the server for a given address.
-	Query(addr *mail.Address) gomez.QueryResult
+	Query(addr *mail.Address) mailbox.QueryResult
 }
 
 // Host server instance.
 type Server struct {
 	spec     *CommandSpec
 	config   Config
-	Enqueuer gomez.Enqueuer
+	Enqueuer mailbox.Enqueuer
 }
 
 // CommandSpec holds a set of supported commands, mapping names to actions.
@@ -51,7 +51,7 @@ type Config struct {
 }
 
 // Starts a new SMTP server given an Enqueuer and a configuration.
-func Start(mq gomez.Enqueuer, conf Config) error {
+func Start(mq mailbox.Enqueuer, conf Config) error {
 	ln, err := net.Listen("tcp", conf.ListenAddr)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func Start(mq gomez.Enqueuer, conf Config) error {
 // CreateClient creates a new client based on the given connection.
 func (s Server) CreateClient(conn net.Conn) {
 	c := &Client{
-		Message: new(gomez.Message),
+		Message: new(mailbox.Message),
 		Mode:    StateHELO,
 		host:    s,
 		text:    textproto.NewConn(conn),
@@ -100,7 +100,7 @@ func (s Server) CreateClient(conn net.Conn) {
 func (s Server) Settings() Config { return s.config }
 
 // Query asks the attached enqueuer to search for an address.
-func (s Server) Query(addr *mail.Address) gomez.QueryResult {
+func (s Server) Query(addr *mail.Address) mailbox.QueryResult {
 	return s.Enqueuer.Query(addr)
 }
 
