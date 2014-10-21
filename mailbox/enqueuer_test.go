@@ -214,3 +214,24 @@ func TestPostBox_Enqueuer(t *testing.T) {
 
 	pb.Close()
 }
+
+func TestEnqueue_Tx_Begin_Error(t *testing.T) {
+	pb, err := NewPostBox("bogus")
+	if err != nil {
+		t.Errorf("Failed to initialize PostBox", err)
+	}
+	if err := pb.Enqueue(&Message{}); err == nil {
+		t.Error("Was expecing an error here")
+	}
+
+	pb, err = NewPostBox(dbString)
+	if err != nil {
+		t.Errorf("Failed to initialize PostBox", err)
+	}
+	if err := pb.Enqueue(&Message{ID: 1, from: &mail.Address{"a", "a@b.com"}}); err == nil {
+		t.Error("Was expecing an error here")
+	}
+	if err := pb.Enqueue(&Message{Raw: "body", from: &mail.Address{"a", "a@b.com"}, rcptOut: []*mail.Address{&mail.Address{"a", "a@b.com"}}}); err == nil {
+		t.Error("Was expecing an error here")
+	}
+}

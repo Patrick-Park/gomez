@@ -86,7 +86,7 @@ CREATE TABLE messages (
     id bigint NOT NULL,
     "from" character varying(255) NOT NULL,
     rcpt character varying NOT NULL,
-    raw text NOT NULL
+    raw text NOT NULL CHECK (raw <> '')
 );
 
 
@@ -96,7 +96,7 @@ CREATE TABLE messages (
 --
 
 CREATE TABLE queue (
-    message_id bigint NOT NULL,
+    message_id bigint NOT NULL CHECK (message_id <> 0),
     rcpt character varying NOT NULL,
     date_added timestamp without time zone NOT NULL,
     attempts integer
