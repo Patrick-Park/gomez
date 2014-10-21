@@ -1,11 +1,15 @@
 package mailbox
 
 import (
+	"fmt"
 	"log"
+	"net/mail"
 	"os"
 	"os/exec"
 	"sync"
 	"testing"
+
+	"github.com/lib/pq"
 )
 
 const (
@@ -45,6 +49,7 @@ func TestPostBox_DB_Connection(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not open DB:", err)
 	}
+	defer pb.Close()
 
 	_, err = pb.db.Query("SELECT * FROM messages LIMIT 1")
 	if err != nil {
@@ -57,6 +62,7 @@ func TestPostBox_NextID_Error(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not open DB:", err)
 	}
+	defer pb.Close()
 
 	_, err = pb.NextID()
 	if err == nil {
@@ -71,6 +77,7 @@ func TestPostBox_NextID_Success(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not open DB:", err)
 	}
+	defer pb.Close()
 
 	id, err := pb.NextID()
 	if err != nil {
@@ -78,4 +85,57 @@ func TestPostBox_NextID_Success(t *testing.T) {
 	}
 
 	t.Log(id)
+}
+
+func TestPostBox_Enqueuer(t *testing.T) {
+	EnsureTestDB()
+
+	pb, err := NewPostBox(dbString)
+	if err != nil {
+		t.Errorf("Failed to extract sequence val: %s", err)
+	}
+	defer pb.Close()
+
+	// Setup
+	tx, err := pb.db.Begin()
+	if err != nil {
+		t.Errorf("Error starting transaction: %s", err)
+	}
+
+	_, err = tx.Exec(`INSERT INTO users (name, address) VALUES 
+		('a b', 'a@b.com'),
+		('c d', 'c@d.com')`)
+	if err != nil {
+		t.Errorf("Error setting up test: %s", err)
+	}
+
+	msg := &Message{
+		ID:      123,
+		Raw:     "MessageBody",
+		from:    &mail.Address{"Dummy Guy", "dummy@guy.com"},
+		rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"c d", "c@d.com"}},
+		rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}},
+	}
+
+	// Test
+	err = pb.Enqueue(msg)
+	if err != nil {
+		t.Errorf("Error enqueuing message: %s", err)
+	}
+
+	r, err := tx.Query("SELECT message_id, rcpt, date_added, attempts FROM queue")
+	if err != nil {
+		t.Errorf("Failed to query queue: %s", err)
+	}
+
+	for r.Next() {
+		id, rcpt, date, att := uint64(0), "", new(pq.NullTime), 0
+		r.Scan(&id, &rcpt, date, &att)
+		fmt.Println(id, rcpt, date, att)
+	}
+
+	r.Close()
+
+	// Teardown
+	tx.Rollback()
 }

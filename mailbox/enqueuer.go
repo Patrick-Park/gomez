@@ -2,6 +2,7 @@ package mailbox
 
 import (
 	"database/sql"
+	"fmt"
 	"net/mail"
 
 	_ "github.com/lib/pq"
@@ -71,7 +72,7 @@ func (p *postBox) Enqueue(msg *Message) error {
 	}
 
 	_, err = tx.Exec(
-		"INSERT INTO messages VALUES (?, ?, ?, ?)",
+		`INSERT INTO messages (id, "from", rcpt, raw) VALUES (?, '?', '?', '?')`,
 		msg.ID, msg.From().String(), MakeAddressList(msg.Rcpt()), msg.Raw,
 	)
 
@@ -80,14 +81,34 @@ func (p *postBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	_, err = p.db.Exec(
-		"INSERT INTO queue VALUES (?, ?, NOW(), 0)",
-		msg.ID, MakeAddressList(msg.Outbound()),
-	)
+	if len(msg.Outbound()) > 0 {
+		_, err = tx.Exec(
+			"INSERT INTO queue VALUES (?, ?, NOW(), 0)",
+			msg.ID, MakeAddressList(msg.Outbound()),
+		)
 
-	if err != nil {
-		tx.Rollback()
-		return err
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if n := len(msg.Inbound()); n > 0 {
+		q := "INSERT INTO mailbox (user_id, message_id) "
+		v := "VALUES ((SELECT id FROM users WHERE address='%s'), %d)"
+
+		for i, addr := range msg.Inbound() {
+			q += fmt.Sprintf(v, addr.Address, msg.ID)
+			if i < n-1 {
+				q += ","
+			}
+		}
+
+		_, err = tx.Exec(q)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	return tx.Commit()
