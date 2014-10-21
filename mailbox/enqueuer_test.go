@@ -1,7 +1,7 @@
 package mailbox
 
 import (
-	"fmt"
+	"database/sql"
 	"log"
 	"net/mail"
 	"os"
@@ -23,6 +23,19 @@ var once sync.Once
 // Ensures the test database is set up. Should be called before each test
 func EnsureTestDB() {
 	once.Do(setUpTestDB)
+}
+
+// Wipes data from DB
+func CleanDB(db *sql.DB) {
+	_, err := db.Exec(`
+		DELETE FROM mailbox;
+		DELETE FROM messages;
+		DELETE FROM queue;
+		DELETE FROM users`)
+
+	if err != nil {
+		log.Fatalf("Error tearing down: %s", err)
+	}
 }
 
 // Sets up the test database from the schema file.
@@ -87,6 +100,18 @@ func TestPostBox_NextID_Success(t *testing.T) {
 	t.Log(id)
 }
 
+type queueRow struct {
+	ID       uint64
+	Rcpt     string
+	Date     pq.NullTime
+	Attempts int
+}
+
+type messageRow struct {
+	MID uint64
+	UID uint64
+}
+
 func TestPostBox_Enqueuer(t *testing.T) {
 	EnsureTestDB()
 
@@ -97,14 +122,10 @@ func TestPostBox_Enqueuer(t *testing.T) {
 	defer pb.Close()
 
 	// Setup
-	tx, err := pb.db.Begin()
-	if err != nil {
-		t.Errorf("Error starting transaction: %s", err)
-	}
+	_, err = pb.db.Exec(`INSERT INTO users (id, name, address) VALUES 
+		(5, 'a b', 'a@b.com'),
+		(7, 'c d', 'c@d.com')`)
 
-	_, err = tx.Exec(`INSERT INTO users (name, address) VALUES 
-		('a b', 'a@b.com'),
-		('c d', 'c@d.com')`)
 	if err != nil {
 		t.Errorf("Error setting up test: %s", err)
 	}
@@ -114,7 +135,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		Raw:     "MessageBody",
 		from:    &mail.Address{"Dummy Guy", "dummy@guy.com"},
 		rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"c d", "c@d.com"}},
-		rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}},
+		rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
 	}
 
 	// Test
@@ -123,19 +144,41 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		t.Errorf("Error enqueuing message: %s", err)
 	}
 
-	r, err := tx.Query("SELECT message_id, rcpt, date_added, attempts FROM queue")
+	r, err := pb.db.Query("SELECT message_id, rcpt, date_added, attempts FROM queue")
 	if err != nil {
 		t.Errorf("Failed to query queue: %s", err)
 	}
 
+	q := make([]queueRow, 0, 10)
+
 	for r.Next() {
-		id, rcpt, date, att := uint64(0), "", new(pq.NullTime), 0
-		r.Scan(&id, &rcpt, date, &att)
-		fmt.Println(id, rcpt, date, att)
+		var qr queueRow
+
+		r.Scan(&qr.ID, &qr.Rcpt, qr.Date, &qr.Attempts)
+		q = append(q, qr)
 	}
+
+	// fmt.Println(q)
+
+	r.Close()
+
+	r, err = pb.db.Query("SELECT user_id, message_id FROM mailbox")
+	if err != nil {
+		t.Errorf("Failed to query queue: %s", err)
+	}
+
+	m := make([]messageRow, 0, 10)
+
+	for r.Next() {
+		var mr messageRow
+		r.Scan(&mr.UID, &mr.MID)
+		m = append(m, mr)
+	}
+
+	// fmt.Println(m)
 
 	r.Close()
 
 	// Teardown
-	tx.Rollback()
+	CleanDB(pb.db)
 }

@@ -64,15 +64,17 @@ func (p *postBox) NextID() (uint64, error) {
 	return id, nil
 }
 
-// Enqueue places the given messages onto the queue.
+// Enqueue delivers to local inboxes and queues remote deliveries.
 func (p *postBox) Enqueue(msg *Message) error {
 	tx, err := p.db.Begin()
 	if err != nil {
 		return err
 	}
 
+	// Save message
 	_, err = tx.Exec(
-		`INSERT INTO messages (id, "from", rcpt, raw) VALUES (?, '?', '?', '?')`,
+		`INSERT INTO messages (id, "from", rcpt, raw)
+		VALUES ($1, $2, $3, $4)`,
 		msg.ID, msg.From().String(), MakeAddressList(msg.Rcpt()), msg.Raw,
 	)
 
@@ -81,9 +83,11 @@ func (p *postBox) Enqueue(msg *Message) error {
 		return err
 	}
 
+	// Queue remote destinations
 	if len(msg.Outbound()) > 0 {
 		_, err = tx.Exec(
-			"INSERT INTO queue VALUES (?, ?, NOW(), 0)",
+			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
+			VALUES ($1, $2, NOW(), 0)`,
 			msg.ID, MakeAddressList(msg.Outbound()),
 		)
 
@@ -93,9 +97,10 @@ func (p *postBox) Enqueue(msg *Message) error {
 		}
 	}
 
+	// Deliver to local inboxes
 	if n := len(msg.Inbound()); n > 0 {
-		q := "INSERT INTO mailbox (user_id, message_id) "
-		v := "VALUES ((SELECT id FROM users WHERE address='%s'), %d)"
+		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
+		v := "((SELECT id FROM users WHERE address='%s'), %d)"
 
 		for i, addr := range msg.Inbound() {
 			q += fmt.Sprintf(v, addr.Address, msg.ID)
