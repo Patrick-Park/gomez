@@ -199,7 +199,6 @@ func TestServer_Digest_Responses(t *testing.T) {
 	for _, test := range testSuite {
 		server.Enqueuer = test.Enqueuer
 		client, pipe := getTestClient()
-		client.conn = &mocks.Conn{RemoteAddress: test.Address}
 		client.Message = test.Message
 		client.Message.AddInbound(&mail.Address{"Name", "Addr@es"})
 
@@ -261,7 +260,6 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 		called = false
 		server.Enqueuer = test.Enqueuer
 		client, pipe := getTestClient()
-		client.conn = &mocks.Conn{RemoteAddress: "invalid_addr"}
 		client.Message = test.Message
 		client.Message.AddInbound(&mail.Address{"", "a@b.com"})
 
@@ -305,7 +303,6 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 	}
 
 	client, pipe := getTestClient()
-	client.conn = &mocks.Conn{RemoteAddress: "1.2.3.4:567"}
 	client.addrIP = "1.2.3.4"
 	client.ID = "Doe"
 
@@ -342,9 +339,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 		return
 	}
 
-	// Test that reverse lookup is applied in header with known remote address
-	// This might fail in the future if the PTR entry for gmail.com changes
-	client.conn = &mocks.Conn{RemoteAddress: "127.0.0.1:1234"}
+	// Check that host is added
 	client.addrIP = "127.0.0.1"
 	client.addrHost = "localhost "
 

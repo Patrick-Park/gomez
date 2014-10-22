@@ -168,7 +168,6 @@ func (s server) digest(client *transaction) error {
 		),
 	)
 
-	// Try to enqueue the message
 	err = s.Enqueuer.Enqueue(client.Message)
 	if err != nil {
 		return client.notify(replyErrorProcessing)
