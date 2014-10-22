@@ -215,7 +215,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 	pb.Close()
 }
 
-func TestEnqueue_Tx_Begin_Error(t *testing.T) {
+func TestEnqueue_Tx_Error(t *testing.T) {
 	pb, err := NewPostBox("bogus")
 	if err != nil {
 		t.Errorf("Failed to initialize PostBox", err)
