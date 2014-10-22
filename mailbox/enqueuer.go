@@ -140,7 +140,7 @@ func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 }
 
 // query searches for the given address. See QueryResult for return types.
-func (p *postBox) query(addr *mail.Address) QueryResult {
+func (p *postBox) Query(addr *mail.Address) QueryResult {
 	return QuerySuccess
 }
 
