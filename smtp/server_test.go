@@ -388,6 +388,14 @@ func TestServer_SMTP_Sending(t *testing.T) {
 					t.Errorf("Got wrong Message-ID: %s", m.Header["Message-Id"][0])
 				}
 
+				if msg.From().String() != "<sender@example.org>" {
+					t.Errorf("Was expecting sender@example.org, but got '%s'.", msg.From())
+				}
+
+				if msg.Inbound()[0].String() != "<recipient@example.net>" {
+					t.Errorf("Expected <recipient@example.net>, got '%s'.", msg.Inbound()[0])
+				}
+
 				buf := make([]byte, 22) // Exact length of "This is the email body"
 				m.Body.Read(buf)
 
