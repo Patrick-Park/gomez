@@ -55,7 +55,7 @@ func setUpTestDB() {
 }
 
 func TestPostBox_NextID_Error(t *testing.T) {
-	pb, err := NewPostBox("bogus")
+	pb, err := New("bogus")
 	if err != nil {
 		t.Errorf("Could not open DB:", err)
 	}
@@ -70,7 +70,7 @@ func TestPostBox_NextID_Error(t *testing.T) {
 func TestPostBox_NextID_Success(t *testing.T) {
 	EnsureTestDB()
 
-	pb, err := NewPostBox(dbString)
+	pb, err := New(dbString)
 	if err != nil {
 		t.Errorf("Could not open DB:", err)
 	}
@@ -98,7 +98,7 @@ type mailboxRow struct {
 func TestPostBox_Enqueuer(t *testing.T) {
 	EnsureTestDB()
 
-	pb, err := NewPostBox(dbString)
+	pb, err := New(dbString)
 	if err != nil {
 		t.Errorf("Failed to extract sequence val: %s", err)
 	}
@@ -216,7 +216,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 }
 
 func TestEnqueue_Tx_Error(t *testing.T) {
-	pb, err := NewPostBox("bogus")
+	pb, err := New("bogus")
 	if err != nil {
 		t.Errorf("Failed to initialize PostBox", err)
 	}
@@ -225,7 +225,7 @@ func TestEnqueue_Tx_Error(t *testing.T) {
 		t.Error("Was expecing an error here")
 	}
 
-	pb, err = NewPostBox(dbString)
+	pb, err = New(dbString)
 	if err != nil {
 		t.Errorf("Failed to initialize PostBox", err)
 	}

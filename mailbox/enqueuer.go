@@ -40,9 +40,9 @@ const (
 // PostgreSQL implementation of the mailbox
 type postBox struct{ db *sql.DB }
 
-// NewPostBox creates a PostBox using the given connection string. Example
+// New creates a PostBox using the given connection string. Example
 // connection strings can be seen at: http://godoc.org/github.com/lib/pq
-func NewPostBox(dbString string) (*postBox, error) {
+func New(dbString string) (*postBox, error) {
 	db, err := sql.Open("postgres", dbString)
 	if err != nil {
 		return nil, err
