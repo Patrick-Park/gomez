@@ -233,15 +233,24 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 	}{
 		{
 			&mailbox.Message{Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?"},
-			&mailbox.MockEnqueuer{NextIDMock: func() (uint64, error) { called = true; return 1, nil }},
+			&mailbox.MockEnqueuer{
+				NextIDMock:  func() (uint64, error) { called = true; return 1, nil },
+				EnqueueMock: func(m *mailbox.Message) error { return errors.New("error") },
+			},
 			".1@TestHost>", 1, 451, true,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?"},
-			&mailbox.MockEnqueuer{NextIDMock: func() (uint64, error) { called = true; return 2, nil }},
+			&mailbox.MockEnqueuer{
+				NextIDMock:  func() (uint64, error) { called = true; return 2, nil },
+				EnqueueMock: func(m *mailbox.Message) error { return errors.New("error") },
+			},
 			"My_ID", 2, 451, true,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", ID: 53},
-			&mailbox.MockEnqueuer{NextIDMock: func() (uint64, error) { called = true; return 2, nil }},
+			&mailbox.MockEnqueuer{
+				NextIDMock:  func() (uint64, error) { called = true; return 1, nil },
+				EnqueueMock: func(m *mailbox.Message) error { return errors.New("error") },
+			},
 			"My_ID", 53, 451, false,
 		},
 	}
@@ -254,6 +263,7 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 		client, pipe := getTestClient()
 		client.conn = &mocks.Conn{RemoteAddress: "invalid_addr"}
 		client.Message = test.Message
+		client.Message.AddInbound(&mail.Address{"", "a@b.com"})
 
 		wg.Add(1)
 		go func() {
@@ -296,6 +306,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	client, pipe := getTestClient()
 	client.conn = &mocks.Conn{RemoteAddress: "1.2.3.4:567"}
+	client.addrIP = "1.2.3.4"
 	client.ID = "Doe"
 
 	client.Message = &mailbox.Message{
@@ -334,6 +345,8 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 	// Test that reverse lookup is applied in header with known remote address
 	// This might fail in the future if the PTR entry for gmail.com changes
 	client.conn = &mocks.Conn{RemoteAddress: "127.0.0.1:1234"}
+	client.addrIP = "127.0.0.1"
+	client.addrHost = "localhost "
 
 	wg.Add(1)
 	go func() {

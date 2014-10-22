@@ -100,7 +100,7 @@ func (s server) createClient(conn net.Conn) {
 
 	helloHosts, _ := net.LookupAddr(IP)
 	if len(helloHosts) > 0 {
-		c.addrHost = strings.TrimRight(helloHosts[0], ".")
+		c.addrHost = strings.TrimRight(helloHosts[0], ".") + " "
 	}
 
 	c.notify(reply{220, s.config.Hostname + " Gomez SMTP"})
@@ -178,27 +178,11 @@ func (s server) digest(client *transaction) error {
 
 // Attaches transitional headers to a client's message, such as "Received:".
 func (s *server) prependReceivedHeader(client *transaction) error {
-	var helloHost string
-
-	// Find the remote connection's IP
-	remoteAddress := client.conn.RemoteAddr()
-	helloIP, _, err := net.SplitHostPort(remoteAddress.String())
-	if err != nil {
-		return err
-	}
-
-	// Try to resolve the IP's host by doing a reverse look-up
-	helloHosts, _ := net.LookupAddr(helloIP)
-	if len(helloHosts) > 0 {
-		helloHost = strings.TrimRight(helloHosts[0], ".") + " "
-	}
-
-	// Construct the Received header based on gathered information
 	client.Message.PrependHeader(
 		"Received",
 		fmt.Sprintf(
 			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-			client.ID, helloHost, helloIP, s.config.Hostname, client.Message.ID,
+			client.ID, client.addrHost, client.addrIP, s.config.Hostname, client.Message.ID,
 			client.Message.Rcpt()[0], time.Now(),
 		),
 	)
