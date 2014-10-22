@@ -10,7 +10,7 @@ type mockHost struct {
 	Run_      func(*transaction, string) error
 	Digest_   func(*transaction) error
 	Settings_ func() Config
-	Query_    func(*mail.Address) mailbox.QueryResult
+	QueryMock func(*mail.Address) mailbox.QueryResult
 }
 
 func (h mockHost) run(c *transaction, m string) error {
@@ -26,5 +26,5 @@ func (h mockHost) settings() Config {
 }
 
 func (h mockHost) query(addr *mail.Address) mailbox.QueryResult {
-	return h.Query_(addr)
+	return h.QueryMock(addr)
 }

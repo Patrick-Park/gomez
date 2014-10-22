@@ -114,7 +114,7 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 	queryCalled := false
 	testServer := &server{
 		Enqueuer: &mailbox.MockEnqueuer{
-			Query_: func(addr *mail.Address) mailbox.QueryResult {
+			QueryMock: func(addr *mail.Address) mailbox.QueryResult {
 				queryCalled = true
 				return mailbox.QuerySuccess
 			},
@@ -153,7 +153,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with DB error.",
 			},
 			mailbox.MockEnqueuer{
-				NextID_: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
+				NextIDMock: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
 			},
 			"1.2.3.4:1234", 451,
 		}, {
@@ -161,8 +161,8 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
 			},
 			mailbox.MockEnqueuer{
-				NextID_:  func() (uint64, error) { return 123, nil },
-				Enqueue_: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
+				NextIDMock:  func() (uint64, error) { return 123, nil },
+				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
 			},
 			"1.2.3.4:1234", 451,
 		}, {
@@ -170,8 +170,8 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with split-host error.",
 			},
 			mailbox.MockEnqueuer{
-				NextID_:  func() (uint64, error) { return 123, nil },
-				Enqueue_: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
+				NextIDMock:  func() (uint64, error) { return 123, nil },
+				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
 			},
 			"1.2.3.4", 451,
 		}, {
@@ -179,8 +179,8 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors.",
 			},
 			mailbox.MockEnqueuer{
-				NextID_:  func() (uint64, error) { return 123, nil },
-				Enqueue_: func(*mailbox.Message) error { return nil },
+				NextIDMock:  func() (uint64, error) { return 123, nil },
+				EnqueueMock: func(*mailbox.Message) error { return nil },
 			},
 			"1.2.3.4:123", 250,
 		},
@@ -225,15 +225,15 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 	}{
 		{
 			&mailbox.Message{Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?"},
-			&mailbox.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 1, nil }},
+			&mailbox.MockEnqueuer{NextIDMock: func() (uint64, error) { called = true; return 1, nil }},
 			".1@TestHost>", 1, 451, true,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?"},
-			&mailbox.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 2, nil }},
+			&mailbox.MockEnqueuer{NextIDMock: func() (uint64, error) { called = true; return 2, nil }},
 			"My_ID", 2, 451, true,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", ID: 53},
-			&mailbox.MockEnqueuer{NextID_: func() (uint64, error) { called = true; return 2, nil }},
+			&mailbox.MockEnqueuer{NextIDMock: func() (uint64, error) { called = true; return 2, nil }},
 			"My_ID", 53, 451, false,
 		},
 	}
@@ -282,8 +282,8 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	server := server{config: Config{Hostname: "TestHost"}}
 	server.Enqueuer = mailbox.MockEnqueuer{
-		NextID_:  func() (uint64, error) { called = true; return 2, nil },
-		Enqueue_: func(*mailbox.Message) error { return errors.New("Error processing") },
+		NextIDMock:  func() (uint64, error) { called = true; return 2, nil },
+		EnqueueMock: func(*mailbox.Message) error { return errors.New("Error processing") },
 	}
 
 	client, pipe := getTestClient()
@@ -358,7 +358,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 
 	go func() {
 		err = Start(&mailbox.MockEnqueuer{
-			Enqueue_: func(msg *mailbox.Message) error {
+			EnqueueMock: func(msg *mailbox.Message) error {
 				m, err := msg.Parse()
 				if err != nil {
 					t.Error("Failed to parse queued message")
@@ -381,10 +381,10 @@ func TestServer_SMTP_Sending(t *testing.T) {
 
 				return nil
 			},
-			Query_: func(addr *mail.Address) mailbox.QueryResult {
+			QueryMock: func(addr *mail.Address) mailbox.QueryResult {
 				return mailbox.QuerySuccess
 			},
-			NextID_: func() (uint64, error) { return 555, nil },
+			NextIDMock: func() (uint64, error) { return 555, nil },
 		}, Config{ListenAddr: "127.0.0.1:1234", Hostname: "TestHost"})
 	}()
 

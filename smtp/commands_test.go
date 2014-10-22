@@ -130,7 +130,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is enabled
 	client.host = &mockHost{
-		Query_:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
+		QueryMock: func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
 		Settings_: func() Config { return Config{Relay: true} },
 	}
 
@@ -150,7 +150,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is disabled
 	client.host = &mockHost{
-		Query_:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
+		QueryMock: func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
 		Settings_: func() Config { return Config{Relay: false} },
 	}
 
@@ -272,7 +272,7 @@ func getTestClient() (*transaction, *textproto.Conn) {
 		Message: new(mailbox.Message),
 		text:    sconn,
 		host: &mockHost{
-			Query_: func(addr *mail.Address) mailbox.QueryResult {
+			QueryMock: func(addr *mail.Address) mailbox.QueryResult {
 				switch strings.Split(addr.Address, "@")[0] {
 				case "not_found":
 					return mailbox.QueryNotFound
