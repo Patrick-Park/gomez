@@ -71,8 +71,24 @@ func (p *postBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	// Save message
-	_, err = tx.Exec(
+	ec := make(chan error)
+
+	go func() { ec <- p.saveMessage(tx, msg) }()
+	go func() { ec <- p.deliverOutbound(tx, msg) }()
+	go func() { ec <- p.deliverInbound(tx, msg) }()
+
+	for i := 0; i < 3; i++ {
+		err := <-ec
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (p *postBox) saveMessage(tx *sql.Tx, msg *Message) error {
+	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
 		msg.ID, msg.From().String(), MakeAddressList(msg.Rcpt()), msg.Raw,
@@ -83,9 +99,12 @@ func (p *postBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	// Queue remote destinations
+	return nil
+}
+
+func (p *postBox) deliverOutbound(tx *sql.Tx, msg *Message) error {
 	if len(msg.Outbound()) > 0 {
-		_, err = tx.Exec(
+		_, err := tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
 			VALUES ($1, $2, NOW(), 0)`,
 			msg.ID, MakeAddressList(msg.Outbound()),
@@ -97,7 +116,10 @@ func (p *postBox) Enqueue(msg *Message) error {
 		}
 	}
 
-	// Deliver to local inboxes
+	return nil
+}
+
+func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
 		v := "((SELECT id FROM users WHERE address='%s'), %d)"
@@ -109,14 +131,14 @@ func (p *postBox) Enqueue(msg *Message) error {
 			}
 		}
 
-		_, err = tx.Exec(q)
+		_, err := tx.Exec(q)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 // Query searches for the given address. See QueryResult for return types.
