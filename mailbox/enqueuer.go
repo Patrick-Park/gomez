@@ -16,7 +16,7 @@ type Enqueuer interface {
 	// NextID obtains a unique identification number in 64 bits.
 	NextID() (uint64, error)
 
-	// Query searches the server for an address.
+	// query searches the server for an address.
 	Query(addr *mail.Address) QueryResult
 }
 
@@ -27,7 +27,7 @@ const (
 	// This state indicates that a user is local, but not found.
 	QueryNotFound QueryResult = iota
 
-	// Query was successful, and user was found locally.
+	// query was successful, and user was found locally.
 	QuerySuccess
 
 	// This status reflects that the user is not local.
@@ -92,7 +92,7 @@ func (p *postBox) saveMessage(tx *sql.Tx, msg *Message) error {
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
-		msg.ID, msg.From().String(), MakeAddressList(msg.Rcpt()), msg.Raw,
+		msg.ID, msg.From().String(), makeAddressList(msg.Rcpt()), msg.Raw,
 	)
 
 	if err != nil {
@@ -107,7 +107,7 @@ func (p *postBox) deliverOutbound(tx *sql.Tx, msg *Message) error {
 		_, err := tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
 			VALUES ($1, $2, NOW(), 0)`,
-			msg.ID, MakeAddressList(msg.Outbound()),
+			msg.ID, makeAddressList(msg.Outbound()),
 		)
 
 		if err != nil {
@@ -139,8 +139,8 @@ func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 	return nil
 }
 
-// Query searches for the given address. See QueryResult for return types.
-func (p *postBox) Query(addr *mail.Address) QueryResult {
+// query searches for the given address. See QueryResult for return types.
+func (p *postBox) query(addr *mail.Address) QueryResult {
 	return QuerySuccess
 }
 

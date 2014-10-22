@@ -11,25 +11,25 @@ import (
 	"github.com/gbbr/gomez/mailbox"
 )
 
-// TransactionState is the state an SMTP transaction is in.
-type TransactionState int
+// transactionState is the state an SMTP transaction is in.
+type transactionState int
 
 const (
-	// StateHELO is the initial state. HELO/EHLO command is expected.
-	StateHELO TransactionState = iota
+	// stateHELO is the initial state. HELO/EHLO command is expected.
+	stateHELO transactionState = iota
 
-	// StateMAIL is the post-HELO state. The Return-Path address is expected.
-	StateMAIL
+	// stateMAIL is the post-HELO state. The Return-Path address is expected.
+	stateMAIL
 
-	// StateRCPT is the post-MAIL mode. The recipient data is expected.
-	StateRCPT
+	// stateRCPT is the post-MAIL mode. The recipient data is expected.
+	stateRCPT
 
-	// StateDATA signifies eligibility to receive data.
-	StateDATA
+	// stateDATA signifies eligibility to receive data.
+	stateDATA
 )
 
-// Client holds information about an SMTP transaction.
-type Client struct {
+// transaction holds information about an SMTP transaction.
+type transaction struct {
 	// The name the client has identified with
 	ID string
 
@@ -37,25 +37,25 @@ type Client struct {
 	Message *mailbox.Message
 
 	// The current state of the transaction.
-	Mode TransactionState
+	Mode transactionState
 
-	host SMTPServer      // Host server instance
+	host host            // Host server instance
 	conn net.Conn        // Network connection
 	text *textproto.Conn // Textproto wrapper of network connection
 }
 
-// Notify sends the given reply back to the connected client.
-func (c *Client) Notify(r Reply) error { return c.text.PrintfLine("%s", r) }
+// notify sends the given reply back to the connected client.
+func (c *transaction) notify(r reply) error { return c.text.PrintfLine("%s", r) }
 
-// Serve listens for incoming commands and runs them on the host instance.
-func (c *Client) Serve() {
+// serve listens for incoming commands and runs them on the host instance.
+func (c *transaction) serve() {
 	for {
 		msg, err := c.text.ReadLine()
 		if isEOF(err) {
 			break
 		}
 
-		err = c.host.Run(c, msg)
+		err = c.host.run(c, msg)
 		if isEOF(err) {
 			break
 		}
@@ -64,12 +64,12 @@ func (c *Client) Serve() {
 	c.text.Close()
 }
 
-// Reset empties the message buffer and sets the state back to HELO.
-func (c *Client) Reset() {
+// reset empties the message buffer and sets the state back to HELO.
+func (c *transaction) reset() {
 	c.Message = new(mailbox.Message)
 
-	if c.Mode > StateHELO {
-		c.Mode = StateMAIL
+	if c.Mode > stateHELO {
+		c.Mode = stateMAIL
 	}
 }
 
@@ -86,15 +86,15 @@ func isEOF(err error) bool {
 	return false
 }
 
-// Reply is an RFC821 compliant SMTP response.
-type Reply struct {
+// reply is an RFC821 compliant SMTP response.
+type reply struct {
 	Code int
 	Msg  string
 }
 
 // String implements the Stringer interface. If a multi-line reply is desired,
 // separate lines via LF (\n)
-func (r Reply) String() string {
+func (r reply) String() string {
 	var output string
 
 	lines := strings.Split(r.Msg, "\n")
@@ -111,6 +111,6 @@ func (r Reply) String() string {
 }
 
 var (
-	replyBadCommand      = Reply{502, "5.5.2 Error: command not recoginized"}
-	replyErrorProcessing = Reply{451, "Requested action aborted: error in processing"}
+	replyBadCommand      = reply{502, "5.5.2 Error: command not recoginized"}
+	replyErrorProcessing = reply{451, "Requested action aborted: error in processing"}
 )

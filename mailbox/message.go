@@ -56,8 +56,8 @@ func (m *Message) PrependHeader(name, value string) {
 	m.Raw = name + ": " + value + "\r\n" + m.Raw
 }
 
-// MakeAddressList returns a string parseable by mail.ParseAddressList
-func MakeAddressList(list []*mail.Address) string {
+// makeAddressList returns a string parseable by mail.ParseAddressList
+func makeAddressList(list []*mail.Address) string {
 	var r string
 
 	for i, addr := range list {

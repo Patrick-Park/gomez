@@ -6,25 +6,25 @@ import (
 	"github.com/gbbr/gomez/mailbox"
 )
 
-type MockSMTPServer struct {
-	Run_      func(*Client, string) error
-	Digest_   func(*Client) error
+type mockHost struct {
+	Run_      func(*transaction, string) error
+	Digest_   func(*transaction) error
 	Settings_ func() Config
 	Query_    func(*mail.Address) mailbox.QueryResult
 }
 
-func (h MockSMTPServer) Run(c *Client, m string) error {
+func (h mockHost) run(c *transaction, m string) error {
 	return h.Run_(c, m)
 }
 
-func (h MockSMTPServer) Digest(c *Client) error {
+func (h mockHost) digest(c *transaction) error {
 	return h.Digest_(c)
 }
 
-func (h MockSMTPServer) Settings() Config {
+func (h mockHost) settings() Config {
 	return h.Settings_()
 }
 
-func (h MockSMTPServer) Query(addr *mail.Address) mailbox.QueryResult {
+func (h mockHost) query(addr *mail.Address) mailbox.QueryResult {
 	return h.Query_(addr)
 }

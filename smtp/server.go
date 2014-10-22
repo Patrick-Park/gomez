@@ -13,35 +13,35 @@ import (
 	"github.com/gbbr/gomez/mailbox"
 )
 
-type SMTPServer interface {
-	// Run executes an SMTP command.
-	Run(ctx *Client, msg string) error
+type host interface {
+	// run executes an SMTP command.
+	run(ctx *transaction, msg string) error
 
-	// Digest attempts to finalize an SMTP transaction.
-	Digest(c *Client) error
+	// digest attempts to finalize an SMTP transaction.
+	digest(c *transaction) error
 
-	// Settings returns the server's configuration flags.
-	Settings() Config
+	// settings returns the server's configuration flags.
+	settings() Config
 
-	// Query searches on the server for a given address.
-	Query(addr *mail.Address) mailbox.QueryResult
+	// query searches on the server for a given address.
+	query(addr *mail.Address) mailbox.QueryResult
 }
 
 // Host server instance.
-type Server struct {
-	spec     *CommandSpec
+type server struct {
+	spec     *commandSpec
 	config   Config
 	Enqueuer mailbox.Enqueuer
 }
 
-// CommandSpec holds a set of supported commands, mapping names to actions.
-type CommandSpec map[string]func(*Client, string) error
+// commandSpec holds a set of supported commands, mapping names to actions.
+type commandSpec map[string]func(*transaction, string) error
 
 // Valid command format. Currently commands must be exactly 4 letters, optionally
 // followed by a parameter.
 var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 
-// Server configuration object
+// server configuration object
 type Config struct {
 	ListenAddr string
 	Hostname   string
@@ -57,7 +57,7 @@ func Start(mq mailbox.Enqueuer, conf Config) error {
 		return err
 	}
 
-	spec := &CommandSpec{
+	spec := &commandSpec{
 		"HELO": cmdHELO,
 		"EHLO": cmdEHLO,
 		"MAIL": cmdMAIL,
@@ -69,7 +69,7 @@ func Start(mq mailbox.Enqueuer, conf Config) error {
 		"QUIT": cmdQUIT,
 	}
 
-	srv := &Server{Enqueuer: mq, config: conf, spec: spec}
+	srv := &server{Enqueuer: mq, config: conf, spec: spec}
 
 	for {
 		conn, err := ln.Accept()
@@ -78,36 +78,36 @@ func Start(mq mailbox.Enqueuer, conf Config) error {
 			continue
 		}
 
-		go srv.CreateClient(conn)
+		go srv.createClient(conn)
 	}
 }
 
-// CreateClient creates a new client based on the given connection.
-func (s Server) CreateClient(conn net.Conn) {
-	c := &Client{
+// createClient creates a new client based on the given connection.
+func (s server) createClient(conn net.Conn) {
+	c := &transaction{
 		Message: new(mailbox.Message),
-		Mode:    StateHELO,
+		Mode:    stateHELO,
 		host:    s,
 		text:    textproto.NewConn(conn),
 		conn:    conn,
 	}
 
-	c.Notify(Reply{220, s.config.Hostname + " Gomez SMTP"})
-	c.Serve()
+	c.notify(reply{220, s.config.Hostname + " Gomez SMTP"})
+	c.serve()
 }
 
-// Settings returns the configuration of the server.
-func (s Server) Settings() Config { return s.config }
+// settings returns the configuration of the server.
+func (s server) settings() Config { return s.config }
 
-// Query asks the attached enqueuer to search for an address.
-func (s Server) Query(addr *mail.Address) mailbox.QueryResult {
+// query asks the attached enqueuer to search for an address.
+func (s server) query(addr *mail.Address) mailbox.QueryResult {
 	return s.Enqueuer.Query(addr)
 }
 
-// Run executes a command in the context of a child connection.
-func (s Server) Run(ctx *Client, msg string) error {
+// run executes a command in the context of a child connection.
+func (s server) run(ctx *transaction, msg string) error {
 	if !commandFormat.MatchString(msg) {
-		return ctx.Notify(replyBadCommand)
+		return ctx.notify(replyBadCommand)
 	}
 
 	parts := commandFormat.FindStringSubmatch(msg)
@@ -115,24 +115,24 @@ func (s Server) Run(ctx *Client, msg string) error {
 
 	command, ok := (*s.spec)[cmd]
 	if !ok {
-		return ctx.Notify(replyBadCommand)
+		return ctx.notify(replyBadCommand)
 	}
 
 	return command(ctx, params)
 }
 
-// Digest finalizes the SMTP transaction by validating the message and attempting
+// digest finalizes the SMTP transaction by validating the message and attempting
 // to enqueue it. This method attaches transitional headers as per RFC 5321.
-func (s Server) Digest(client *Client) error {
+func (s server) digest(client *transaction) error {
 	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
-		return client.Notify(Reply{550, "Message not RFC 2822 compliant."})
+		return client.notify(reply{550, "Message not RFC 2822 compliant."})
 	}
 
 	if client.Message.ID == 0 {
 		id, err := s.Enqueuer.NextID()
 		if err != nil {
-			return client.Notify(replyErrorProcessing)
+			return client.notify(replyErrorProcessing)
 		}
 
 		client.Message.ID = id
@@ -151,22 +151,22 @@ func (s Server) Digest(client *Client) error {
 
 	err = s.prependReceivedHeader(client)
 	if err != nil {
-		return client.Notify(replyErrorProcessing)
+		return client.notify(replyErrorProcessing)
 	}
 
 	// Try to enqueue the message
 	err = s.Enqueuer.Enqueue(client.Message)
 	if err != nil {
-		return client.Notify(replyErrorProcessing)
+		return client.notify(replyErrorProcessing)
 	}
 
-	client.Reset()
+	client.reset()
 
-	return client.Notify(Reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})
+	return client.notify(reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})
 }
 
 // Attaches transitional headers to a client's message, such as "Received:".
-func (s *Server) prependReceivedHeader(client *Client) error {
+func (s *server) prependReceivedHeader(client *transaction) error {
 	var helloHost string
 
 	// Find the remote connection's IP

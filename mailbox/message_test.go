@@ -164,7 +164,7 @@ func Test_MakeAddressList(t *testing.T) {
 	}
 
 	for _, test := range testSuite {
-		list := MakeAddressList(test.list)
+		list := makeAddressList(test.list)
 
 		if list != test.exp {
 			t.Errorf("Expected '%s', got '%s'", test.exp, list)

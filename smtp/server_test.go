@@ -20,21 +20,21 @@ import (
 // Should correctly run commands from spec, echo parameters
 // and reject bad commands or commands that are not in the spec
 func TestServerRun(t *testing.T) {
-	srv := &Server{
-		spec: &CommandSpec{
-			"HELO": func(ctx *Client, params string) error {
-				return ctx.Notify(Reply{100, params})
+	srv := &server{
+		spec: &commandSpec{
+			"HELO": func(ctx *transaction, params string) error {
+				return ctx.notify(reply{100, params})
 			},
 		},
 	}
 
 	testClient, pipe := getTestClient()
-	testClient.Mode = StateHELO
+	testClient.Mode = stateHELO
 	defer pipe.Close()
 
 	testCases := []struct {
 		Message string
-		Reply   string
+		reply   string
 	}{
 		{"BADFORMAT", replyBadCommand.String()},
 		{"GOOD FORMAT", replyBadCommand.String()},
@@ -49,7 +49,7 @@ func TestServerRun(t *testing.T) {
 		wg.Add(1)
 
 		go func() {
-			srv.Run(testClient, test.Message)
+			srv.run(testClient, test.Message)
 			wg.Done()
 		}()
 
@@ -58,8 +58,8 @@ func TestServerRun(t *testing.T) {
 			t.Errorf("Error reading response %s", err)
 		}
 
-		if rpl != test.Reply {
-			t.Errorf("Expected '%s' but got '%s'", test.Reply, rpl)
+		if rpl != test.reply {
+			t.Errorf("Expected '%s' but got '%s'", test.reply, rpl)
 		}
 
 		wg.Wait()
@@ -74,9 +74,9 @@ func TestServerCreateClient(t *testing.T) {
 	cc, sc := net.Pipe()
 	cconn := textproto.NewConn(cc)
 
-	testServer := &Server{
-		spec: &CommandSpec{
-			"EXIT": func(ctx *Client, params string) error {
+	testServer := &server{
+		spec: &commandSpec{
+			"EXIT": func(ctx *transaction, params string) error {
 				return io.EOF
 			},
 		},
@@ -86,7 +86,7 @@ func TestServerCreateClient(t *testing.T) {
 	wg.Add(1)
 
 	go func() {
-		testServer.CreateClient(sc)
+		testServer.createClient(sc)
 		wg.Done()
 	}()
 
@@ -100,19 +100,19 @@ func TestServerCreateClient(t *testing.T) {
 }
 
 func TestServer_Settings(t *testing.T) {
-	testServer := &Server{
+	testServer := &server{
 		config: Config{Hostname: "test", Relay: true},
 	}
 
-	flags := testServer.Settings()
+	flags := testServer.settings()
 	if flags.Hostname != "test" || !flags.Relay {
-		t.Error("Did not retrieve correct flags via Settings()")
+		t.Error("Did not retrieve correct flags via settings()")
 	}
 }
 
 func TestServer_Query_Calls_MailBox(t *testing.T) {
 	queryCalled := false
-	testServer := &Server{
+	testServer := &server{
 		Enqueuer: &mailbox.MockEnqueuer{
 			Query_: func(addr *mail.Address) mailbox.QueryResult {
 				queryCalled = true
@@ -121,14 +121,14 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 		},
 	}
 
-	testServer.Query(&mail.Address{})
+	testServer.query(&mail.Address{})
 	if !queryCalled {
-		t.Error("Server Query did not call Enqueuer query")
+		t.Error("server query did not call Enqueuer query")
 	}
 }
 
 func TestServer_Digest_Responses(t *testing.T) {
-	server := Server{config: Config{Hostname: "TestHost"}}
+	server := server{config: Config{Hostname: "TestHost"}}
 
 	testSuite := []struct {
 		Message  *mailbox.Message
@@ -197,7 +197,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			server.Digest(client)
+			server.digest(client)
 			wg.Done()
 		}()
 
@@ -214,7 +214,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 func TestServer_Digest_Header_Message_ID(t *testing.T) {
 	var called bool
 
-	server := Server{config: Config{Hostname: "TestHost"}}
+	server := server{config: Config{Hostname: "TestHost"}}
 	testSuite := []struct {
 		Message    *mailbox.Message
 		Enqueuer   mailbox.Enqueuer
@@ -249,7 +249,7 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			server.Digest(client)
+			server.digest(client)
 			wg.Done()
 		}()
 
@@ -280,7 +280,7 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 func TestServer_Digest_Received_Header(t *testing.T) {
 	var called bool
 
-	server := Server{config: Config{Hostname: "TestHost"}}
+	server := server{config: Config{Hostname: "TestHost"}}
 	server.Enqueuer = mailbox.MockEnqueuer{
 		NextID_:  func() (uint64, error) { called = true; return 2, nil },
 		Enqueue_: func(*mailbox.Message) error { return errors.New("Error processing") },
@@ -301,7 +301,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
-		server.Digest(client)
+		server.digest(client)
 		wg.Done()
 	}()
 
@@ -329,7 +329,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	wg.Add(1)
 	go func() {
-		server.Digest(client)
+		server.digest(client)
 		wg.Done()
 	}()
 
