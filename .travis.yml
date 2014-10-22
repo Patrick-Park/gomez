@@ -5,3 +5,7 @@ go:
 
 script: 
   - go test ./... -v
+
+before_script:
+  - createuser gabriel
+  - psql -c 'create database gomez_test;' -U gabriel
