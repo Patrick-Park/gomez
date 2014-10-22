@@ -149,7 +149,6 @@ func (s server) digest(client *transaction) error {
 		client.Message.ID = id
 	}
 
-	// If the message doesn't have a Message-ID, add it
 	if len(msg.Header["Message-Id"]) == 0 {
 		client.Message.PrependHeader(
 			"Message-ID",
@@ -160,10 +159,14 @@ func (s server) digest(client *transaction) error {
 		)
 	}
 
-	err = s.prependReceivedHeader(client)
-	if err != nil {
-		return client.notify(replyErrorProcessing)
-	}
+	client.Message.PrependHeader(
+		"Received",
+		fmt.Sprintf(
+			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
+			client.ID, client.addrHost, client.addrIP, s.config.Hostname, client.Message.ID,
+			client.Message.Rcpt()[0], time.Now(),
+		),
+	)
 
 	// Try to enqueue the message
 	err = s.Enqueuer.Enqueue(client.Message)
@@ -174,18 +177,4 @@ func (s server) digest(client *transaction) error {
 	client.reset()
 
 	return client.notify(reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})
-}
-
-// Attaches transitional headers to a client's message, such as "Received:".
-func (s *server) prependReceivedHeader(client *transaction) error {
-	client.Message.PrependHeader(
-		"Received",
-		fmt.Sprintf(
-			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-			client.ID, client.addrHost, client.addrIP, s.config.Hostname, client.Message.ID,
-			client.Message.Rcpt()[0], time.Now(),
-		),
-	)
-
-	return nil
 }
