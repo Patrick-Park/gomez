@@ -127,15 +127,6 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 	}
 }
 
-func TestServer_Mock(t *testing.T) {
-	var mock SMTPServer = &MockSMTPServer{}
-
-	mock.Digest(&Client{})
-	mock.Settings()
-	mock.Query(&mail.Address{})
-	mock.Run(&Client{}, "")
-}
-
 func TestServer_Digest_Responses(t *testing.T) {
 	server := Server{config: Config{Hostname: "TestHost"}}
 

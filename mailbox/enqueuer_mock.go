@@ -10,26 +10,6 @@ type MockEnqueuer struct {
 	Query_   func(*mail.Address) QueryResult
 }
 
-func (m MockEnqueuer) Enqueue(msg *Message) error {
-	if m.Enqueue_ != nil {
-		return m.Enqueue_(msg)
-	}
-
-	return nil
-}
-
-func (m MockEnqueuer) NextID() (uint64, error) {
-	if m.NextID_ != nil {
-		return m.NextID_()
-	}
-
-	return 0, nil
-}
-
-func (m MockEnqueuer) Query(addr *mail.Address) QueryResult {
-	if m.Query_ != nil {
-		return m.Query_(addr)
-	}
-
-	return QueryError
-}
+func (m MockEnqueuer) Enqueue(msg *Message) error           { return m.Enqueue_(msg) }
+func (m MockEnqueuer) NextID() (uint64, error)              { return m.NextID_() }
+func (m MockEnqueuer) Query(addr *mail.Address) QueryResult { return m.Query_(addr) }

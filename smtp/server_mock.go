@@ -14,33 +14,17 @@ type MockSMTPServer struct {
 }
 
 func (h MockSMTPServer) Run(c *Client, m string) error {
-	if h.Run_ != nil {
-		return h.Run_(c, m)
-	}
-
-	return nil
+	return h.Run_(c, m)
 }
 
 func (h MockSMTPServer) Digest(c *Client) error {
-	if h.Digest_ != nil {
-		return h.Digest_(c)
-	}
-
-	return nil
+	return h.Digest_(c)
 }
 
 func (h MockSMTPServer) Settings() Config {
-	if h.Settings_ != nil {
-		return h.Settings_()
-	}
-
-	return Config{}
+	return h.Settings_()
 }
 
 func (h MockSMTPServer) Query(addr *mail.Address) mailbox.QueryResult {
-	if h.Query_ != nil {
-		return h.Query_(addr)
-	}
-
-	return mailbox.QueryError
+	return h.Query_(addr)
 }

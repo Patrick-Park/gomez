@@ -284,6 +284,8 @@ func getTestClient() (*Client, *textproto.Conn) {
 
 				return mailbox.QueryError
 			},
+			Settings_: func() Config { return Config{} },
+			Digest_:   func(c *Client) error { return nil },
 		},
 	}
 
