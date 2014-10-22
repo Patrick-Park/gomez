@@ -94,11 +94,7 @@ func (p *postBox) saveMessage(tx *sql.Tx, msg *Message) error {
 		msg.ID, msg.From().String(), makeAddressList(msg.Rcpt()), msg.Raw,
 	)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (p *postBox) deliverOutbound(tx *sql.Tx, msg *Message) error {

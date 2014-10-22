@@ -84,7 +84,7 @@ func Start(mq mailbox.Enqueuer, conf Config) error {
 
 // createClient creates a new client based on the given connection.
 func (s server) createClient(conn net.Conn) {
-	IP, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+	ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {
 		return
 	}
@@ -95,11 +95,10 @@ func (s server) createClient(conn net.Conn) {
 		host:    s,
 		text:    textproto.NewConn(conn),
 		conn:    conn,
-		addrIP:  IP,
+		addrIP:  ip,
 	}
 
-	helloHosts, _ := net.LookupAddr(IP)
-	if len(helloHosts) > 0 {
+	if helloHosts, _ := net.LookupAddr(ip); len(helloHosts) > 0 {
 		c.addrHost = strings.TrimRight(helloHosts[0], ".") + " "
 	}
 
