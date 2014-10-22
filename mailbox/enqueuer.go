@@ -73,8 +73,8 @@ func (p *postBox) Enqueue(msg *Message) error {
 
 	ec := make(chan error)
 
-	go func() { ec <- p.saveMessage(tx, msg) }()
-	go func() { ec <- p.deliverOutbound(tx, msg) }()
+	go func() { ec <- p.storeMessage(tx, msg) }()
+	go func() { ec <- p.enqueueOutbound(tx, msg) }()
 	go func() { ec <- p.deliverInbound(tx, msg) }()
 
 	for i := 0; i < 3; i++ {
@@ -87,7 +87,7 @@ func (p *postBox) Enqueue(msg *Message) error {
 	return tx.Commit()
 }
 
-func (p *postBox) saveMessage(tx *sql.Tx, msg *Message) error {
+func (p *postBox) storeMessage(tx *sql.Tx, msg *Message) error {
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
@@ -97,7 +97,7 @@ func (p *postBox) saveMessage(tx *sql.Tx, msg *Message) error {
 	return err
 }
 
-func (p *postBox) deliverOutbound(tx *sql.Tx, msg *Message) error {
+func (p *postBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
 	if len(msg.Outbound()) > 0 {
 		_, err := tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
