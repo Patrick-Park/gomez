@@ -80,6 +80,7 @@ func (p *postBox) Enqueue(msg *Message) error {
 	for i := 0; i < 3; i++ {
 		err := <-ec
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
@@ -95,7 +96,6 @@ func (p *postBox) saveMessage(tx *sql.Tx, msg *Message) error {
 	)
 
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -111,7 +111,6 @@ func (p *postBox) deliverOutbound(tx *sql.Tx, msg *Message) error {
 		)
 
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
@@ -133,7 +132,6 @@ func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 
 		_, err := tx.Exec(q)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
