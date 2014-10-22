@@ -62,8 +62,6 @@ func (c *transaction) serve() {
 			break
 		}
 	}
-
-	c.text.Close()
 }
 
 // reset empties the message buffer and sets the state back to HELO.

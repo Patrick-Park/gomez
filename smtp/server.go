@@ -84,6 +84,8 @@ func Start(mq mailbox.Enqueuer, conf Config) error {
 
 // createClient creates a new client based on the given connection.
 func (s server) createClient(conn net.Conn) {
+	defer conn.Close()
+
 	ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {
 		return

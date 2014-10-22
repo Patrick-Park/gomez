@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 	"log"
@@ -30,22 +31,27 @@ func TestReplyString(t *testing.T) {
 // and it should be able to alter the client's transactionState
 func TestClientServe(t *testing.T) {
 	var (
-		wg  sync.WaitGroup
-		msg string
+		wg      sync.WaitGroup
+		msg     string
+		ErrTest = errors.New("Test error")
 	)
 
 	hostMock := &mockHost{
 		Run_: func(ctx *transaction, params string) error {
 			msg = params
 
-			if params == "MODE" {
+			switch params {
+			case "MODE":
 				ctx.Mode = stateMAIL
-			} else if params == "QUIT" {
+				return nil
+			case "QUIT":
 				ctx.Mode = stateRCPT
 				return io.EOF
+			case "ERRR":
+				return ErrTest
+			default:
+				return nil
 			}
-
-			return nil
 		},
 	}
 
@@ -69,6 +75,7 @@ func TestClientServe(t *testing.T) {
 		expMode transactionState
 	}{
 		{"ABCD", stateHELO},
+		{"ERRR", stateHELO},
 		{"MODE", stateMAIL},
 		{"Random message", stateMAIL},
 		{"QUIT", stateRCPT}, // serve will stop after QUIT so it must come last
@@ -76,7 +83,7 @@ func TestClientServe(t *testing.T) {
 
 	for _, test := range testCases {
 		err := cconn.PrintfLine(test.msg)
-		if err != nil {
+		if err != ErrTest && err != nil {
 			t.Errorf("Error sending command (%s)", err)
 		}
 
