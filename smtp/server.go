@@ -84,12 +84,23 @@ func Start(mq mailbox.Enqueuer, conf Config) error {
 
 // createClient creates a new client based on the given connection.
 func (s server) createClient(conn net.Conn) {
+	IP, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+	if err != nil {
+		return
+	}
+
 	c := &transaction{
 		Message: new(mailbox.Message),
 		Mode:    stateHELO,
 		host:    s,
 		text:    textproto.NewConn(conn),
 		conn:    conn,
+		addrIP:  IP,
+	}
+
+	helloHosts, _ := net.LookupAddr(IP)
+	if len(helloHosts) > 0 {
+		c.addrHost = strings.TrimRight(helloHosts[0], ".")
 	}
 
 	c.notify(reply{220, s.config.Hostname + " Gomez SMTP"})
@@ -177,7 +188,7 @@ func (s *server) prependReceivedHeader(client *transaction) error {
 	}
 
 	// Try to resolve the IP's host by doing a reverse look-up
-	helloHosts, err := net.LookupAddr(helloIP)
+	helloHosts, _ := net.LookupAddr(helloIP)
 	if len(helloHosts) > 0 {
 		helloHost = strings.TrimRight(helloHosts[0], ".") + " "
 	}

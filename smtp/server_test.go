@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/mail"
 	"net/smtp"
 	"net/textproto"
@@ -66,12 +65,21 @@ func TestServerRun(t *testing.T) {
 	}
 }
 
+func TestServerCreateClient_Crash(t *testing.T) {
+	testServer := new(server)
+	testServer.createClient(&mocks.Conn{RemoteAddress: "bogus"})
+}
+
 // Should create a client that picks up commands
 // and greet the connection with 220 status
 func TestServerCreateClient(t *testing.T) {
 	var wg sync.WaitGroup
 
-	cc, sc := net.Pipe()
+	cc, sc := mocks.Pipe(
+		&mocks.Conn{RemoteAddress: "1.1.1.1:123"},
+		&mocks.Conn{RemoteAddress: "1.1.1.1:123"},
+	)
+
 	cconn := textproto.NewConn(cc)
 
 	testServer := &server{

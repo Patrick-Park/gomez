@@ -39,9 +39,11 @@ type transaction struct {
 	// The current state of the transaction.
 	Mode transactionState
 
-	host host            // Host server instance
-	conn net.Conn        // Network connection
-	text *textproto.Conn // Textproto wrapper of network connection
+	host     host            // Host server instance
+	conn     net.Conn        // Network connection
+	text     *textproto.Conn // Textproto wrapper of network connection
+	addrHost string          // addrHost holds the first result of the IP reverse-lookup
+	addrIP   string          // addrIP is the connection's IP address
 }
 
 // notify sends the given reply back to the connected client.
