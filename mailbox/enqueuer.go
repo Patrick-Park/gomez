@@ -78,8 +78,7 @@ func (p *postBox) Enqueue(msg *Message) error {
 	go func() { ec <- p.deliverInbound(tx, msg) }()
 
 	for i := 0; i < 3; i++ {
-		err := <-ec
-		if err != nil {
+		if err := <-ec; err != nil {
 			tx.Rollback()
 			return err
 		}
