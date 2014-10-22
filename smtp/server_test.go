@@ -383,14 +383,19 @@ func TestServer_SMTP_Sending(t *testing.T) {
 				switch {
 				case err != nil:
 					t.Error("Failed to parse queued message")
+
 				case len(m.Header["Message-Id"]) == 0:
 					t.Error("Queued message with no ID")
+
 				case !strings.HasSuffix(m.Header["Message-Id"][0], ".555@TestHost>"):
 					t.Errorf("Got wrong Message-ID: %s", m.Header["Message-Id"][0])
+
 				case msg.From().String() != "<sender@example.org>":
 					t.Errorf("Was expecting sender@example.org, but got '%s'.", msg.From())
+
 				case msg.Inbound()[0].String() != "<recipient@example.net>":
 					t.Errorf("Expected <recipient@example.net>, got '%s'.", msg.Inbound()[0])
+
 				case string(buf) != "This is the email body":
 					t.Errorf("Got wrong email body: '%s'", string(buf))
 				}
