@@ -413,7 +413,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 				return mailbox.QuerySuccess
 			},
 			NextIDMock: func() (uint64, error) { return 555, nil },
-		}, jamon.Group{"listen": "127.0.0.1:1234", "host": "TestHost"})
+		}, jamon.Group{"listen": ":1234", "host": "TestHost"})
 	}()
 
 	if err != nil {
@@ -436,7 +436,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 	}
 
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Set the sender and recipient first
