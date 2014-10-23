@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gbbr/gomez/mailbox"
+	"github.com/gbbr/jamon"
 	"github.com/gbbr/mocks"
 )
 
@@ -88,7 +89,7 @@ func TestServerCreateClient(t *testing.T) {
 				return io.EOF
 			},
 		},
-		config: Config{Hostname: "mecca.local"},
+		config: jamon.Group{"host": "mecca.local"},
 	}
 
 	wg.Add(1)
@@ -109,11 +110,11 @@ func TestServerCreateClient(t *testing.T) {
 
 func TestServer_Settings(t *testing.T) {
 	testServer := &server{
-		config: Config{Hostname: "test", Relay: true},
+		config: jamon.Group{"host": "test", "relay": "true"},
 	}
 
 	flags := testServer.settings()
-	if flags.Hostname != "test" || !flags.Relay {
+	if flags.Get("host") != "test" || !flags.Has("relay") {
 		t.Error("Did not retrieve correct flags via settings()")
 	}
 }
@@ -136,7 +137,7 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 }
 
 func TestServer_Digest_Responses(t *testing.T) {
-	server := server{config: Config{Hostname: "TestHost"}}
+	server := server{config: jamon.Group{"hostname": "TestHost"}}
 
 	testSuite := []struct {
 		Message  *mailbox.Message
@@ -221,7 +222,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 func TestServer_Digest_Header_Message_ID(t *testing.T) {
 	var called bool
 
-	server := server{config: Config{Hostname: "TestHost"}}
+	server := server{config: jamon.Group{"host": "TestHost"}}
 	testSuite := []struct {
 		Message    *mailbox.Message
 		Enqueuer   mailbox.Enqueuer
@@ -296,7 +297,7 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 func TestServer_Digest_Received_Header(t *testing.T) {
 	var called bool
 
-	server := server{config: Config{Hostname: "TestHost"}}
+	server := server{config: jamon.Group{"host": "TestHost"}}
 	server.Enqueuer = mailbox.MockEnqueuer{
 		NextIDMock:  func() (uint64, error) { called = true; return 2, nil },
 		EnqueueMock: func(*mailbox.Message) error { return errors.New("Error processing") },
@@ -366,7 +367,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 }
 
 func TestServer_Start_Error(t *testing.T) {
-	Start(&mailbox.MockEnqueuer{}, Config{ListenAddr: "bad_addr"})
+	Start(&mailbox.MockEnqueuer{}, jamon.Group{"listen": "bad_addr"})
 }
 
 func TestServer_SMTP_Sending(t *testing.T) {
@@ -406,7 +407,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 				return mailbox.QuerySuccess
 			},
 			NextIDMock: func() (uint64, error) { return 555, nil },
-		}, Config{ListenAddr: "127.0.0.1:1234", Hostname: "TestHost"})
+		}, jamon.Group{"listen": "127.0.0.1:1234", "host": "TestHost"})
 	}()
 
 	if err != nil {

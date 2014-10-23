@@ -4,12 +4,13 @@ import (
 	"net/mail"
 
 	"github.com/gbbr/gomez/mailbox"
+	"github.com/gbbr/jamon"
 )
 
 type mockHost struct {
 	Run_      func(*transaction, string) error
 	Digest_   func(*transaction) error
-	Settings_ func() Config
+	Settings_ func() jamon.Group
 	QueryMock func(*mail.Address) mailbox.QueryResult
 }
 
@@ -21,7 +22,7 @@ func (h mockHost) digest(c *transaction) error {
 	return h.Digest_(c)
 }
 
-func (h mockHost) settings() Config {
+func (h mockHost) settings() jamon.Group {
 	return h.Settings_()
 }
 

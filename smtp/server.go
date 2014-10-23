@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gbbr/gomez/mailbox"
+	"github.com/gbbr/jamon"
 )
 
 type host interface {
@@ -21,7 +22,7 @@ type host interface {
 	digest(c *transaction) error
 
 	// settings returns the server's configuration flags.
-	settings() Config
+	settings() jamon.Group
 
 	// query searches on the server for a given address.
 	query(addr *mail.Address) mailbox.QueryResult
@@ -30,7 +31,7 @@ type host interface {
 // Host server instance.
 type server struct {
 	spec     *commandSpec
-	config   Config
+	config   jamon.Group
 	Enqueuer mailbox.Enqueuer
 }
 
@@ -41,18 +42,9 @@ type commandSpec map[string]func(*transaction, string) error
 // followed by a parameter.
 var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 
-// server configuration object
-type Config struct {
-	ListenAddr string
-	Hostname   string
-	Relay      bool
-	TLS        bool
-	Vrfy       bool
-}
-
 // Starts a new SMTP server given an Enqueuer and a configuration.
-func Start(mq mailbox.Enqueuer, conf Config) error {
-	ln, err := net.Listen("tcp", conf.ListenAddr)
+func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
+	ln, err := net.Listen("tcp", cfg.Get("listen"))
 	if err != nil {
 		return err
 	}
@@ -69,7 +61,7 @@ func Start(mq mailbox.Enqueuer, conf Config) error {
 		"QUIT": cmdQUIT,
 	}
 
-	srv := &server{Enqueuer: mq, config: conf, spec: spec}
+	srv := &server{Enqueuer: mq, config: cfg, spec: spec}
 
 	for {
 		conn, err := ln.Accept()
@@ -104,12 +96,12 @@ func (s server) createClient(conn net.Conn) {
 		c.addrHost = strings.TrimRight(helloHosts[0], ".") + " "
 	}
 
-	c.notify(reply{220, s.config.Hostname + " Gomez SMTP"})
+	c.notify(reply{220, s.config.Get("host") + " Gomez SMTP"})
 	c.serve()
 }
 
 // settings returns the configuration of the server.
-func (s server) settings() Config { return s.config }
+func (s server) settings() jamon.Group { return s.config }
 
 // query asks the attached enqueuer to search for an address.
 func (s server) query(addr *mail.Address) mailbox.QueryResult {
@@ -155,7 +147,7 @@ func (s server) digest(client *transaction) error {
 			"Message-ID",
 			fmt.Sprintf(
 				"<%x.%d@%s>",
-				time.Now().UnixNano(), client.Message.ID, s.config.Hostname,
+				time.Now().UnixNano(), client.Message.ID, s.config.Get("host"),
 			),
 		)
 	}
@@ -164,7 +156,7 @@ func (s server) digest(client *transaction) error {
 		"Received",
 		fmt.Sprintf(
 			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-			client.ID, client.addrHost, client.addrIP, s.config.Hostname, client.Message.ID,
+			client.ID, client.addrHost, client.addrIP, s.config.Get("host"), client.Message.ID,
 			client.Message.Rcpt()[0], time.Now(),
 		),
 	)

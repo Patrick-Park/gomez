@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/gbbr/gomez/mailbox"
+	"github.com/gbbr/jamon"
 )
 
 func TestCmd_Modes_and_Codes(t *testing.T) {
@@ -131,7 +132,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	// Relay is enabled
 	client.host = &mockHost{
 		QueryMock: func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
-		Settings_: func() Config { return Config{Relay: true} },
+		Settings_: func() jamon.Group { return jamon.Group{"relay": "true"} },
 	}
 
 	var wg sync.WaitGroup
@@ -151,7 +152,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 	// Relay is disabled
 	client.host = &mockHost{
 		QueryMock: func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
-		Settings_: func() Config { return Config{Relay: false} },
+		Settings_: func() jamon.Group { return jamon.Group{} },
 	}
 
 	wg.Wait()
@@ -284,7 +285,7 @@ func getTestClient() (*transaction, *textproto.Conn) {
 
 				return mailbox.QueryError
 			},
-			Settings_: func() Config { return Config{} },
+			Settings_: func() jamon.Group { return jamon.Group{} },
 			Digest_:   func(c *transaction) error { return nil },
 		},
 	}

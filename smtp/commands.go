@@ -79,7 +79,7 @@ func cmdRCPT(ctx *transaction, param string) error {
 		return ctx.notify(reply{550, "5.1.1 No such user here."})
 
 	case mailbox.QueryNotLocal:
-		if flags := ctx.host.settings(); !flags.Relay {
+		if flags := ctx.host.settings(); !flags.Has("relay") {
 			return ctx.notify(reply{550, "5.1.1 No such user here."})
 		}
 
