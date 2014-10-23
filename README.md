@@ -1,6 +1,6 @@
 _WORK IN PROGRESS_
 
-## Full service Mail Server
+This package aims to become a thoroughly tested full-service mail server, containing a CLI, an SMTP, a POP3 and potentially a JSON REST API.
 
 __SMTP Package__ - SMTP server  
 __Mailbox Package__ - Data layer used by all components  
