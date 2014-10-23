@@ -112,7 +112,8 @@ CREATE TABLE queue (
 CREATE TABLE users (
     id bigint NOT NULL,
     name character varying(255),
-    address character varying(255)
+    username character varying(255),
+    host character varying(255)
 );
 
 
@@ -152,7 +153,7 @@ ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regcl
 --
 
 ALTER TABLE ONLY users
-    ADD CONSTRAINT address UNIQUE (address);
+    ADD CONSTRAINT address UNIQUE (username, host);
 
 
 --

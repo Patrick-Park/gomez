@@ -178,3 +178,18 @@ func Test_MakeAddressList(t *testing.T) {
 		}
 	}
 }
+
+func TestSplitUserHost(t *testing.T) {
+	for _, test := range []struct {
+		addr             *mail.Address
+		expUser, expHost string
+	}{
+		{&mail.Address{"", "a@b.com"}, "a", "b.com"},
+		{&mail.Address{"", "jim@yahoo.co.uk"}, "jim", "yahoo.co.uk"},
+	} {
+		u, h := SplitUserHost(test.addr)
+		if u != test.expUser || h != test.expHost {
+			t.Errorf("Expected %s and %s, got %s and %s", test.expUser, test.expHost, u, h)
+		}
+	}
+}

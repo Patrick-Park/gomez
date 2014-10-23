@@ -112,7 +112,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 	}{
 		{
 			// Mixed
-			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			"(5, 'a b', 'a', 'b.com'),	(7, 'c d', 'c', 'd.com')",
 			&Message{
 				ID:      123,
 				Raw:     "MessageBody",
@@ -124,7 +124,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 			[]mailboxRow{{123, 5}, {123, 7}}, false,
 		}, {
 			// Only local
-			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			"(5, 'a b', 'a', 'b.com'),	(7, 'c d', 'c', 'd.com')",
 			&Message{
 				ID:      123,
 				Raw:     "MessageBody",
@@ -135,7 +135,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 			queueRow{}, []mailboxRow{{123, 5}, {123, 7}}, false,
 		}, {
 			// Only remote
-			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			"(5, 'a b', 'a', 'b.com'),	(7, 'c d', 'c', 'd.com')",
 			&Message{
 				ID:      123,
 				Raw:     "MessageBody",
@@ -146,7 +146,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 			queueRow{123, `"x z" <x@z.com>, "q w" <q@w.eu>`, 0}, []mailboxRow{}, false,
 		}, {
 			// Error (duplicate inbound)
-			"(5, 'a b', 'a@b.com'),	(7, 'c d', 'c@d.com')",
+			"(5, 'a b', 'a', 'b.com'),	(7, 'c d', 'c', 'd.com')",
 			&Message{
 				ID:      123,
 				Raw:     "MessageBody",
@@ -161,7 +161,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		CleanDB(pb.db)
 
 		// Setup
-		_, err = pb.db.Exec(`INSERT INTO users (id, name, address) VALUES ` + test.Users)
+		_, err = pb.db.Exec(`INSERT INTO users (id, name, username, host) VALUES ` + test.Users)
 		if err != nil {
 			t.Errorf("Error setting up test: %s", err)
 		}

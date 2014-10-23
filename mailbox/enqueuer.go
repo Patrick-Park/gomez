@@ -121,10 +121,11 @@ func (p *postBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
 func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
-		v := "((SELECT id FROM users WHERE address='%s'), %d)"
+		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
 
 		for i, addr := range msg.Inbound() {
-			q += fmt.Sprintf(v, addr.Address, msg.ID)
+			user, host := SplitUserHost(addr)
+			q += fmt.Sprintf(v, user, host, msg.ID)
 			if i < n-1 {
 				q += ","
 			}
