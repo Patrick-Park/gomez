@@ -216,6 +216,8 @@ func TestPostBox_Enqueuer(t *testing.T) {
 }
 
 func TestEnqueue_Tx_Error(t *testing.T) {
+	EnsureTestDB()
+
 	pb, err := New("bogus")
 	if err != nil {
 		t.Errorf("Failed to initialize PostBox", err)
@@ -241,6 +243,8 @@ func TestEnqueue_Tx_Error(t *testing.T) {
 
 		t.Error("Was expecing an error here")
 	}
+
+	pb.Close()
 }
 
 func TestEnqueuer_Mock(t *testing.T) {
@@ -262,4 +266,58 @@ func TestEnqueuer_Mock(t *testing.T) {
 	if nqm.Query(&mail.Address{"", "a@b.com"}) != QueryNotLocal {
 		t.Error("Expected QueryNotLocal")
 	}
+}
+
+func TestEnqueuer_Query(t *testing.T) {
+	EnsureTestDB()
+
+	pb, err := New(dbString)
+	if err != nil {
+		t.Fatalf("Error getting mailbox: %s", err)
+	}
+
+	_, err = pb.db.Exec(`INSERT INTO users (id, username, host) VALUES
+		(1, 'name', 'domain.tld'),
+		(2, 'gabe', 'yahoo.com'),
+		(3, 'john', 'carmack.co.uk')`)
+
+	if err != nil {
+		t.Errorf("Error setting up test: %s", err)
+	}
+
+	for _, test := range []struct {
+		query  *mail.Address
+		result QueryResult
+	}{
+		{&mail.Address{"", "name@domain.tld"}, QuerySuccess},
+		{&mail.Address{"", "gabe@yahoo.com"}, QuerySuccess},
+		{&mail.Address{"", "john@carmack.co.uk"}, QuerySuccess},
+
+		{&mail.Address{"", "other@domain.tld"}, QueryNotFound},
+		{&mail.Address{"", "other@yahoo.com"}, QueryNotFound},
+		{&mail.Address{"", "other@carmack.co.uk"}, QueryNotFound},
+
+		{&mail.Address{"", "other@other.domain"}, QueryNotLocal},
+		{&mail.Address{"", "guy_at@other.place"}, QueryNotLocal},
+		{&mail.Address{"", "jim@humbo.com"}, QueryNotLocal},
+	} {
+		res := pb.Query(test.query)
+		if res != test.result {
+			t.Errorf("Expected %+v, got %+v", test.result, res)
+		}
+	}
+
+	CleanDB(pb.db)
+	pb.Close()
+
+	pb, err = New("bogus")
+	if err != nil {
+		t.Errorf("Error setting up error test: %s", err)
+	}
+
+	if pb.Query(&mail.Address{}) != QueryError {
+		t.Error("Was expecting error")
+	}
+
+	pb.Close()
 }

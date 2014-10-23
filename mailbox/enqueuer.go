@@ -142,7 +142,34 @@ func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 
 // query searches for the given address. See QueryResult for return types.
 func (p *postBox) Query(addr *mail.Address) QueryResult {
-	return QuerySuccess
+	var s string
+	u, h := SplitUserHost(addr)
+
+	// Try and find user as local
+	row := p.db.QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", u, h)
+	err := row.Scan(&s)
+	if err != nil && err != sql.ErrNoRows {
+		return QueryError
+	}
+
+	if u == s {
+		return QuerySuccess
+	}
+
+	s = ""
+
+	// See if sought for user is on a local host
+	row = p.db.QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", h)
+	err = row.Scan(&s)
+	if err != nil && err != sql.ErrNoRows {
+		return QueryError
+	}
+
+	if h == s {
+		return QueryNotFound
+	}
+
+	return QueryNotLocal
 }
 
 // Closes the database connection.
