@@ -8,22 +8,22 @@ import (
 )
 
 type mockHost struct {
-	Run_      func(*transaction, string) error
-	Digest_   func(*transaction) error
-	Settings_ func() jamon.Group
-	QueryMock func(*mail.Address) mailbox.QueryResult
+	RunMock      func(*transaction, string) error
+	DigestMock   func(*transaction) error
+	SettingsMock func() jamon.Group
+	QueryMock    func(*mail.Address) mailbox.QueryResult
 }
 
 func (h mockHost) run(c *transaction, m string) error {
-	return h.Run_(c, m)
+	return h.RunMock(c, m)
 }
 
 func (h mockHost) digest(c *transaction) error {
-	return h.Digest_(c)
+	return h.DigestMock(c)
 }
 
 func (h mockHost) settings() jamon.Group {
-	return h.Settings_()
+	return h.SettingsMock()
 }
 
 func (h mockHost) query(addr *mail.Address) mailbox.QueryResult {

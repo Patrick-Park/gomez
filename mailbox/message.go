@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// A message represents an e-mail message and  holds information about
+// A Message represents an e-mail message and  holds information about
 // sender, recepients and the message body
 type Message struct {
 	// ID holds the internal Message-ID.

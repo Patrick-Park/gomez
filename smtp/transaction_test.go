@@ -37,7 +37,7 @@ func TestClientServe(t *testing.T) {
 	)
 
 	hostMock := &mockHost{
-		Run_: func(ctx *transaction, params string) error {
+		RunMock: func(ctx *transaction, params string) error {
 			msg = params
 
 			switch params {
@@ -106,7 +106,7 @@ func TestClientServe_Error(t *testing.T) {
 
 	testClient := &transaction{
 		host: &mockHost{
-			Run_: func(ctx *transaction, msg string) error {
+			RunMock: func(ctx *transaction, msg string) error {
 				return io.EOF
 			},
 		},

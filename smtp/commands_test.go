@@ -131,8 +131,8 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is enabled
 	client.host = &mockHost{
-		QueryMock: func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
-		Settings_: func() jamon.Group { return jamon.Group{"relay": "true"} },
+		QueryMock:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
+		SettingsMock: func() jamon.Group { return jamon.Group{"relay": "true"} },
 	}
 
 	var wg sync.WaitGroup
@@ -151,8 +151,8 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is disabled
 	client.host = &mockHost{
-		QueryMock: func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
-		Settings_: func() jamon.Group { return jamon.Group{} },
+		QueryMock:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
+		SettingsMock: func() jamon.Group { return jamon.Group{} },
 	}
 
 	wg.Wait()
@@ -200,7 +200,7 @@ func TestCmdDATA_Digest(t *testing.T) {
 
 	client, pipe := getTestClient()
 	client.host = &mockHost{
-		Digest_: func(c *transaction) error {
+		DigestMock: func(c *transaction) error {
 			calledDigest = true
 			return nil
 		},
@@ -285,8 +285,8 @@ func getTestClient() (*transaction, *textproto.Conn) {
 
 				return mailbox.QueryError
 			},
-			Settings_: func() jamon.Group { return jamon.Group{} },
-			Digest_:   func(c *transaction) error { return nil },
+			SettingsMock: func() jamon.Group { return jamon.Group{} },
+			DigestMock:   func(c *transaction) error { return nil },
 		},
 	}
 

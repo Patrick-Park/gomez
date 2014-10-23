@@ -24,16 +24,16 @@ type Enqueuer interface {
 type QueryResult int
 
 const (
-	// This state indicates that a user is local, but not found.
+	// QueryNotFound indicates that a user is local, but not found.
 	QueryNotFound QueryResult = iota
 
-	// query was successful, and user was found locally.
+	// QuerySuccess indicates that the user was found locally.
 	QuerySuccess
 
-	// This status reflects that the user is not local.
+	// QueryNotLocal indicates that the user may exist, but is not local.
 	QueryNotLocal
 
-	// An error has occurred
+	// QueryError indicates that an error happened while querying.
 	QueryError
 )
 

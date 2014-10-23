@@ -42,7 +42,7 @@ type commandSpec map[string]func(*transaction, string) error
 // followed by a parameter.
 var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 
-// Starts a new SMTP server given an Enqueuer and a configuration.
+// Start initiates a new SMTP server given an Enqueuer and a configuration.
 func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
 	ln, err := net.Listen("tcp", cfg.Get("listen"))
 	if err != nil {

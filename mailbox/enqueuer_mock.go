@@ -4,6 +4,7 @@ import "net/mail"
 
 var _ Enqueuer = new(MockEnqueuer)
 
+// MockEnqueuer is a configurable mock that implements the Enqueuer interface.
 type MockEnqueuer struct {
 	NextIDMock  func() (uint64, error)
 	EnqueueMock func(*Message) error
