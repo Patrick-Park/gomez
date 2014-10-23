@@ -11,9 +11,9 @@ type Dequeuer interface {
 
 // Job holds a message and the recipients it needs to arrive at
 type Job struct {
-	Msg        Message // The actual message to be delivered
-	Dest       string  // The recipient address list
-	ReturnPath string  // The message return-path
+	Msg        Message             // The actual message to be delivered
+	Dest       map[string][]string // The recipients grouped by host-to-users
+	ReturnPath string              // The message return-path
 }
 
 func (p *postBox) Dequeue(n int) ([]*Job, error) {
