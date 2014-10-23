@@ -71,11 +71,11 @@ func (p *postBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	ec := make(chan error)
+	ec := make(chan error, 3)
 
-	go func() { ec <- p.storeMessage(tx, msg) }()
-	go func() { ec <- p.enqueueOutbound(tx, msg) }()
-	go func() { ec <- p.deliverInbound(tx, msg) }()
+	ec <- p.storeMessage(tx, msg)
+	ec <- p.enqueueOutbound(tx, msg)
+	ec <- p.deliverInbound(tx, msg)
 
 	for i := 0; i < 3; i++ {
 		if err := <-ec; err != nil {
