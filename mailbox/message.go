@@ -72,8 +72,7 @@ func makeAddressList(list []*mail.Address) string {
 
 // SplitUserHost splits an address into user and host
 func SplitUserHost(addr *mail.Address) (user string, host string) {
-	ad := addr.Address
-	p := strings.Split(ad[0:len(ad)], "@")
+	p := strings.Split(addr.Address[0:len(addr.Address)], "@")
 
 	return p[0], p[1]
 }
