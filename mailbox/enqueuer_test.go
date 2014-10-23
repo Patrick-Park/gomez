@@ -242,3 +242,24 @@ func TestEnqueue_Tx_Error(t *testing.T) {
 		t.Error("Was expecing an error here")
 	}
 }
+
+func TestEnqueuer_Mock(t *testing.T) {
+	var nqm Enqueuer = &MockEnqueuer{
+		EnqueueMock: func(m *Message) error { return nil },
+		NextIDMock:  func() (uint64, error) { return 3, nil },
+		QueryMock:   func(m *mail.Address) QueryResult { return QueryNotLocal },
+	}
+
+	if nqm.Enqueue(&Message{}) != nil {
+		t.Error("Expected nil on enqueue")
+	}
+
+	id, err := nqm.NextID()
+	if id != 3 || err != nil {
+		t.Errorf("Expected 3 and nil on nqm, got %d and %+v.", id, err)
+	}
+
+	if nqm.Query(&mail.Address{"", "a@b.com"}) != QueryNotLocal {
+		t.Error("Expected QueryNotLocal")
+	}
+}
