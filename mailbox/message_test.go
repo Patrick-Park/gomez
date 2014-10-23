@@ -186,6 +186,7 @@ func TestSplitUserHost(t *testing.T) {
 	}{
 		{&mail.Address{"", "a@b.com"}, "a", "b.com"},
 		{&mail.Address{"", "jim@yahoo.co.uk"}, "jim", "yahoo.co.uk"},
+		{&mail.Address{"", "bogus"}, "", ""},
 	} {
 		u, h := SplitUserHost(test.addr)
 		if u != test.expUser || h != test.expHost {
