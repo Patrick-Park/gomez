@@ -71,17 +71,22 @@ func (p *postBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	ec := make(chan error, 3)
+	err = p.storeMessage(tx, msg)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-	ec <- p.storeMessage(tx, msg)
-	ec <- p.enqueueOutbound(tx, msg)
-	ec <- p.deliverInbound(tx, msg)
+	err = p.enqueueOutbound(tx, msg)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-	for i := 0; i < 3; i++ {
-		if err := <-ec; err != nil {
-			tx.Rollback()
-			return err
-		}
+	err = p.deliverInbound(tx, msg)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	return tx.Commit()
