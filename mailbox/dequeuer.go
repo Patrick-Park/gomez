@@ -6,7 +6,7 @@ type Dequeuer interface {
 	Dequeue(n int) ([]*Job, error)
 
 	// Update updates one or more given jobs
-	Update(j ...Job) error
+	Update(j ...*Job) error
 }
 
 // Job holds a message and the recipients it needs to arrive at
@@ -20,6 +20,6 @@ func (p *postBox) Dequeue(n int) ([]*Job, error) {
 	return nil, nil
 }
 
-func (p *postBox) Update(j ...Job) error {
+func (p *postBox) Update(j ...*Job) error {
 	return nil
 }
