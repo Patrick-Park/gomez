@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -42,8 +43,16 @@ type commandSpec map[string]func(*transaction, string) error
 // followed by a parameter.
 var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 
+// ErrMinConfig is returned when the minimum configuration is not passed to the server.
+// A listen address (host:port) passed via the 'listen' and a 'host' is required.
+var ErrMinConfig = errors.New("Minimum config not met. Need at least 'listen' and 'host'")
+
 // Start initiates a new SMTP server given an Enqueuer and a configuration.
 func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
+	if !cfg.Has("listen") || !cfg.Has("host") {
+		return ErrMinConfig
+	}
+
 	ln, err := net.Listen("tcp", cfg.Get("listen"))
 	if err != nil {
 		return err

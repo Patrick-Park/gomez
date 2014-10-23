@@ -367,7 +367,13 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 }
 
 func TestServer_Start_Error(t *testing.T) {
-	Start(&mailbox.MockEnqueuer{}, jamon.Group{"listen": "bad_addr"})
+	if Start(&mailbox.MockEnqueuer{}, jamon.Group{"host": "wha", "listen": "bad_addr"}) == nil {
+		t.Error("Expected error")
+	}
+
+	if Start(&mailbox.MockEnqueuer{}, jamon.Group{"listen": "bad_addr"}) != ErrMinConfig {
+		t.Error("ErrMinConfig not returned")
+	}
 }
 
 func TestServer_SMTP_Sending(t *testing.T) {
