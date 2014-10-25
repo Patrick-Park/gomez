@@ -107,7 +107,7 @@ func (msg *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
 func storeMessage(tx *sql.Tx, ctx interface{}) error {
 	msg, ok := ctx.(*Message)
 	if !ok {
-		return errors.New("Bad context. Expecting *Message.")
+		return errors.New("Expecting *Message in func storeMessage.")
 	}
 
 	_, err := tx.Exec(
@@ -123,7 +123,7 @@ func storeMessage(tx *sql.Tx, ctx interface{}) error {
 func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 	msg, ok := ctx.(*Message)
 	if !ok {
-		return errors.New("Bad context. Expecting *Message.")
+		return errors.New("Expecting *Message in func enqueueOutbound.")
 	}
 
 	if len(msg.Outbound()) > 0 {
@@ -145,7 +145,7 @@ func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 	msg, ok := ctx.(*Message)
 	if !ok {
-		return errors.New("Bad context. Expecting *Message.")
+		return errors.New("Expecting *Message in func deliverOutbound.")
 	}
 
 	if n := len(msg.Inbound()); n > 0 {
