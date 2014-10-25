@@ -35,7 +35,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		t.Errorf("Error settings up messages: %s", err)
 	}
 
-	jobs := make([]*Job, 4)
+	jobs := make([]*Job, 99)
 	n, err := pb.Dequeue(jobs)
 	if err != nil {
 		t.Errorf("Error on dequeue: %s", err)

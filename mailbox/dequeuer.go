@@ -56,7 +56,7 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 		return
 	}
 
-	for rows.Next() || n >= len(jobs) {
+	for n = 0; rows.Next() && n < len(jobs); n++ {
 		job := &Job{new(Message), make(map[string][]string)}
 
 		var dest, from string
@@ -80,7 +80,6 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 		job.Msg.SetFrom(fromAddr)
 
 		jobs[n] = job
-		n++
 	}
 
 	return
