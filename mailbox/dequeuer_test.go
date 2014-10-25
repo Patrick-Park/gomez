@@ -25,7 +25,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 	CleanDB(pb.db)
 
 	setupJobs := []testJob{
-		testJob{1, "andy@gmail.com", "jim, jane", "hi!", "<iraq@mommy.co>"},
+		testJob{1, "andy@gmail.com", "jim, jane", "hi!", "<iraq@mommy.co>, <daddy@mommy.co>, jim@ji.joe"},
 		testJob{5, `"doe jim" <doe@jim.co.uk>`, "tim, tony", "supe!", `a@b.com, "Eric" <c@d.be>`},
 		testJob{7, "robert@hotmail.eu", "janise", "am going home guys!", `"Lemur" <b@bb.b>`},
 	}
@@ -43,7 +43,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 
 	t.Logf("Dequeued #%d jobs", n)
 	for i := 0; i < n; i++ {
-		t.Logf("%+v from %s", jobs[i].Msg, jobs[i].Msg.From())
+		t.Logf("%+v from %s\r\nto:%+v\r\n", jobs[i].Msg, jobs[i].Msg.From(), jobs[i].Dest)
 	}
 }
 

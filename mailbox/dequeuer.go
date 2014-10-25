@@ -65,12 +65,13 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 			return
 		}
 
-		var rcptList []*mail.Address
-		rcptList, err = mail.ParseAddressList(dest)
+		var destList []*mail.Address
+		destList, err = mail.ParseAddressList(dest)
 		if err != nil {
-			log.Println(rcptList)
+			log.Println(destList)
 			return
 		}
+		job.Dest = groupByHost(destList)
 
 		var fromAddr *mail.Address
 		fromAddr, err = mail.ParseAddress(from)
@@ -83,6 +84,21 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 	}
 
 	return
+}
+
+func groupByHost(list []*mail.Address) map[string][]string {
+	group := make(map[string][]string)
+
+	for _, addr := range list {
+		_, host := SplitUserHost(addr)
+		if _, ok := group[host]; !ok {
+			group[host] = make([]string, 0, 1)
+		}
+
+		group[host] = append(group[host], addr.Address)
+	}
+
+	return group
 }
 
 func (p *mailBox) Update(j ...*Job) error {
