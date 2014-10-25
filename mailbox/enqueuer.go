@@ -53,10 +53,10 @@ func New(dbString string) (*mailBox, error) {
 }
 
 // GUID extracts a unique ID from a database sequence.
-func (p *mailBox) GUID() (uint64, error) {
+func (mb *mailBox) GUID() (uint64, error) {
 	var id uint64
 
-	row := p.db.QueryRow("SELECT nextval('message_ids')")
+	row := mb.db.QueryRow("SELECT nextval('message_ids')")
 	err := row.Scan(&id)
 	if err != nil {
 		return 0, err
@@ -66,8 +66,8 @@ func (p *mailBox) GUID() (uint64, error) {
 }
 
 // Enqueue delivers to local inboxes and queues remote deliveries.
-func (p *mailBox) Enqueue(msg *Message) error {
-	return p.newRunner(msg).run(
+func (mb *mailBox) Enqueue(msg *Message) error {
+	return mb.newRunner(msg).run(
 		storeMessage,
 		enqueueOutbound,
 		deliverInbound,
@@ -81,8 +81,8 @@ type runner struct {
 }
 
 // newRunner creates a new runner in the given context
-func (p *mailBox) newRunner(data interface{}) *runner {
-	return &runner{p.db, data}
+func (mb *mailBox) newRunner(data interface{}) *runner {
+	return &runner{mb.db, data}
 }
 
 // run executes a set of actions and returns on the first error
@@ -165,11 +165,11 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 }
 
 // query searches for the given address. See QueryResult for return types.
-func (p *mailBox) Query(addr *mail.Address) QueryResult {
+func (mb *mailBox) Query(addr *mail.Address) QueryResult {
 	var result string
 	user, host := SplitUserHost(addr)
 
-	err := p.db.
+	err := mb.db.
 		QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", user, host).
 		Scan(&result)
 
@@ -180,7 +180,7 @@ func (p *mailBox) Query(addr *mail.Address) QueryResult {
 		return QuerySuccess
 	}
 
-	err = p.db.
+	err = mb.db.
 		QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", host).
 		Scan(&result)
 
@@ -195,6 +195,6 @@ func (p *mailBox) Query(addr *mail.Address) QueryResult {
 }
 
 // Closes the database connection.
-func (p *mailBox) Close() error {
-	return p.db.Close()
+func (mb *mailBox) Close() error {
+	return mb.db.Close()
 }
