@@ -35,11 +35,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		n         int
 		expJobs   []*Job
 	}{
-		{
-			setupData: setupJobs,
-			n:         0,
-			expJobs:   []*Job{},
-		},
+		{setupData: setupJobs, n: 0, expJobs: []*Job{}},
 		{
 			setupData: setupJobs,
 			n:         1,
