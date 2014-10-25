@@ -46,7 +46,7 @@ func (m *Message) SetFrom(addr *mail.Address) { m.from = addr }
 // From retrieves the message Return-Path.
 func (m Message) From() *mail.Address { return m.from }
 
-// Parse returns the message with the headers parsed and a body reader.
+// Parse returns an object of type mail.Message with the headers parsed.
 func (m Message) Parse() (*mail.Message, error) {
 	return mail.ReadMessage(strings.NewReader(m.Raw))
 }
