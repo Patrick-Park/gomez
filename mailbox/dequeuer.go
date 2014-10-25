@@ -48,27 +48,30 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 	job := &Job{new(Message), make(map[string][]string)}
 
 	for rows.Next() {
-		var rcptList, from string
-		var addrList []*mail.Address
-		var addrFrom *mail.Address
+		var (
+			rcpt     string
+			rcptList []*mail.Address
+			from     string
+			fromAddr *mail.Address
+		)
 
-		err = rows.Scan(&job.Msg.ID, &from, &rcptList, &job.Msg.Raw)
+		err = rows.Scan(&job.Msg.ID, &from, &rcpt, &job.Msg.Raw)
 		if err != nil {
 			return
 		}
 
-		addrList, err = mail.ParseAddressList(rcptList)
+		rcptList, err = mail.ParseAddressList(rcpt)
 		if err != nil {
 			log.Println(rcptList)
 			return
 		}
-		addrFrom, err = mail.ParseAddress(from)
+		fromAddr, err = mail.ParseAddress(from)
 		if err != nil {
 			return
 		}
-		job.Msg.SetFrom(addrFrom)
+		job.Msg.SetFrom(fromAddr)
 
-		log.Printf("Job:\r\n%+v\r\nList: %+v\r\n\r\n", job, addrList)
+		log.Printf("Job:\r\n%+v\r\nList: %+v\r\n\r\n", job, rcptList)
 
 		n++
 	}
