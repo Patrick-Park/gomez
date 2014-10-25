@@ -67,12 +67,7 @@ func (p *mailBox) GUID() (uint64, error) {
 
 // Enqueue delivers to local inboxes and queues remote deliveries.
 func (p *mailBox) Enqueue(msg *Message) error {
-	tx, err := p.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	return newRunner(tx, msg).run(
+	return p.newRunner(msg).run(
 		storeMessage,
 		enqueueOutbound,
 		deliverInbound,
@@ -81,17 +76,29 @@ func (p *mailBox) Enqueue(msg *Message) error {
 
 // runner executes a set of actions in the context of a message transaction
 type runner struct {
-	tx   *sql.Tx
-	data interface{}
+	tx    *sql.Tx
+	data  interface{}
+	ready bool
 }
 
 // newRunner creates a new runner in the given context
-func newRunner(tx *sql.Tx, data interface{}) *runner {
-	return &runner{tx, data}
+func (p *mailBox) newRunner(data interface{}) *runner {
+	ready := true
+
+	tx, err := p.db.Begin()
+	if err != nil {
+		ready = false
+	}
+
+	return &runner{tx, data, ready}
 }
 
 // run executes a set of actions and returns on the first error
 func (msg *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
+	if !msg.ready {
+		return errors.New("Bad transaction.")
+	}
+
 	for _, action := range fn {
 		err := action(msg.tx, msg.data)
 		if err != nil {
