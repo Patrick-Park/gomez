@@ -2,6 +2,7 @@ package mailbox
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/mail"
 
@@ -71,24 +72,28 @@ func (p *mailBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	return newSaver(tx, msg).run(storeMessage, enqueueOutbound, deliverInbound)
+	return newRunner(tx, msg).run(
+		storeMessage,
+		enqueueOutbound,
+		deliverInbound,
+	)
 }
 
-// saver runs a set of actions in the context of a message transaction
-type saver struct {
-	tx  *sql.Tx
-	msg *Message
+// runner executes a set of actions in the context of a message transaction
+type runner struct {
+	tx   *sql.Tx
+	data interface{}
 }
 
-// newSaver creates a new server in the context of a given message transaction.
-func newSaver(tx *sql.Tx, msg *Message) *saver {
-	return &saver{tx, msg}
+// newRunner creates a new runner in the given context
+func newRunner(tx *sql.Tx, data interface{}) *runner {
+	return &runner{tx, data}
 }
 
 // run executes a set of actions and returns on the first error
-func (msg *saver) run(fn ...func(t *sql.Tx, m *Message) error) error {
+func (msg *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
 	for _, action := range fn {
-		err := action(msg.tx, msg.msg)
+		err := action(msg.tx, msg.data)
 		if err != nil {
 			msg.tx.Rollback()
 			return err
@@ -98,7 +103,13 @@ func (msg *saver) run(fn ...func(t *sql.Tx, m *Message) error) error {
 	return msg.tx.Commit()
 }
 
-func storeMessage(tx *sql.Tx, msg *Message) error {
+// storeMessage is a runner action that saves the message to the db transaction.
+func storeMessage(tx *sql.Tx, ctx interface{}) error {
+	msg, ok := ctx.(*Message)
+	if !ok {
+		return errors.New("Bad context. Expecting *Message.")
+	}
+
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
@@ -108,7 +119,13 @@ func storeMessage(tx *sql.Tx, msg *Message) error {
 	return err
 }
 
-func enqueueOutbound(tx *sql.Tx, msg *Message) error {
+// enqueueOutbound adds the message into the queue if it has remote recipients.
+func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
+	msg, ok := ctx.(*Message)
+	if !ok {
+		return errors.New("Bad context. Expecting *Message.")
+	}
+
 	if len(msg.Outbound()) > 0 {
 		_, err := tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
@@ -124,7 +141,13 @@ func enqueueOutbound(tx *sql.Tx, msg *Message) error {
 	return nil
 }
 
-func deliverInbound(tx *sql.Tx, msg *Message) error {
+// deliverInbound delivers mail to local recipients.
+func deliverInbound(tx *sql.Tx, ctx interface{}) error {
+	msg, ok := ctx.(*Message)
+	if !ok {
+		return errors.New("Bad context. Expecting *Message.")
+	}
+
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
 		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
