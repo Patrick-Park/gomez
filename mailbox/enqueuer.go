@@ -64,6 +64,30 @@ func (p *mailBox) GUID() (uint64, error) {
 	return id, nil
 }
 
+// saver runs a set of actions in the context of a message transaction
+type saver struct {
+	tx  *sql.Tx
+	msg *Message
+}
+
+// newSaver creates a new server in the context of a given message transaction.
+func newSaver(tx *sql.Tx, msg *Message) *saver {
+	return &saver{tx, msg}
+}
+
+// run executes a set of actions and returns on the first error
+func (msg *saver) run(fn ...func(t *sql.Tx, m *Message) error) error {
+	for _, action := range fn {
+		err := action(msg.tx, msg.msg)
+		if err != nil {
+			msg.tx.Rollback()
+			return err
+		}
+	}
+
+	return msg.tx.Commit()
+}
+
 // Enqueue delivers to local inboxes and queues remote deliveries.
 func (p *mailBox) Enqueue(msg *Message) error {
 	tx, err := p.db.Begin()
@@ -71,28 +95,13 @@ func (p *mailBox) Enqueue(msg *Message) error {
 		return err
 	}
 
-	err = p.storeMessage(tx, msg)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	sv := newSaver(tx, msg)
+	err = sv.run(storeMessage, enqueueOutbound, deliverInbound)
 
-	err = p.enqueueOutbound(tx, msg)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = p.deliverInbound(tx, msg)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
-func (p *mailBox) storeMessage(tx *sql.Tx, msg *Message) error {
+func storeMessage(tx *sql.Tx, msg *Message) error {
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
@@ -102,7 +111,7 @@ func (p *mailBox) storeMessage(tx *sql.Tx, msg *Message) error {
 	return err
 }
 
-func (p *mailBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
+func enqueueOutbound(tx *sql.Tx, msg *Message) error {
 	if len(msg.Outbound()) > 0 {
 		_, err := tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
@@ -118,7 +127,7 @@ func (p *mailBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
 	return nil
 }
 
-func (p *mailBox) deliverInbound(tx *sql.Tx, msg *Message) error {
+func deliverInbound(tx *sql.Tx, msg *Message) error {
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
 		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
