@@ -85,21 +85,21 @@ func (p *mailBox) Update(j ...*Job) error {
 }
 
 var sqlGetNJobs = `
-		with jobs as (
-			update queue main
-			set date_added=now(), attempts=attempts+1
-			from (
-				select message_id, rcpt
-				from queue
-				order by date_added asc
-				limit $1
-				for update
-			) sub
-			where main.message_id = sub.message_id
-			returning main.message_id, main.rcpt
-		) 
+	with jobs as (
+		update queue main
+		set date_added=now(), attempts=attempts+1
+		from (
+			select message_id, rcpt
+			from queue
+			order by date_added asc
+			limit $1
+			for update
+		) sub
+		where main.message_id = sub.message_id
+		returning main.message_id, main.rcpt
+	) 
 
-		select id, "from", jobs.rcpt, raw 
-		from jobs 
-		inner join messages 
-		on (message_id=id)`
+	select id, "from", jobs.rcpt, raw 
+	from jobs 
+	inner join messages 
+	on (message_id=id)`
