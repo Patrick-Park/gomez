@@ -159,8 +159,7 @@ func (s server) digest(client *transaction) error {
 	}
 
 	client.Message.PrependHeader(
-		"Received",
-		"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
+		"Received", "from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
 		client.ID, client.addrHost, client.addrIP, s.config.Get("host"), client.Message.ID,
 		client.Message.Rcpt()[0], time.Now(),
 	)
