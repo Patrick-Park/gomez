@@ -171,30 +171,32 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 
 // query searches for the given address. See QueryResult for return types.
 func (p *mailBox) Query(addr *mail.Address) QueryResult {
-	var s string
-	u, h := SplitUserHost(addr)
+	var result string
+	user, host := SplitUserHost(addr)
 
 	// Try and find user as local
-	row := p.db.QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", u, h)
-	err := row.Scan(&s)
+	err := p.db.
+		QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", user, host).
+		Scan(&result)
+
 	if err != nil && err != sql.ErrNoRows {
 		return QueryError
 	}
 
-	if u == s {
+	if result == user {
 		return QuerySuccess
 	}
 
-	s = ""
-
 	// See if sought for user is on a local host
-	row = p.db.QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", h)
-	err = row.Scan(&s)
+	err = p.db.
+		QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", host).
+		Scan(&result)
+
 	if err != nil && err != sql.ErrNoRows {
 		return QueryError
 	}
 
-	if h == s {
+	if result == host {
 		return QueryNotFound
 	}
 
