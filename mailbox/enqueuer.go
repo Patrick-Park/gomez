@@ -64,6 +64,16 @@ func (p *mailBox) GUID() (uint64, error) {
 	return id, nil
 }
 
+// Enqueue delivers to local inboxes and queues remote deliveries.
+func (p *mailBox) Enqueue(msg *Message) error {
+	tx, err := p.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	return newSaver(tx, msg).run(storeMessage, enqueueOutbound, deliverInbound)
+}
+
 // saver runs a set of actions in the context of a message transaction
 type saver struct {
 	tx  *sql.Tx
@@ -86,19 +96,6 @@ func (msg *saver) run(fn ...func(t *sql.Tx, m *Message) error) error {
 	}
 
 	return msg.tx.Commit()
-}
-
-// Enqueue delivers to local inboxes and queues remote deliveries.
-func (p *mailBox) Enqueue(msg *Message) error {
-	tx, err := p.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	sv := newSaver(tx, msg)
-	err = sv.run(storeMessage, enqueueOutbound, deliverInbound)
-
-	return err
 }
 
 func storeMessage(tx *sql.Tx, msg *Message) error {
