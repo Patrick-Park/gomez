@@ -36,6 +36,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		expJobs   []*Job
 	}{
 		{setupData: setupJobs, n: 0, expJobs: []*Job{}},
+		{setupData: []testJob{}, n: 100, expJobs: []*Job{}},
 		{
 			setupData: setupJobs,
 			n:         1,
@@ -98,9 +99,11 @@ func TestDequeuer_Dequeue(t *testing.T) {
 	} {
 		CleanDB(pb.db)
 
-		err = pb.newRunner(test.setupData).run(setupMessages, setupQueue)
-		if err != nil {
-			t.Errorf("Error settings up messages (is DB clean?): %s", err)
+		if len(test.setupData) != 0 {
+			err = pb.newRunner(test.setupData).run(setupMessages, setupQueue)
+			if err != nil {
+				t.Errorf("Error settings up messages (is DB clean?): %s", err)
+			}
 		}
 
 		jobs := make([]*Job, test.n)
