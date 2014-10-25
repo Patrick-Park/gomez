@@ -13,7 +13,7 @@ type Enqueuer interface {
 	// Enqueue places a message onto the queue for delivery.
 	Enqueue(msg *Message) error
 
-	// GUID obtains a unique identification number in 64 bits.
+	// GUID obtains a unique message identification number in 64 bits.
 	GUID() (uint64, error)
 
 	// query searches the server for an address.
@@ -38,21 +38,21 @@ const (
 )
 
 // PostgreSQL implementation of the mailbox
-type postBox struct{ db *sql.DB }
+type mailBox struct{ db *sql.DB }
 
 // New creates a PostBox using the given connection string. Example
 // connection strings can be seen at: http://godoc.org/github.com/lib/pq
-func New(dbString string) (*postBox, error) {
+func New(dbString string) (*mailBox, error) {
 	db, err := sql.Open("postgres", dbString)
 	if err != nil {
 		return nil, err
 	}
 
-	return &postBox{db}, nil
+	return &mailBox{db}, nil
 }
 
 // GUID extracts a unique ID from a database sequence.
-func (p *postBox) GUID() (uint64, error) {
+func (p *mailBox) GUID() (uint64, error) {
 	var id uint64
 
 	row := p.db.QueryRow("SELECT nextval('message_ids')")
@@ -65,7 +65,7 @@ func (p *postBox) GUID() (uint64, error) {
 }
 
 // Enqueue delivers to local inboxes and queues remote deliveries.
-func (p *postBox) Enqueue(msg *Message) error {
+func (p *mailBox) Enqueue(msg *Message) error {
 	tx, err := p.db.Begin()
 	if err != nil {
 		return err
@@ -92,7 +92,7 @@ func (p *postBox) Enqueue(msg *Message) error {
 	return tx.Commit()
 }
 
-func (p *postBox) storeMessage(tx *sql.Tx, msg *Message) error {
+func (p *mailBox) storeMessage(tx *sql.Tx, msg *Message) error {
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
@@ -102,7 +102,7 @@ func (p *postBox) storeMessage(tx *sql.Tx, msg *Message) error {
 	return err
 }
 
-func (p *postBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
+func (p *mailBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
 	if len(msg.Outbound()) > 0 {
 		_, err := tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
@@ -118,7 +118,7 @@ func (p *postBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
 	return nil
 }
 
-func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
+func (p *mailBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
 		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
@@ -141,7 +141,7 @@ func (p *postBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 }
 
 // query searches for the given address. See QueryResult for return types.
-func (p *postBox) Query(addr *mail.Address) QueryResult {
+func (p *mailBox) Query(addr *mail.Address) QueryResult {
 	var s string
 	u, h := SplitUserHost(addr)
 
@@ -173,6 +173,6 @@ func (p *postBox) Query(addr *mail.Address) QueryResult {
 }
 
 // Closes the database connection.
-func (p *postBox) Close() error {
+func (p *mailBox) Close() error {
 	return p.db.Close()
 }

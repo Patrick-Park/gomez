@@ -16,10 +16,10 @@ type Job struct {
 }
 
 // Dequeue will retrieve the given number of jobs ordered by date
-func (p *postBox) Dequeue(n int) ([]*Job, error) {
+func (p *mailBox) Dequeue(n int) ([]*Job, error) {
 	return nil, nil
 }
 
-func (p *postBox) Update(j ...*Job) error {
+func (p *mailBox) Update(j ...*Job) error {
 	return nil
 }
