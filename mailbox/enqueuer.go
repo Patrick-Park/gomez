@@ -55,14 +55,8 @@ func New(dbString string) (*mailBox, error) {
 // GUID extracts a unique ID from a database sequence.
 func (mb *mailBox) GUID() (uint64, error) {
 	var id uint64
-
-	row := mb.db.QueryRow("SELECT nextval('message_ids')")
-	err := row.Scan(&id)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
+	err := mb.db.QueryRow("SELECT nextval('message_ids')").Scan(&id)
+	return id, err
 }
 
 // Enqueue delivers to local inboxes and queues remote deliveries.
