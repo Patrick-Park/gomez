@@ -68,7 +68,7 @@ func TestServerRun(t *testing.T) {
 
 func TestServerCreateClient_Crash(t *testing.T) {
 	testServer := new(server)
-	testServer.createTransaction(&mocks.Conn{RemoteAddress: "bogus"})
+	testServer.createTransaction(&mocks.Conn{RAddr: "bogus"})
 }
 
 // Should create a client that picks up commands
@@ -77,8 +77,8 @@ func TestServerCreateClient(t *testing.T) {
 	var wg sync.WaitGroup
 
 	cc, sc := mocks.Pipe(
-		&mocks.Conn{RemoteAddress: "1.1.1.1:123"},
-		&mocks.Conn{RemoteAddress: "1.1.1.1:123"},
+		&mocks.Conn{RAddr: "1.1.1.1:123"},
+		&mocks.Conn{RAddr: "1.1.1.1:123"},
 	)
 
 	cconn := textproto.NewConn(cc)

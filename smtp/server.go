@@ -153,21 +153,15 @@ func (s server) digest(client *transaction) error {
 
 	if len(msg.Header["Message-Id"]) == 0 {
 		client.Message.PrependHeader(
-			"Message-ID",
-			fmt.Sprintf(
-				"<%x.%d@%s>",
-				time.Now().UnixNano(), client.Message.ID, s.config.Get("host"),
-			),
+			"Message-ID", "<%x.%d@%s>", time.Now().UnixNano(),
+			client.Message.ID, s.config.Get("host"),
 		)
 	}
 
 	client.Message.PrependHeader(
-		"Received",
-		fmt.Sprintf(
-			"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-			client.ID, client.addrHost, client.addrIP, s.config.Get("host"), client.Message.ID,
-			client.Message.Rcpt()[0], time.Now(),
-		),
+		"Received", "from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
+		client.ID, client.addrHost, client.addrIP, s.config.Get("host"),
+		client.Message.ID, client.Message.Rcpt()[0], time.Now(),
 	)
 
 	err = s.Enqueuer.Enqueue(client.Message)

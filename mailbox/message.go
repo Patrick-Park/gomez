@@ -1,6 +1,7 @@
 package mailbox
 
 import (
+	"fmt"
 	"net/mail"
 	"strings"
 )
@@ -53,8 +54,8 @@ func (m Message) Parse() (*mail.Message, error) {
 
 // PrependHeader attaches a header at the beginning of the message. PreprendHeader
 // does not validate the message. It is the responsability of the caller.
-func (m *Message) PrependHeader(name, value string) {
-	m.Raw = name + ": " + value + "\r\n" + m.Raw
+func (m *Message) PrependHeader(name, value string, params ...interface{}) {
+	m.Raw = name + ": " + fmt.Sprintf(value, params...) + "\r\n" + m.Raw
 }
 
 // MakeAddressList returns a string parseable by mail.ParseAddressList
