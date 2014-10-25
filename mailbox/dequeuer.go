@@ -65,7 +65,6 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 		}
 
 		var destList []*mail.Address
-
 		destList, err = mail.ParseAddressList(dest)
 		if err != nil {
 			return
@@ -73,7 +72,6 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 		job.Dest = groupByHost(destList)
 
 		var fromAddr *mail.Address
-
 		fromAddr, err = mail.ParseAddress(from)
 		if err != nil {
 			return
