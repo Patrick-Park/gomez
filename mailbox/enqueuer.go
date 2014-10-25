@@ -126,19 +126,16 @@ func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 		return errors.New("Expecting *Message in func enqueueOutbound.")
 	}
 
+	var err error
 	if len(msg.Outbound()) > 0 {
-		_, err := tx.Exec(
+		_, err = tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
 			VALUES ($1, $2, NOW(), 0)`,
 			msg.ID, MakeAddressList(msg.Outbound()),
 		)
-
-		if err != nil {
-			return err
-		}
 	}
 
-	return nil
+	return err
 }
 
 // deliverInbound delivers mail to local recipients.
@@ -148,6 +145,7 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 		return errors.New("Expecting *Message in func deliverOutbound.")
 	}
 
+	var err error
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
 		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
@@ -160,13 +158,10 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 			}
 		}
 
-		_, err := tx.Exec(q)
-		if err != nil {
-			return err
-		}
+		_, err = tx.Exec(q)
 	}
 
-	return nil
+	return err
 }
 
 // query searches for the given address. See QueryResult for return types.
