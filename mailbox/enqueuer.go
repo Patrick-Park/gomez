@@ -179,11 +179,10 @@ func (p *mailBox) Query(addr *mail.Address) QueryResult {
 		QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", user, host).
 		Scan(&result)
 
-	if err != nil && err != sql.ErrNoRows {
+	switch {
+	case err != nil && err != sql.ErrNoRows:
 		return QueryError
-	}
-
-	if result == user {
+	case result == user:
 		return QuerySuccess
 	}
 
@@ -192,15 +191,14 @@ func (p *mailBox) Query(addr *mail.Address) QueryResult {
 		QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", host).
 		Scan(&result)
 
-	if err != nil && err != sql.ErrNoRows {
+	switch {
+	case err != nil && err != sql.ErrNoRows:
 		return QueryError
-	}
-
-	if result == host {
+	case result == host:
 		return QueryNotFound
+	default:
+		return QueryNotLocal
 	}
-
-	return QueryNotLocal
 }
 
 // Closes the database connection.
