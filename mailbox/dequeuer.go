@@ -90,12 +90,12 @@ func groupByHost(list []*mail.Address) map[string][]string {
 	group := make(map[string][]string)
 
 	for _, addr := range list {
-		_, host := SplitUserHost(addr)
-		if _, ok := group[host]; !ok {
-			group[host] = make([]string, 0, 1)
+		_, h := SplitUserHost(addr)
+		if _, ok := group[h]; !ok {
+			group[h] = make([]string, 0, 1)
 		}
 
-		group[host] = append(group[host], addr.Address)
+		group[h] = append(group[h], addr.Address)
 	}
 
 	return group
