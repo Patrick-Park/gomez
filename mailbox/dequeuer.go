@@ -2,8 +2,7 @@ package mailbox
 
 // Dequeuer returns jobs off the queue and updates their completion status
 type Dequeuer interface {
-	// Dequeue retrieves number of jobs, up to length of passed slice. Returns
-	// number of jobs dequeued and an error.
+	// Dequeue n jobs from the queue, up to the slice length.
 	Dequeue(jobs []*Job) (n int, err error)
 
 	// Update updates one or more given jobs
