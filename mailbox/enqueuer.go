@@ -176,7 +176,6 @@ func (p *mailBox) Query(addr *mail.Address) QueryResult {
 	var result string
 	user, host := SplitUserHost(addr)
 
-	// Try and find user as local
 	err := p.db.
 		QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", user, host).
 		Scan(&result)
@@ -188,7 +187,6 @@ func (p *mailBox) Query(addr *mail.Address) QueryResult {
 		return QuerySuccess
 	}
 
-	// See if sought for user is on a local host
 	err = p.db.
 		QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", host).
 		Scan(&result)
