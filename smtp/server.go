@@ -18,13 +18,10 @@ import (
 type host interface {
 	// run executes an SMTP command.
 	run(ctx *transaction, msg string) error
-
 	// digest attempts to finalize an SMTP transaction.
 	digest(c *transaction) error
-
 	// settings returns the server's configuration flags.
 	settings() jamon.Group
-
 	// query searches on the server for a given address.
 	query(addr *mail.Address) mailbox.QueryResult
 }

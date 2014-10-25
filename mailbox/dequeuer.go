@@ -12,7 +12,6 @@ import (
 type Dequeuer interface {
 	// Dequeue n jobs from the queue, up to the slice length.
 	Dequeue(jobs []*Job) (n int, err error)
-
 	// Update one or more given jobs
 	Update(j ...*Job) error
 }

@@ -11,7 +11,6 @@ import (
 type Message struct {
 	// ID holds the internal Message-ID.
 	ID uint64
-
 	// Raw holds the message in raw form.
 	Raw string
 

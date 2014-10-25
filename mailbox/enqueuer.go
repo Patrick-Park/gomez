@@ -13,10 +13,8 @@ import (
 type Enqueuer interface {
 	// Enqueue places a message onto the queue for delivery.
 	Enqueue(msg *Message) error
-
 	// GUID obtains a unique message identification number in 64 bits.
 	GUID() (uint64, error)
-
 	// query searches the server for an address.
 	Query(addr *mail.Address) QueryResult
 }
@@ -27,13 +25,10 @@ type QueryResult int
 const (
 	// QueryNotFound indicates that a user is local, but not found.
 	QueryNotFound QueryResult = iota
-
 	// QuerySuccess indicates that the user was found locally.
 	QuerySuccess
-
 	// QueryNotLocal indicates that the user may exist, but is not local.
 	QueryNotLocal
-
 	// QueryError indicates that an error happened while querying.
 	QueryError
 )

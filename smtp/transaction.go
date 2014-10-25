@@ -17,13 +17,10 @@ type transactionState int
 const (
 	// stateHELO is the initial state. HELO/EHLO command is expected.
 	stateHELO transactionState = iota
-
 	// stateMAIL is the post-HELO state. The Return-Path address is expected.
 	stateMAIL
-
 	// stateRCPT is the post-MAIL mode. The recipient data is expected.
 	stateRCPT
-
 	// stateDATA signifies eligibility to receive data.
 	stateDATA
 )
@@ -32,10 +29,8 @@ const (
 type transaction struct {
 	// The name the client has identified with
 	ID string
-
 	// The message that the client is building via the current transaction.
 	Message *mailbox.Message
-
 	// The current state of the transaction.
 	Mode transactionState
 
