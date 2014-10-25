@@ -76,38 +76,31 @@ func (p *mailBox) Enqueue(msg *Message) error {
 
 // runner executes a set of actions in the context of a message transaction
 type runner struct {
-	tx    *sql.Tx
-	data  interface{}
-	ready bool
+	db   *sql.DB
+	data interface{}
 }
 
 // newRunner creates a new runner in the given context
 func (p *mailBox) newRunner(data interface{}) *runner {
-	ready := true
-
-	tx, err := p.db.Begin()
-	if err != nil {
-		ready = false
-	}
-
-	return &runner{tx, data, ready}
+	return &runner{p.db, data}
 }
 
 // run executes a set of actions and returns on the first error
 func (msg *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
-	if !msg.ready {
-		return errors.New("Bad transaction.")
+	tx, err := msg.db.Begin()
+	if err != nil {
+		return err
 	}
 
 	for _, action := range fn {
-		err := action(msg.tx, msg.data)
+		err := action(tx, msg.data)
 		if err != nil {
-			msg.tx.Rollback()
+			tx.Rollback()
 			return err
 		}
 	}
 
-	return msg.tx.Commit()
+	return tx.Commit()
 }
 
 // storeMessage is a runner action that saves the message to the db transaction.
