@@ -57,6 +57,7 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 
 		job.Msg.SetFrom(fromAddr)
 		job.Dest = groupByHost(destList)
+
 		jobs[n] = job
 	}
 
