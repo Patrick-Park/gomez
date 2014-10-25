@@ -2,8 +2,9 @@ package mailbox
 
 // Dequeuer returns jobs off the queue and updates their completion status
 type Dequeuer interface {
-	// Dequeue retrieves a given number of messages from the queue
-	Dequeue(n int) ([]*Job, error)
+	// Dequeue retrieves number of jobs, up to length of passed slice. Returns
+	// number of jobs dequeued and an error.
+	Dequeue(jobs []*Job) (n int, err error)
 
 	// Update updates one or more given jobs
 	Update(j ...*Job) error
@@ -16,8 +17,8 @@ type Job struct {
 }
 
 // Dequeue will retrieve the given number of jobs ordered by date
-func (p *mailBox) Dequeue(n int) ([]*Job, error) {
-	return nil, nil
+func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
+	return 0, nil
 }
 
 func (p *mailBox) Update(j ...*Job) error {
