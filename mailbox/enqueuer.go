@@ -2,6 +2,7 @@ package mailbox
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/mail"
 
@@ -52,47 +53,56 @@ func New(dbString string) (*mailBox, error) {
 }
 
 // GUID extracts a unique ID from a database sequence.
-func (p *mailBox) GUID() (uint64, error) {
-	var id uint64
-
-	row := p.db.QueryRow("SELECT nextval('message_ids')")
-	err := row.Scan(&id)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
+func (mb *mailBox) GUID() (id uint64, err error) {
+	err = mb.db.QueryRow("SELECT nextval('message_ids')").Scan(&id)
+	return
 }
 
 // Enqueue delivers to local inboxes and queues remote deliveries.
-func (p *mailBox) Enqueue(msg *Message) error {
-	tx, err := p.db.Begin()
+func (mb *mailBox) Enqueue(msg *Message) error {
+	return mb.newRunner(msg).run(
+		storeMessage,
+		enqueueOutbound,
+		deliverInbound,
+	)
+}
+
+// runner can execute multiple actions within a database transaction using a context
+type runner struct {
+	db      *sql.DB
+	context interface{}
+}
+
+// newRunner creates a new runner in the given context
+func (mb *mailBox) newRunner(data interface{}) *runner {
+	return &runner{mb.db, data}
+}
+
+// run executes a set of actions and returns on the first error
+func (rn *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
+	tx, err := rn.db.Begin()
 	if err != nil {
 		return err
 	}
 
-	err = p.storeMessage(tx, msg)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = p.enqueueOutbound(tx, msg)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = p.deliverInbound(tx, msg)
-	if err != nil {
-		tx.Rollback()
-		return err
+	for _, action := range fn {
+		err := action(tx, rn.context)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	return tx.Commit()
 }
 
-func (p *mailBox) storeMessage(tx *sql.Tx, msg *Message) error {
+// storeMessage is a runner action that saves the message to the db transaction.
+func storeMessage(tx *sql.Tx, ctx interface{}) error {
+	msg, ok := ctx.(*Message)
+	if !ok {
+		return errors.New("Expecting *Message in func storeMessage.")
+	}
+
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
@@ -102,23 +112,33 @@ func (p *mailBox) storeMessage(tx *sql.Tx, msg *Message) error {
 	return err
 }
 
-func (p *mailBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
+// enqueueOutbound adds the message into the queue if it has remote recipients.
+func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
+	msg, ok := ctx.(*Message)
+	if !ok {
+		return errors.New("Expecting *Message in func enqueueOutbound.")
+	}
+
+	var err error
 	if len(msg.Outbound()) > 0 {
-		_, err := tx.Exec(
+		_, err = tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
 			VALUES ($1, $2, NOW(), 0)`,
 			msg.ID, MakeAddressList(msg.Outbound()),
 		)
-
-		if err != nil {
-			return err
-		}
 	}
 
-	return nil
+	return err
 }
 
-func (p *mailBox) deliverInbound(tx *sql.Tx, msg *Message) error {
+// deliverInbound delivers mail to local recipients.
+func deliverInbound(tx *sql.Tx, ctx interface{}) error {
+	msg, ok := ctx.(*Message)
+	if !ok {
+		return errors.New("Expecting *Message in func deliverOutbound.")
+	}
+
+	var err error
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
 		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
@@ -131,48 +151,43 @@ func (p *mailBox) deliverInbound(tx *sql.Tx, msg *Message) error {
 			}
 		}
 
-		_, err := tx.Exec(q)
-		if err != nil {
-			return err
-		}
+		_, err = tx.Exec(q)
 	}
 
-	return nil
+	return err
 }
 
 // query searches for the given address. See QueryResult for return types.
-func (p *mailBox) Query(addr *mail.Address) QueryResult {
-	var s string
-	u, h := SplitUserHost(addr)
+func (mb *mailBox) Query(addr *mail.Address) QueryResult {
+	var result string
+	user, host := SplitUserHost(addr)
 
-	// Try and find user as local
-	row := p.db.QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", u, h)
-	err := row.Scan(&s)
-	if err != nil && err != sql.ErrNoRows {
+	err := mb.db.
+		QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", user, host).
+		Scan(&result)
+
+	switch {
+	case err != nil && err != sql.ErrNoRows:
 		return QueryError
-	}
-
-	if u == s {
+	case result == user:
 		return QuerySuccess
 	}
 
-	s = ""
+	err = mb.db.
+		QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", host).
+		Scan(&result)
 
-	// See if sought for user is on a local host
-	row = p.db.QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", h)
-	err = row.Scan(&s)
-	if err != nil && err != sql.ErrNoRows {
+	switch {
+	case err != nil && err != sql.ErrNoRows:
 		return QueryError
-	}
-
-	if h == s {
+	case result == host:
 		return QueryNotFound
+	default:
+		return QueryNotLocal
 	}
-
-	return QueryNotLocal
 }
 
 // Closes the database connection.
-func (p *mailBox) Close() error {
-	return p.db.Close()
+func (mb *mailBox) Close() error {
+	return mb.db.Close()
 }

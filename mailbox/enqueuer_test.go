@@ -321,3 +321,15 @@ func TestEnqueuer_Query(t *testing.T) {
 
 	pb.Close()
 }
+
+func TestRunners_BadContext(t *testing.T) {
+	if enqueueOutbound(&sql.Tx{}, 2) == nil {
+		t.Error("Expected bad context error on 'storeMessage'")
+	}
+	if deliverInbound(&sql.Tx{}, 2) == nil {
+		t.Error("Expected bad context error on 'storeMessage'")
+	}
+	if storeMessage(&sql.Tx{}, 2) == nil {
+		t.Error("Expected bad context error on 'storeMessage'")
+	}
+}

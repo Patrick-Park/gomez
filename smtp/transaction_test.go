@@ -31,13 +31,14 @@ func TestReplyString(t *testing.T) {
 // and it should be able to alter the client's transactionState
 func TestClientServe(t *testing.T) {
 	var (
-		wg      sync.WaitGroup
+		wg, wgt sync.WaitGroup
 		msg     string
 		ErrTest = errors.New("Test error")
 	)
 
 	hostMock := &mockHost{
 		RunMock: func(ctx *transaction, params string) error {
+			defer wgt.Done()
 			msg = params
 
 			switch params {
@@ -82,10 +83,12 @@ func TestClientServe(t *testing.T) {
 	}
 
 	for _, test := range testCases {
+		wgt.Add(1)
 		err := cconn.PrintfLine(test.msg)
 		if err != ErrTest && err != nil {
 			t.Errorf("Error sending command (%s)", err)
 		}
+		wgt.Wait() // Wait for runner to process
 
 		if msg != test.msg || testClient.Mode != test.expMode {
 			t.Errorf("Expected msg (%v) and mode (%v), but got (%s) and (%v).",
