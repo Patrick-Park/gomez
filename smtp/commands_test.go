@@ -35,6 +35,7 @@ func TestCmd_Modes_and_Codes(t *testing.T) {
 		{cmdMAIL, "FROM:<asd>", 503, stateRCPT, stateRCPT, "MAIL"},
 		{cmdMAIL, "bad syntax", 501, stateMAIL, stateMAIL, "MAIL"},
 		{cmdMAIL, "FROM:<bad_address>", 501, stateMAIL, stateMAIL, "MAIL"},
+		{cmdMAIL, "FROM:<good@address.com>", 250, stateMAIL, stateRCPT, "MAIL"},
 
 		{cmdRCPT, "", 503, stateHELO, stateHELO, "RCPT"},
 		{cmdRCPT, "", 503, stateMAIL, stateMAIL, "RCPT"},

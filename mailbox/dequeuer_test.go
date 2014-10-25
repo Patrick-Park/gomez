@@ -37,6 +37,11 @@ func TestDequeuer_Dequeue(t *testing.T) {
 	}{
 		{
 			setupData: setupJobs,
+			n:         0,
+			expJobs:   []*Job{},
+		},
+		{
+			setupData: setupJobs,
 			n:         1,
 			expJobs: []*Job{
 				&Job{
@@ -68,7 +73,35 @@ func TestDequeuer_Dequeue(t *testing.T) {
 				},
 			},
 		},
+		{
+			setupData: setupJobs,
+			n:         5,
+			expJobs: []*Job{
+				&Job{
+					&Message{ID: 1, Raw: "hi!", from: &mail.Address{"", "andy@gmail.com"}},
+					map[string][]string{
+						"mommy.co": []string{"iraq@mommy.co", "daddy@mommy.co"},
+						"ji.joe":   []string{"jim@ji.joe"},
+					},
+				},
+				&Job{
+					&Message{ID: 5, Raw: "supe!", from: &mail.Address{"doe jim", "doe@jim.co.uk"}},
+					map[string][]string{
+						"b.com": []string{"a@b.com"},
+						"d.be":  []string{"c@d.be"},
+					},
+				},
+				&Job{
+					&Message{ID: 7, Raw: "am going home guys!", from: &mail.Address{"", "robert@hotmail.eu"}},
+					map[string][]string{
+						"bb.b": []string{"b@bb.b"},
+					},
+				},
+			},
+		},
 	} {
+		CleanDB(pb.db)
+
 		err = pb.newRunner(test.setupData).run(setupMessages, setupQueue)
 		if err != nil {
 			t.Errorf("Error settings up messages (is DB clean?): %s", err)
@@ -76,15 +109,20 @@ func TestDequeuer_Dequeue(t *testing.T) {
 
 		jobs := make([]*Job, test.n)
 		n, err := pb.Dequeue(jobs)
+		if test.n == 0 {
+			if n != 0 && err != ErrZeroLengthSlice {
+				t.Error("Expected error.")
+			}
+			continue
+		}
+
 		if err != nil {
 			t.Errorf("Error on dequeue: %s", err)
 		}
 
-		if !reflect.DeepEqual(jobs, test.expJobs) || n != test.n {
-			t.Errorf("Expected n=%d jobs %+v, got n=%d jobs %+v", test.n, test.expJobs, n, jobs)
+		if !reflect.DeepEqual(jobs[:n], test.expJobs) {
+			t.Errorf("Expected %+v, got %+v", test.expJobs, jobs)
 		}
-
-		CleanDB(pb.db)
 	}
 }
 
