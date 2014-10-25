@@ -96,7 +96,7 @@ func (p *postBox) storeMessage(tx *sql.Tx, msg *Message) error {
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
-		msg.ID, msg.From().String(), makeAddressList(msg.Rcpt()), msg.Raw,
+		msg.ID, msg.From().String(), MakeAddressList(msg.Rcpt()), msg.Raw,
 	)
 
 	return err
@@ -107,7 +107,7 @@ func (p *postBox) enqueueOutbound(tx *sql.Tx, msg *Message) error {
 		_, err := tx.Exec(
 			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
 			VALUES ($1, $2, NOW(), 0)`,
-			msg.ID, makeAddressList(msg.Outbound()),
+			msg.ID, MakeAddressList(msg.Outbound()),
 		)
 
 		if err != nil {
