@@ -15,6 +15,12 @@ type testJob struct {
 	Dest            string
 }
 
+var setupJobs = []testJob{
+	testJob{1, "andy@gmail.com", "jim, jane", "hi!", "<iraq@mommy.co>, <daddy@mommy.co>, jim@ji.joe"},
+	testJob{5, `"doe jim" <doe@jim.co.uk>`, "tim, tony", "supe!", `a@b.com, "Eric" <c@d.be>`},
+	testJob{7, "robert@hotmail.eu", "janise", "am going home guys!", `"Lemur" <b@bb.b>`},
+}
+
 func TestDequeuer_Dequeue(t *testing.T) {
 	EnsureTestDB()
 
@@ -23,12 +29,6 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		t.Error("Error starting server")
 	}
 	defer pb.Close()
-
-	setupJobs := []testJob{
-		testJob{1, "andy@gmail.com", "jim, jane", "hi!", "<iraq@mommy.co>, <daddy@mommy.co>, jim@ji.joe"},
-		testJob{5, `"doe jim" <doe@jim.co.uk>`, "tim, tony", "supe!", `a@b.com, "Eric" <c@d.be>`},
-		testJob{7, "robert@hotmail.eu", "janise", "am going home guys!", `"Lemur" <b@bb.b>`},
-	}
 
 	for _, test := range []struct {
 		setupData []testJob
