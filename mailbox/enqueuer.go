@@ -67,10 +67,10 @@ func (mb *mailBox) Enqueue(msg *Message) error {
 	)
 }
 
-// runner executes a set of actions in the context of a message transaction
+// runner can execute multiple actions within a database transaction using a context
 type runner struct {
-	db   *sql.DB
-	data interface{}
+	db      *sql.DB
+	context interface{}
 }
 
 // newRunner creates a new runner in the given context
@@ -86,7 +86,7 @@ func (rn *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
 	}
 
 	for _, action := range fn {
-		err := action(tx, rn.data)
+		err := action(tx, rn.context)
 		if err != nil {
 			tx.Rollback()
 			return err
