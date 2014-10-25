@@ -162,7 +162,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with DB error.",
 			},
 			mailbox.MockEnqueuer{
-				NextIDMock: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
+				GUIDMock: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
 			},
 			"1.2.3.4:1234", 451,
 		}, {
@@ -170,7 +170,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
 			},
 			mailbox.MockEnqueuer{
-				NextIDMock:  func() (uint64, error) { return 123, nil },
+				GUIDMock:    func() (uint64, error) { return 123, nil },
 				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
 			},
 			"1.2.3.4:1234", 451,
@@ -179,7 +179,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with split-host error.",
 			},
 			mailbox.MockEnqueuer{
-				NextIDMock:  func() (uint64, error) { return 123, nil },
+				GUIDMock:    func() (uint64, error) { return 123, nil },
 				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
 			},
 			"1.2.3.4", 451,
@@ -188,7 +188,7 @@ func TestServer_Digest_Responses(t *testing.T) {
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors.",
 			},
 			mailbox.MockEnqueuer{
-				NextIDMock:  func() (uint64, error) { return 123, nil },
+				GUIDMock:    func() (uint64, error) { return 123, nil },
 				EnqueueMock: func(*mailbox.Message) error { return nil },
 			},
 			"1.2.3.4:123", 250,
@@ -234,21 +234,21 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 		{
 			&mailbox.Message{Raw: "From: Mary\r\nDate: Today\r\n\r\nHey Mary how are you?"},
 			&mailbox.MockEnqueuer{
-				NextIDMock:  func() (uint64, error) { called = true; return 1, nil },
+				GUIDMock:    func() (uint64, error) { called = true; return 1, nil },
 				EnqueueMock: func(m *mailbox.Message) error { return errors.New("error") },
 			},
 			".1@TestHost>", 1, 451, true,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?"},
 			&mailbox.MockEnqueuer{
-				NextIDMock:  func() (uint64, error) { called = true; return 2, nil },
+				GUIDMock:    func() (uint64, error) { called = true; return 2, nil },
 				EnqueueMock: func(m *mailbox.Message) error { return errors.New("error") },
 			},
 			"My_ID", 2, 451, true,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?", ID: 53},
 			&mailbox.MockEnqueuer{
-				NextIDMock:  func() (uint64, error) { called = true; return 1, nil },
+				GUIDMock:    func() (uint64, error) { called = true; return 1, nil },
 				EnqueueMock: func(m *mailbox.Message) error { return errors.New("error") },
 			},
 			"My_ID", 53, 451, false,
@@ -299,7 +299,7 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 
 	server := server{config: jamon.Group{"host": "TestHost"}}
 	server.Enqueuer = mailbox.MockEnqueuer{
-		NextIDMock:  func() (uint64, error) { called = true; return 2, nil },
+		GUIDMock:    func() (uint64, error) { called = true; return 2, nil },
 		EnqueueMock: func(*mailbox.Message) error { return errors.New("Error processing") },
 	}
 
@@ -412,7 +412,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 			QueryMock: func(addr *mail.Address) mailbox.QueryResult {
 				return mailbox.QuerySuccess
 			},
-			NextIDMock: func() (uint64, error) { return 555, nil },
+			GUIDMock: func() (uint64, error) { return 555, nil },
 		}, jamon.Group{"listen": ":1234", "host": "TestHost"})
 	}()
 

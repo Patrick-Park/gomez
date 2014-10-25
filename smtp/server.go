@@ -143,7 +143,7 @@ func (s server) digest(client *transaction) error {
 	}
 
 	if client.Message.ID == 0 {
-		id, err := s.Enqueuer.NextID()
+		id, err := s.Enqueuer.GUID()
 		if err != nil {
 			return client.notify(replyErrorProcessing)
 		}

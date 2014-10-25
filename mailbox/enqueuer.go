@@ -13,8 +13,8 @@ type Enqueuer interface {
 	// Enqueue places a message onto the queue for delivery.
 	Enqueue(msg *Message) error
 
-	// NextID obtains a unique identification number in 64 bits.
-	NextID() (uint64, error)
+	// GUID obtains a unique identification number in 64 bits.
+	GUID() (uint64, error)
 
 	// query searches the server for an address.
 	Query(addr *mail.Address) QueryResult
@@ -51,8 +51,8 @@ func New(dbString string) (*postBox, error) {
 	return &postBox{db}, nil
 }
 
-// NextID extracts a unique ID from a database sequence.
-func (p *postBox) NextID() (uint64, error) {
+// GUID extracts a unique ID from a database sequence.
+func (p *postBox) GUID() (uint64, error) {
 	var id uint64
 
 	row := p.db.QueryRow("SELECT nextval('message_ids')")

@@ -61,7 +61,7 @@ func TestPostBox_NextID_Error(t *testing.T) {
 	}
 	defer pb.Close()
 
-	_, err = pb.NextID()
+	_, err = pb.GUID()
 	if err == nil {
 		t.Error("Was expecting an error.")
 	}
@@ -76,7 +76,7 @@ func TestPostBox_NextID_Success(t *testing.T) {
 	}
 	defer pb.Close()
 
-	id, err := pb.NextID()
+	id, err := pb.GUID()
 	if err != nil {
 		t.Errorf("Failed to extract sequence val: %s", err)
 	}
@@ -250,7 +250,7 @@ func TestEnqueue_Tx_Error(t *testing.T) {
 func TestEnqueuer_Mock(t *testing.T) {
 	var nqm Enqueuer = &MockEnqueuer{
 		EnqueueMock: func(m *Message) error { return nil },
-		NextIDMock:  func() (uint64, error) { return 3, nil },
+		GUIDMock:    func() (uint64, error) { return 3, nil },
 		QueryMock:   func(m *mail.Address) QueryResult { return QueryNotLocal },
 	}
 
@@ -258,7 +258,7 @@ func TestEnqueuer_Mock(t *testing.T) {
 		t.Error("Expected nil on enqueue")
 	}
 
-	id, err := nqm.NextID()
+	id, err := nqm.GUID()
 	if id != 3 || err != nil {
 		t.Errorf("Expected 3 and nil on nqm, got %d and %+v.", id, err)
 	}
