@@ -6,7 +6,6 @@ package mailbox
 
 import (
 	"errors"
-	"log"
 	"net/mail"
 )
 
@@ -68,7 +67,6 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 		var destList []*mail.Address
 		destList, err = mail.ParseAddressList(dest)
 		if err != nil {
-			log.Println(destList)
 			return
 		}
 		job.Dest = groupByHost(destList)
