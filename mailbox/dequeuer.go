@@ -27,7 +27,7 @@ var ErrZeroLengthSlice = errors.New("The given slice has length 0.")
 
 // Dequeue will retrieve the given number of jobs ordered by date
 func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
-	if len(jobs) == 0 {
+	if jobs == nil || len(jobs) == 0 {
 		return 0, ErrZeroLengthSlice
 	}
 
