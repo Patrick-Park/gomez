@@ -45,16 +45,14 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 			return
 		}
 
-		var destList []*mail.Address
-		destList, err = mail.ParseAddressList(dest)
+		destList, err := mail.ParseAddressList(dest)
 		if err != nil {
-			return
+			return n, err
 		}
 
-		var fromAddr *mail.Address
-		fromAddr, err = mail.ParseAddress(from)
+		fromAddr, err := mail.ParseAddress(from)
 		if err != nil {
-			return
+			return n, err
 		}
 
 		job.Msg.SetFrom(fromAddr)
