@@ -31,25 +31,7 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 		return 0, ErrZeroLengthSlice
 	}
 
-	rows, err := p.db.Query(`
-		with jobs as (
-			update queue main
-			set date_added=now(), attempts=attempts+1
-			from (
-				select message_id, rcpt
-				from queue
-				order by date_added asc
-				limit $1
-				for update
-			) sub
-			where main.message_id = sub.message_id
-			returning main.message_id, main.rcpt
-		) 
-
-		select id, "from", jobs.rcpt, raw 
-		from jobs 
-		inner join messages 
-		on (message_id=id)`, len(jobs))
+	rows, err := p.db.Query(sqlGetNJobs, len(jobs)) // SQL is at the bottom of file
 
 	if err != nil {
 		return
@@ -102,3 +84,23 @@ func groupByHost(list []*mail.Address) map[string][]string {
 func (p *mailBox) Update(j ...*Job) error {
 	return nil
 }
+
+var sqlGetNJobs = `
+		with jobs as (
+			update queue main
+			set date_added=now(), attempts=attempts+1
+			from (
+				select message_id, rcpt
+				from queue
+				order by date_added asc
+				limit $1
+				for update
+			) sub
+			where main.message_id = sub.message_id
+			returning main.message_id, main.rcpt
+		) 
+
+		select id, "from", jobs.rcpt, raw 
+		from jobs 
+		inner join messages 
+		on (message_id=id)`
