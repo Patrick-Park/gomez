@@ -79,12 +79,12 @@ func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
 			continue
 		}
 
-		go srv.createClient(conn)
+		go srv.createTransaction(conn)
 	}
 }
 
-// createClient creates a new client based on the given connection.
-func (s server) createClient(conn net.Conn) {
+// createTransaction creates a new client based on the given connection.
+func (s server) createTransaction(conn net.Conn) {
 	defer conn.Close()
 
 	ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())

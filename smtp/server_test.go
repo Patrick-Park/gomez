@@ -68,7 +68,7 @@ func TestServerRun(t *testing.T) {
 
 func TestServerCreateClient_Crash(t *testing.T) {
 	testServer := new(server)
-	testServer.createClient(&mocks.Conn{RemoteAddress: "bogus"})
+	testServer.createTransaction(&mocks.Conn{RemoteAddress: "bogus"})
 }
 
 // Should create a client that picks up commands
@@ -95,7 +95,7 @@ func TestServerCreateClient(t *testing.T) {
 	wg.Add(1)
 
 	go func() {
-		testServer.createClient(sc)
+		testServer.createTransaction(sc)
 		wg.Done()
 	}()
 
