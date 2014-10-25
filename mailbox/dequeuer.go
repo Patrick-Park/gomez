@@ -32,7 +32,6 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 	}
 
 	rows, err := p.db.Query(sqlGetNJobs, len(jobs)) // SQL is at the bottom of file
-
 	if err != nil {
 		return
 	}
