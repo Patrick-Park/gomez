@@ -1,5 +1,5 @@
 /*
-This package is work in progress
+This file is work in progress. Implementation is only a draft.
 */
 
 package mailbox
