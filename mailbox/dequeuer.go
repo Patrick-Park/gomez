@@ -1,6 +1,11 @@
+/*
+This package is work in progress
+*/
+
 package mailbox
 
 import (
+	"errors"
 	"log"
 	"net/mail"
 )
@@ -19,8 +24,14 @@ type Job struct {
 	Dest map[string][]string // The recipients grouped by host-to-users
 }
 
+var ErrZeroLengthSlice = errors.New("The given slice has length 0.")
+
 // Dequeue will retrieve the given number of jobs ordered by date
 func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
+	if len(jobs) == 0 {
+		return 0, ErrZeroLengthSlice
+	}
+
 	rows, err := p.db.Query(`
 		with jobs as (
 			update queue main

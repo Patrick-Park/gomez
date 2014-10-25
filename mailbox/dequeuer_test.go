@@ -35,15 +35,15 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		t.Errorf("Error settings up messages: %s", err)
 	}
 
-	j := make([]*Job, 2)
-	n, err := pb.Dequeue(j)
+	jobs := make([]*Job, 4)
+	n, err := pb.Dequeue(jobs)
 	if err != nil {
 		t.Errorf("Error on dequeue: %s", err)
 	}
 
 	t.Logf("Dequeued #%d jobs", n)
-	for _, job := range j {
-		t.Logf("%+v from %s", job.Msg, job.Msg.From())
+	for i := 0; i < n; i++ {
+		t.Logf("%+v from %s", jobs[i].Msg, jobs[i].Msg.From())
 	}
 }
 
