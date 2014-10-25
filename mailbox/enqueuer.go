@@ -86,14 +86,14 @@ func (mb *mailBox) newRunner(data interface{}) *runner {
 }
 
 // run executes a set of actions and returns on the first error
-func (msg *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
-	tx, err := msg.db.Begin()
+func (rn *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
+	tx, err := rn.db.Begin()
 	if err != nil {
 		return err
 	}
 
 	for _, action := range fn {
-		err := action(tx, msg.data)
+		err := action(tx, rn.data)
 		if err != nil {
 			tx.Rollback()
 			return err
