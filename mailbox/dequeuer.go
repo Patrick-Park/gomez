@@ -50,15 +50,15 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 		if err != nil {
 			return
 		}
-		job.Dest = groupByHost(destList)
 
 		var fromAddr *mail.Address
 		fromAddr, err = mail.ParseAddress(from)
 		if err != nil {
 			return
 		}
-		job.Msg.SetFrom(fromAddr)
 
+		job.Msg.SetFrom(fromAddr)
+		job.Dest = groupByHost(destList)
 		jobs[n] = job
 	}
 
