@@ -74,14 +74,14 @@ func (mb *mailBox) newTransaction(data interface{}) *dataTransaction {
 }
 
 // run executes a set of actions and returns on the first error
-func (rn *dataTransaction) do(fn ...func(t *sql.Tx, d interface{}) error) error {
-	tx, err := rn.db.Begin()
+func (dt *dataTransaction) do(fn ...func(t *sql.Tx, d interface{}) error) error {
+	tx, err := dt.db.Begin()
 	if err != nil {
 		return err
 	}
 
 	for _, action := range fn {
-		err := action(tx, rn.context)
+		err := action(tx, dt.context)
 		if err != nil {
 			tx.Rollback()
 			return err
