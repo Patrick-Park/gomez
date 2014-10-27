@@ -55,26 +55,26 @@ func (mb *mailBox) GUID() (id uint64, err error) {
 
 // Enqueue delivers to local inboxes and queues remote deliveries.
 func (mb *mailBox) Enqueue(msg *Message) error {
-	return mb.newRunner(msg).run(
+	return mb.newTransaction(msg).do(
 		storeMessage,
 		enqueueOutbound,
 		deliverInbound,
 	)
 }
 
-// runner can execute multiple actions within a database transaction using a context
-type runner struct {
+// dataTransaction can execute multiple actions within a database transaction using a context
+type dataTransaction struct {
 	db      *sql.DB
 	context interface{}
 }
 
-// newRunner creates a new runner in the given context
-func (mb *mailBox) newRunner(data interface{}) *runner {
-	return &runner{mb.db, data}
+// newTransaction creates a new dataTransaction in the given context
+func (mb *mailBox) newTransaction(data interface{}) *dataTransaction {
+	return &dataTransaction{mb.db, data}
 }
 
 // run executes a set of actions and returns on the first error
-func (rn *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
+func (rn *dataTransaction) do(fn ...func(t *sql.Tx, d interface{}) error) error {
 	tx, err := rn.db.Begin()
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func (rn *runner) run(fn ...func(t *sql.Tx, d interface{}) error) error {
 	return tx.Commit()
 }
 
-// storeMessage is a runner action that saves the message to the db transaction.
+// storeMessage is a dataTransaction action that saves the message to the db transaction.
 func storeMessage(tx *sql.Tx, ctx interface{}) error {
 	msg, ok := ctx.(*Message)
 	if !ok {

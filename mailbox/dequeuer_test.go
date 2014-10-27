@@ -100,7 +100,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		CleanDB(pb.db)
 
 		if len(test.setupData) != 0 {
-			err = pb.newRunner(test.setupData).run(setupMessages, setupQueue)
+			err = pb.newTransaction(test.setupData).do(setupMessages, setupQueue)
 			if err != nil {
 				t.Errorf("Error settings up messages (is DB clean?): %s", err)
 			}
