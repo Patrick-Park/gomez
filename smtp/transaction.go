@@ -89,7 +89,6 @@ type reply struct {
 // separate lines via LF (\n)
 func (r reply) String() string {
 	var output string
-
 	lines := strings.Split(r.Msg, "\n")
 	for n, line := range lines {
 		format := "%d-%s\n"
@@ -99,7 +98,6 @@ func (r reply) String() string {
 
 		output += fmt.Sprintf(format, r.Code, line)
 	}
-
 	return output
 }
 
