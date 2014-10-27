@@ -28,7 +28,8 @@ type transaction struct {
 	ID string
 	// The message that the client is building via the current transaction.
 	Message *mailbox.Message
-	// The current state of the transaction.
+	// The current state of the transaction. A transaction can be in the following
+	// states: stateHELO, stateMAIL, stateRCPT and stateDATA.
 	Mode int
 
 	host     host            // Host server instance
