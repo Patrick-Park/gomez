@@ -123,7 +123,7 @@ func TestServer_Query_Calls_MailBox(t *testing.T) {
 	queryCalled := false
 	testServer := &server{
 		Enqueuer: &mailbox.MockEnqueuer{
-			QueryMock: func(addr *mail.Address) mailbox.QueryResult {
+			QueryMock: func(addr *mail.Address) int {
 				queryCalled = true
 				return mailbox.QuerySuccess
 			},
@@ -409,7 +409,7 @@ func TestServer_SMTP_Sending(t *testing.T) {
 
 				return nil
 			},
-			QueryMock: func(addr *mail.Address) mailbox.QueryResult {
+			QueryMock: func(addr *mail.Address) int {
 				return mailbox.QuerySuccess
 			},
 			GUIDMock: func() (uint64, error) { return 555, nil },

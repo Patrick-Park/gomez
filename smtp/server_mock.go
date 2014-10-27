@@ -3,7 +3,6 @@ package smtp
 import (
 	"net/mail"
 
-	"github.com/gbbr/gomez/mailbox"
 	"github.com/gbbr/jamon"
 )
 
@@ -11,7 +10,7 @@ type mockHost struct {
 	RunMock      func(*transaction, string) error
 	DigestMock   func(*transaction) error
 	SettingsMock func() jamon.Group
-	QueryMock    func(*mail.Address) mailbox.QueryResult
+	QueryMock    func(*mail.Address) int
 }
 
 func (h mockHost) run(c *transaction, m string) error {
@@ -26,6 +25,6 @@ func (h mockHost) settings() jamon.Group {
 	return h.SettingsMock()
 }
 
-func (h mockHost) query(addr *mail.Address) mailbox.QueryResult {
+func (h mockHost) query(addr *mail.Address) int {
 	return h.QueryMock(addr)
 }

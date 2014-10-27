@@ -15,16 +15,14 @@ type Enqueuer interface {
 	Enqueue(msg *Message) error
 	// GUID obtains a unique message identification number in 64 bits.
 	GUID() (uint64, error)
-	// query searches the server for an address.
-	Query(addr *mail.Address) QueryResult
+	// query searches the server for an address and returns a query status, which
+	// can be QueryNotFound, QuerySuccess, QueryNotLocal or QueryError.
+	Query(addr *mail.Address) int
 }
-
-// QueryResult reflects the outcome of the result of querying the mailbox
-type QueryResult int
 
 const (
 	// QueryNotFound indicates that a user is local, but not found.
-	QueryNotFound QueryResult = iota
+	QueryNotFound = iota
 	// QuerySuccess indicates that the user was found locally.
 	QuerySuccess
 	// QueryNotLocal indicates that the user may exist, but is not local.
@@ -152,8 +150,8 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 	return err
 }
 
-// query searches for the given address. See QueryResult for return types.
-func (mb *mailBox) Query(addr *mail.Address) QueryResult {
+// query searches for the given address. See int for return types.
+func (mb *mailBox) Query(addr *mail.Address) int {
 	var result string
 	user, host := SplitUserHost(addr)
 

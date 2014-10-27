@@ -251,7 +251,7 @@ func TestEnqueuer_Mock(t *testing.T) {
 	var nqm Enqueuer = &MockEnqueuer{
 		EnqueueMock: func(m *Message) error { return nil },
 		GUIDMock:    func() (uint64, error) { return 3, nil },
-		QueryMock:   func(m *mail.Address) QueryResult { return QueryNotLocal },
+		QueryMock:   func(m *mail.Address) int { return QueryNotLocal },
 	}
 
 	if nqm.Enqueue(&Message{}) != nil {
@@ -287,7 +287,7 @@ func TestEnqueuer_Query(t *testing.T) {
 
 	for _, test := range []struct {
 		query  *mail.Address
-		result QueryResult
+		result int
 	}{
 		{&mail.Address{"", "name@domain.tld"}, QuerySuccess},
 		{&mail.Address{"", "gabe@yahoo.com"}, QuerySuccess},

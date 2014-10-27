@@ -11,12 +11,9 @@ import (
 	"github.com/gbbr/gomez/mailbox"
 )
 
-// transactionState is the state an SMTP transaction is in.
-type transactionState int
-
 const (
 	// stateHELO is the initial state. HELO/EHLO command is expected.
-	stateHELO transactionState = iota
+	stateHELO = iota
 	// stateMAIL is the post-HELO state. The Return-Path address is expected.
 	stateMAIL
 	// stateRCPT is the post-MAIL mode. The recipient data is expected.
@@ -32,7 +29,7 @@ type transaction struct {
 	// The message that the client is building via the current transaction.
 	Message *mailbox.Message
 	// The current state of the transaction.
-	Mode transactionState
+	Mode int
 
 	host     host            // Host server instance
 	conn     net.Conn        // Network connection

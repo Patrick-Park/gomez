@@ -22,8 +22,8 @@ func TestCmd_Modes_and_Codes(t *testing.T) {
 		Fn        func(*transaction, string) error
 		Param     string
 		ExpCode   int
-		StartMode transactionState
-		ExpMode   transactionState
+		StartMode int
+		ExpMode   int
 		Hint      string
 	}{
 		{cmdHELO, "other name", 250, stateHELO, stateMAIL, "HELO"},
@@ -132,7 +132,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is enabled
 	client.host = &mockHost{
-		QueryMock:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
+		QueryMock:    func(addr *mail.Address) int { return mailbox.QueryNotLocal },
 		SettingsMock: func() jamon.Group { return jamon.Group{"relay": "true"} },
 	}
 
@@ -152,7 +152,7 @@ func TestCmdRCPT_User_Not_Local(t *testing.T) {
 
 	// Relay is disabled
 	client.host = &mockHost{
-		QueryMock:    func(addr *mail.Address) mailbox.QueryResult { return mailbox.QueryNotLocal },
+		QueryMock:    func(addr *mail.Address) int { return mailbox.QueryNotLocal },
 		SettingsMock: func() jamon.Group { return jamon.Group{} },
 	}
 
@@ -274,7 +274,7 @@ func getTestClient() (*transaction, *textproto.Conn) {
 		Message: new(mailbox.Message),
 		text:    sconn,
 		host: &mockHost{
-			QueryMock: func(addr *mail.Address) mailbox.QueryResult {
+			QueryMock: func(addr *mail.Address) int {
 				switch strings.Split(addr.Address, "@")[0] {
 				case "not_found":
 					return mailbox.QueryNotFound

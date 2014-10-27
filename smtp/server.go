@@ -23,7 +23,7 @@ type host interface {
 	// settings returns the server's configuration flags.
 	settings() jamon.Group
 	// query searches on the server for a given address.
-	query(addr *mail.Address) mailbox.QueryResult
+	query(addr *mail.Address) int
 }
 
 // Host server instance.
@@ -110,7 +110,7 @@ func (s server) createTransaction(conn net.Conn) {
 func (s server) settings() jamon.Group { return s.config }
 
 // query asks the attached enqueuer to search for an address.
-func (s server) query(addr *mail.Address) mailbox.QueryResult {
+func (s server) query(addr *mail.Address) int {
 	return s.Enqueuer.Query(addr)
 }
 

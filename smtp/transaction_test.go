@@ -28,7 +28,7 @@ func TestReplyString(t *testing.T) {
 }
 
 // It should pass the correct message to the host's run
-// and it should be able to alter the client's transactionState
+// and it should be able to alter the client's int
 func TestClientServe(t *testing.T) {
 	var (
 		wg, wgt sync.WaitGroup
@@ -73,7 +73,7 @@ func TestClientServe(t *testing.T) {
 
 	testCases := []struct {
 		msg     string
-		expMode transactionState
+		expMode int
 	}{
 		{"ABCD", stateHELO},
 		{"ERRR", stateHELO},
@@ -138,7 +138,7 @@ func TestClientServe_Error(t *testing.T) {
 	wg.Wait()
 }
 
-// It should reset the client's state (ID, transactionState and Message)
+// It should reset the client's state (ID, int and Message)
 func TestClientReset(t *testing.T) {
 	testClient := &transaction{
 		Mode:    stateRCPT,
