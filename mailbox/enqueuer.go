@@ -77,7 +77,6 @@ func (dt *dataTransaction) do(fn ...func(t *sql.Tx, d interface{}) error) error 
 	if err != nil {
 		return err
 	}
-
 	for _, action := range fn {
 		err := action(tx, dt.context)
 		if err != nil {
@@ -85,7 +84,6 @@ func (dt *dataTransaction) do(fn ...func(t *sql.Tx, d interface{}) error) error 
 			return err
 		}
 	}
-
 	return tx.Commit()
 }
 
@@ -101,7 +99,6 @@ func storeMessage(tx *sql.Tx, ctx interface{}) error {
 		VALUES ($1, $2, $3, $4)`,
 		msg.ID, msg.From().String(), MakeAddressList(msg.Rcpt()), msg.Raw,
 	)
-
 	return err
 }
 
@@ -120,7 +117,6 @@ func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 			msg.ID, MakeAddressList(msg.Outbound()),
 		)
 	}
-
 	return err
 }
 
@@ -135,7 +131,6 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 	if n := len(msg.Inbound()); n > 0 {
 		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
 		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
-
 		for i, addr := range msg.Inbound() {
 			user, host := SplitUserHost(addr)
 			q += fmt.Sprintf(v, user, host, msg.ID)
@@ -143,18 +138,16 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 				q += ","
 			}
 		}
-
 		_, err = tx.Exec(q)
 	}
-
 	return err
 }
 
 // query searches for the given address. See int for return types.
 func (mb *mailBox) Query(addr *mail.Address) int {
-	var result string
 	user, host := SplitUserHost(addr)
 
+	var result string
 	err := mb.db.
 		QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", user, host).
 		Scan(&result)
