@@ -25,7 +25,7 @@ type Job struct {
 }
 
 // host to jobs :: we may send multiple messages to one host
-// type jobs map[string][]Job
+// type jobs map[string]map[*Message][]*mail.Address
 //
 // Job
 // type Job struct { Msg *Message; Rcpt string }
