@@ -1,8 +1,6 @@
 /*
 *
-
 	This file is work in progress. Implementation is only a draft.
-
 *
 */
 
@@ -25,6 +23,12 @@ type Job struct {
 	Msg  *Message            // The actual message to be delivered
 	Dest map[string][]string // The recipients grouped by host-to-users
 }
+
+// host to jobs :: we may send multiple messages to one host
+// type jobs map[string][]Job
+//
+// Job
+// type Job struct { Msg *Message; Rcpt string }
 
 var ErrZeroLengthSlice = errors.New("The given slice has length 0.")
 
