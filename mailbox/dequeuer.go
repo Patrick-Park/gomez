@@ -72,18 +72,18 @@ func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
 }
 
 func groupByHost(list []*mail.Address) map[string][]string {
-	group := make(map[string][]string)
+	grp := make(map[string][]string)
 
 	for _, addr := range list {
 		_, h := SplitUserHost(addr)
-		if _, ok := group[h]; !ok {
-			group[h] = make([]string, 0, 1)
+		if _, ok := grp[h]; !ok {
+			grp[h] = make([]string, 0, 1)
 		}
 
-		group[h] = append(group[h], addr.Address)
+		grp[h] = append(grp[h], addr.Address)
 	}
 
-	return group
+	return grp
 }
 
 func (p *mailBox) Update(j ...*Job) error {
