@@ -52,26 +52,21 @@ func (mb *mailBox) Dequeue(n int) (map[string]Package, error) {
 		}
 
 		msg.from = from
-		extendPackages(pkgs, &msg, rcpt)
+
+		for _, addr := range rcpt {
+			_, h := SplitUserHost(addr)
+			if _, ok := pkgs[h]; !ok {
+				pkgs[h] = make(Package)
+			}
+			if _, ok := pkgs[h][&msg]; !ok {
+				pkgs[h][&msg] = make([]*mail.Address, 0, 1)
+			}
+
+			pkgs[h][&msg] = append(pkgs[h][&msg], addr)
+		}
 	}
 
 	return pkgs, nil
-}
-
-// extendPackages extends a given package list by adding the passed message
-// based on the set recipients.
-func extendPackages(pkgs map[string]Package, msg *Message, rcpt []*mail.Address) {
-	for _, addr := range rcpt {
-		_, h := SplitUserHost(addr)
-
-		if _, ok := pkgs[h]; !ok {
-			pkgs[h] = make(Package)
-		}
-		if _, ok := pkgs[h][msg]; !ok {
-			pkgs[h][msg] = make([]*mail.Address, 0, 1)
-		}
-		pkgs[h][msg] = append(pkgs[h][msg], addr)
-	}
 }
 
 var sqlGetNJobs = `
