@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/mail"
-	"reflect"
 	"testing"
 )
 
@@ -18,7 +16,7 @@ type testJob struct {
 var setupJobs = []testJob{
 	testJob{1, "andy@gmail.com", "jim, jane", "hi!", "<iraq@mommy.co>, <daddy@mommy.co>, jim@ji.joe"},
 	testJob{5, `"doe jim" <doe@jim.co.uk>`, "tim, tony", "supe!", `a@b.com, "Eric" <c@d.be>`},
-	testJob{7, "robert@hotmail.eu", "janise", "am going home guys!", `"Lemur" <b@bb.b>`},
+	testJob{7, "robert@hotmail.eu", "janise", "am going home guys!", `"Lemur" <b@bb.b>, x@b.com`},
 }
 
 func TestDequeuer_Dequeue(t *testing.T) {
@@ -30,101 +28,20 @@ func TestDequeuer_Dequeue(t *testing.T) {
 	}
 	defer pb.Close()
 
-	for _, test := range []struct {
-		setupData []testJob
-		n         int
-		expJobs   []*Job
-	}{
-		{setupData: setupJobs, n: 0, expJobs: []*Job{}},
-		{setupData: []testJob{}, n: 100, expJobs: []*Job{}},
-		{
-			setupData: setupJobs,
-			n:         1,
-			expJobs: []*Job{
-				&Job{
-					&Message{ID: 1, Raw: "hi!", from: &mail.Address{"", "andy@gmail.com"}},
-					map[string][]string{
-						"mommy.co": []string{"iraq@mommy.co", "daddy@mommy.co"},
-						"ji.joe":   []string{"jim@ji.joe"},
-					},
-				},
-			},
-		},
-		{
-			setupData: setupJobs,
-			n:         2,
-			expJobs: []*Job{
-				&Job{
-					&Message{ID: 1, Raw: "hi!", from: &mail.Address{"", "andy@gmail.com"}},
-					map[string][]string{
-						"mommy.co": []string{"iraq@mommy.co", "daddy@mommy.co"},
-						"ji.joe":   []string{"jim@ji.joe"},
-					},
-				},
-				&Job{
-					&Message{ID: 5, Raw: "supe!", from: &mail.Address{"doe jim", "doe@jim.co.uk"}},
-					map[string][]string{
-						"b.com": []string{"a@b.com"},
-						"d.be":  []string{"c@d.be"},
-					},
-				},
-			},
-		},
-		{
-			setupData: setupJobs,
-			n:         5,
-			expJobs: []*Job{
-				&Job{
-					&Message{ID: 1, Raw: "hi!", from: &mail.Address{"", "andy@gmail.com"}},
-					map[string][]string{
-						"mommy.co": []string{"iraq@mommy.co", "daddy@mommy.co"},
-						"ji.joe":   []string{"jim@ji.joe"},
-					},
-				},
-				&Job{
-					&Message{ID: 5, Raw: "supe!", from: &mail.Address{"doe jim", "doe@jim.co.uk"}},
-					map[string][]string{
-						"b.com": []string{"a@b.com"},
-						"d.be":  []string{"c@d.be"},
-					},
-				},
-				&Job{
-					&Message{ID: 7, Raw: "am going home guys!", from: &mail.Address{"", "robert@hotmail.eu"}},
-					map[string][]string{
-						"bb.b": []string{"b@bb.b"},
-					},
-				},
-			},
-		},
-	} {
-		CleanDB(pb.db)
-
-		if len(test.setupData) != 0 {
-			err = pb.newTransaction(test.setupData).do(setupMessages, setupQueue)
-			if err != nil {
-				t.Errorf("Error settings up messages (is DB clean?): %s", err)
-			}
-		}
-
-		jobs := make([]*Job, test.n)
-		n, err := pb.Dequeue(jobs)
-		if test.n == 0 {
-			if n != 0 && err != ErrZeroLengthSlice {
-				t.Error("Expected error.")
-			}
-			continue
-		}
-
-		if err != nil {
-			t.Errorf("Error on dequeue: %s", err)
-		}
-
-		if !reflect.DeepEqual(jobs[:n], test.expJobs) {
-			t.Errorf("Expected %+v, got %+v", test.expJobs, jobs)
-		}
+	err = pb.newTransaction(setupJobs).do(setupMessages, setupQueue)
+	if err != nil {
+		t.Errorf("Error setting up %s", err)
 	}
+
+	pkgs, err := pb.Dequeue(5)
+	if err != nil {
+		t.Errorf("Could not dequeue: %s", err)
+	}
+	t.Logf("%v", pkgs)
 }
 
+// setupMessages attempts to set up the passed messages within the
+// transaction.
 func setupMessages(tx *sql.Tx, j interface{}) error {
 	jobs, ok := j.([]testJob)
 	if !ok {
@@ -143,6 +60,8 @@ func setupMessages(tx *sql.Tx, j interface{}) error {
 	return err
 }
 
+// setupQueue attempts to set up the queue for the passed messages in the
+// context of a given transaction.
 func setupQueue(tx *sql.Tx, j interface{}) error {
 	jobs, ok := j.([]testJob)
 	if !ok {

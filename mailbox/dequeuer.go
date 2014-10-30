@@ -6,88 +6,75 @@
 
 package mailbox
 
-import (
-	"errors"
-	"net/mail"
-)
+import "net/mail"
+
+// A Package is a set of messages mapped to the recipients that
+// they need to be delivered to.
+type Package map[*Message][]*mail.Address
 
 type Dequeuer interface {
-	// Dequeue n jobs from the queue, up to the slice length.
-	Dequeue(jobs []*Job) (n int, err error)
-	// Update one or more given jobs
-	Update(j ...*Job) error
+	// Dequeue pulls n messages from the queue and sorts them
+	// into packages, mapped by the host that they need to be
+	// delivered to.
+	Dequeue(n int) (map[string]Package, error)
+
+	// Flush flushes the passed package.
+	Flush(pkg *Package) error
 }
 
-// Job holds a message and the recipients it needs to arrive at
-type Job struct {
-	Msg  *Message            // The actual message to be delivered
-	Dest map[string][]string // The recipients grouped by host-to-users
-}
+func (mb *mailBox) Dequeue(n int) (map[string]Package, error) {
+	pkgs := make(map[string]Package)
 
-// host to jobs :: we may send multiple messages to one host
-// map[string]Job
-//
-// Job
-// type Job map[*Message][]*mail.Address
-
-var ErrZeroLengthSlice = errors.New("The given slice has length 0.")
-
-// Dequeue will retrieve the given number of jobs ordered by date
-func (p *mailBox) Dequeue(jobs []*Job) (n int, err error) {
-	if jobs == nil || len(jobs) == 0 {
-		return 0, ErrZeroLengthSlice
-	}
-
-	rows, err := p.db.Query(sqlGetNJobs, len(jobs)) // SQL is at the bottom of file
+	rows, err := mb.db.Query(sqlGetNJobs, n)
 	if err != nil {
-		return
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			f, d string
+			msg  Message
+		)
+
+		err := rows.Scan(&msg.ID, &f, &d, &msg.Raw)
+		if err != nil {
+			return nil, err
+		}
+
+		from, err := mail.ParseAddress(f)
+		if err != nil {
+			return nil, err
+		}
+
+		rcpt, err := mail.ParseAddressList(d)
+		if err != nil {
+			return nil, err
+		}
+
+		msg.from = from
+		extendPackages(pkgs, &msg, rcpt)
 	}
 
-	for n = 0; rows.Next() && n < len(jobs); n++ {
-		job := &Job{new(Message), make(map[string][]string)}
-
-		var dest, from string
-		err = rows.Scan(&job.Msg.ID, &from, &dest, &job.Msg.Raw)
-		if err != nil {
-			return
-		}
-
-		destList, err := mail.ParseAddressList(dest)
-		if err != nil {
-			return n, err
-		}
-
-		fromAddr, err := mail.ParseAddress(from)
-		if err != nil {
-			return n, err
-		}
-
-		job.Msg.SetFrom(fromAddr)
-		job.Dest = groupByHost(destList)
-
-		jobs[n] = job
-	}
-
-	return
+	return pkgs, nil
 }
 
-func groupByHost(list []*mail.Address) map[string][]string {
-	grp := make(map[string][]string)
-
-	for _, addr := range list {
+// extendPackages extends a given package list by adding the passed message
+// based on the set recipients.
+func extendPackages(pkgs map[string]Package, msg *Message, rcpt []*mail.Address) {
+	for _, addr := range rcpt {
 		_, h := SplitUserHost(addr)
-		if _, ok := grp[h]; !ok {
-			grp[h] = make([]string, 0, 1)
+
+		if _, ok := pkgs[h]; !ok {
+			pkgs[h] = make(Package)
 		}
 
-		grp[h] = append(grp[h], addr.Address)
+		if _, ok := pkgs[h][msg]; !ok {
+			pkgs[h][msg] = make([]*mail.Address, 0, 1)
+		}
+
+		pkgs[h][msg] = append(pkgs[h][msg], addr)
 	}
-
-	return grp
-}
-
-func (p *mailBox) Update(j ...*Job) error {
-	return nil
 }
 
 var sqlGetNJobs = `

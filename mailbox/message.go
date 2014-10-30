@@ -27,9 +27,9 @@ func (m *Message) AddInbound(rcpt *mail.Address) {
 // Inbound retrieves local recipients.
 func (m Message) Inbound() []*mail.Address { return m.rcptIn }
 
-// AddOutbound adds a remote recipient.
-func (m *Message) AddOutbound(rcpt *mail.Address) {
-	m.rcptOut = append(m.rcptOut, rcpt)
+// AddOutbound adds one or more remote recipients.
+func (m *Message) AddOutbound(rcpt ...*mail.Address) {
+	m.rcptOut = append(m.rcptOut, rcpt...)
 }
 
 // Outbound receives all out-bound recipients.
