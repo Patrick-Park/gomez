@@ -1,9 +1,4 @@
-/*
-*
-	This file is work in progress. Implementation is only a draft.
-*
-*/
-
+// This is still a draft. Work in progress.
 package mailbox
 
 import "net/mail"
