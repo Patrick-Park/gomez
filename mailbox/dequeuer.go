@@ -36,7 +36,6 @@ func (mb *mailBox) Dequeue(n int) (map[string]Package, error) {
 			f, d string
 			msg  Message
 		)
-
 		err := rows.Scan(&msg.ID, &f, &d, &msg.Raw)
 		if err != nil {
 			return nil, err
@@ -68,11 +67,9 @@ func extendPackages(pkgs map[string]Package, msg *Message, rcpt []*mail.Address)
 		if _, ok := pkgs[h]; !ok {
 			pkgs[h] = make(Package)
 		}
-
 		if _, ok := pkgs[h][msg]; !ok {
 			pkgs[h][msg] = make([]*mail.Address, 0, 1)
 		}
-
 		pkgs[h][msg] = append(pkgs[h][msg], addr)
 	}
 }
