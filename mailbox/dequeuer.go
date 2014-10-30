@@ -25,10 +25,10 @@ type Job struct {
 }
 
 // host to jobs :: we may send multiple messages to one host
-// type jobs map[string]map[*Message][]*mail.Address
+// map[string]Job
 //
 // Job
-// type Job struct { Msg *Message; Rcpt string }
+// type Job map[*Message][]*mail.Address
 
 var ErrZeroLengthSlice = errors.New("The given slice has length 0.")
 
