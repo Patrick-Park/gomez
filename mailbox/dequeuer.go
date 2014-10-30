@@ -19,7 +19,6 @@ type Dequeuer interface {
 
 func (mb *mailBox) Dequeue(n int) (map[string]Package, error) {
 	pkgs := make(map[string]Package)
-
 	rows, err := mb.db.Query(sqlGetNJobs, n)
 	if err != nil {
 		return nil, err
