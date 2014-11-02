@@ -89,7 +89,7 @@ func (s server) createTransaction(conn net.Conn) {
 		return
 	}
 
-	c := &transaction{
+	t := &transaction{
 		Message: new(mailbox.Message),
 		Mode:    stateHELO,
 		host:    s,
@@ -98,12 +98,12 @@ func (s server) createTransaction(conn net.Conn) {
 		addrIP:  ip,
 	}
 
-	if helloHosts, _ := net.LookupAddr(ip); len(helloHosts) > 0 {
-		c.addrHost = strings.TrimRight(helloHosts[0], ".") + " "
+	if hosts, _ := net.LookupAddr(ip); len(hosts) > 0 {
+		t.addrHost = strings.TrimRight(hosts[0], ".") + " "
 	}
 
-	c.notify(reply{220, s.config.Get("host") + " Gomez SMTP"})
-	c.serve()
+	t.notify(reply{220, s.config.Get("host") + " Gomez SMTP"})
+	t.serve()
 }
 
 // settings returns the configuration of the server.

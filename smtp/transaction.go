@@ -60,7 +60,6 @@ func (c *transaction) serve() {
 // reset empties the message buffer and sets the state back to HELO.
 func (c *transaction) reset() {
 	c.Message = new(mailbox.Message)
-
 	if c.Mode > stateHELO {
 		c.Mode = stateMAIL
 	}
