@@ -1,6 +1,6 @@
 package mailbox
 
-var _ Dequeuer = new(MockDequeuer)
+var _ Dequeuer = (*MockDequeuer)(nil)
 
 // MockDequeuer is a configurable mock for the Dequeuer interface.
 type MockDequeuer struct {

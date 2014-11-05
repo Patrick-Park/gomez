@@ -2,7 +2,7 @@ package mailbox
 
 import "net/mail"
 
-var _ Enqueuer = new(MockEnqueuer)
+var _ Enqueuer = (*MockEnqueuer)(nil)
 
 // MockEnqueuer is a configurable mock that implements the Enqueuer interface.
 type MockEnqueuer struct {
