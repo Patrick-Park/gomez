@@ -40,18 +40,17 @@ func New(dbString string) (*mailBox, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &mailBox{db}, nil
 }
 
 // GUID extracts a unique ID from a database sequence.
-func (mb *mailBox) GUID() (id uint64, err error) {
+func (mb mailBox) GUID() (id uint64, err error) {
 	err = mb.db.QueryRow("SELECT nextval('message_ids')").Scan(&id)
 	return
 }
 
 // Enqueue delivers to local inboxes and queues remote deliveries.
-func (mb *mailBox) Enqueue(msg *Message) error {
+func (mb mailBox) Enqueue(msg *Message) error {
 	return mb.newTransaction(msg).do(
 		storeMessage,
 		enqueueOutbound,
@@ -66,12 +65,12 @@ type dataTransaction struct {
 }
 
 // newTransaction creates a new dataTransaction in the given context
-func (mb *mailBox) newTransaction(data interface{}) *dataTransaction {
+func (mb mailBox) newTransaction(data interface{}) *dataTransaction {
 	return &dataTransaction{mb.db, data}
 }
 
 // run executes a set of actions and returns on the first error
-func (dt *dataTransaction) do(fn ...func(t *sql.Tx, d interface{}) error) error {
+func (dt dataTransaction) do(fn ...func(t *sql.Tx, d interface{}) error) error {
 	tx, err := dt.db.Begin()
 	if err != nil {
 		return err
@@ -156,7 +155,7 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 }
 
 // query searches for the given address. See int for return types.
-func (mb *mailBox) Query(addr *mail.Address) int {
+func (mb mailBox) Query(addr *mail.Address) int {
 	user, host := SplitUserHost(addr)
 
 	var result string
@@ -186,6 +185,6 @@ func (mb *mailBox) Query(addr *mail.Address) int {
 }
 
 // Closes the database connection.
-func (mb *mailBox) Close() error {
+func (mb mailBox) Close() error {
 	return mb.db.Close()
 }

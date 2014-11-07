@@ -18,12 +18,12 @@ type Dequeuer interface {
 
 // Dequeue returns up to limit number of hosts along with their deliveries.
 // If it fails, Dequeue will return an error.
-func (mb *mailBox) Dequeue(limit int) (map[string]Delivery, error) {
+func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 	return nil, nil
 }
 
 // Report removes a delivered task from the queue or marks an extra attempt
 // if it has failed.
-func (mb *mailBox) Report(user, host string, msgID uint64, delivered bool) error {
+func (mb mailBox) Report(user, host string, msgID uint64, delivered bool) error {
 	return nil
 }
