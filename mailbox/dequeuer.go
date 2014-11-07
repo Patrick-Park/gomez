@@ -3,94 +3,29 @@ package mailbox
 
 import "net/mail"
 
-// A Package is a set of messages mapped to the recipients that
+// A Delivery is a set of messages mapped to the recipients that
 // they need to be delivered to.
-type Package map[*Message][]*mail.Address
+type Delivery map[*Message][]*mail.Address
 
 type Dequeuer interface {
 	// Dequeue pulls n messages from the queue and sorts them
 	// into packages, mapped by the host that they need to be
 	// delivered to.
-	Dequeue(n int) (map[string]Package, error)
+	Dequeue(n int) (map[string]Delivery, error)
 
-	// Flush flushes the passed package.
-	Flush(pkg *Package) error
+	// Report updates the status of a delivery. If it was delivered it
+	// removes it from the queue, otherwise it updates its status.
+	Report(user, host string, msgID uint64, delivered bool) error
 }
 
-/*
-
-Delivery report?
-
-type Report struct {
-	Host string
-	Msg  *Message
-	User string
+// Dequeue returns up to limit number of hosts along with their deliveries.
+// If it fails, Dequeue will return an error.
+func (mb *mailBox) Dequeue(limit int) (map[string]Delivery, error) {
+	return nil, nil
 }
 
-*/
-
-func (mb *mailBox) Dequeue(n int) (map[string]Package, error) {
-	pkgs := make(map[string]Package)
-	rows, err := mb.db.Query(sqlGetNJobs, n)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var (
-			f, d string
-			msg  Message
-		)
-		err := rows.Scan(&msg.ID, &f, &d, &msg.Raw)
-		if err != nil {
-			return nil, err
-		}
-
-		from, err := mail.ParseAddress(f)
-		if err != nil {
-			return nil, err
-		}
-
-		rcpt, err := mail.ParseAddressList(d)
-		if err != nil {
-			return nil, err
-		}
-
-		msg.from = from
-
-		for _, addr := range rcpt {
-			_, h := SplitUserHost(addr)
-			if _, ok := pkgs[h]; !ok {
-				pkgs[h] = make(Package)
-			}
-			if _, ok := pkgs[h][&msg]; !ok {
-				pkgs[h][&msg] = make([]*mail.Address, 0, 1)
-			}
-
-			pkgs[h][&msg] = append(pkgs[h][&msg], addr)
-		}
-	}
-
-	return pkgs, nil
+// Report removes a delivered task from the queue or marks an extra attempt
+// if it has failed.
+func (mb *mailBox) Report(user, host string, msgID uint64, delivered bool) error {
+	return nil
 }
-
-var sqlGetNJobs = `
-	with jobs as (
-		update queue main
-		set date_added=now(), attempts=attempts+1
-		from (
-			select message_id, rcpt
-			from queue
-			order by date_added asc
-			limit $1
-			for update
-		) sub
-		where main.message_id = sub.message_id
-		returning main.message_id, main.rcpt
-	) 
-
-	select id, "from", jobs.rcpt, raw 
-	from jobs 
-	inner join messages 
-	on (message_id=id)`
