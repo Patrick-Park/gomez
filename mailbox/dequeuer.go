@@ -11,7 +11,6 @@ type Dequeuer interface {
 	// Dequeue pulls up to n hosts for delivery and sorts them
 	// mapped by the host to package.
 	Dequeue(n int) (map[string]Delivery, error)
-
 	// Report updates the status of a delivery. If it was delivered it
 	// removes it from the queue, otherwise it updates its status.
 	Report(user, host string, msgID uint64, delivered bool) error
