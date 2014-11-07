@@ -20,7 +20,7 @@ import (
 // Should correctly run commands from spec, echo parameters
 // and reject bad commands or commands that are not in the spec
 func TestServerRun(t *testing.T) {
-	srv := &server{
+	srv := server{
 		spec: commandSpec{
 			"HELO": func(ctx *transaction, params string) error {
 				return ctx.notify(reply{100, params})
@@ -83,7 +83,7 @@ func TestServerCreateClient(t *testing.T) {
 
 	cconn := textproto.NewConn(cc)
 
-	testServer := &server{
+	testServer := server{
 		spec: commandSpec{
 			"EXIT": func(ctx *transaction, params string) error {
 				return io.EOF
@@ -109,7 +109,7 @@ func TestServerCreateClient(t *testing.T) {
 }
 
 func TestServer_Settings(t *testing.T) {
-	testServer := &server{
+	testServer := server{
 		config: jamon.Group{"host": "test", "relay": "true"},
 	}
 
@@ -121,8 +121,8 @@ func TestServer_Settings(t *testing.T) {
 
 func TestServer_Query_Calls_MailBox(t *testing.T) {
 	queryCalled := false
-	testServer := &server{
-		Enqueuer: &mailbox.MockEnqueuer{
+	testServer := server{
+		Enqueuer: mailbox.MockEnqueuer{
 			QueryMock: func(addr *mail.Address) int {
 				queryCalled = true
 				return mailbox.QuerySuccess
