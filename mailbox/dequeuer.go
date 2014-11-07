@@ -8,9 +8,8 @@ import "net/mail"
 type Delivery map[*Message][]*mail.Address
 
 type Dequeuer interface {
-	// Dequeue pulls n messages from the queue and sorts them
-	// into packages, mapped by the host that they need to be
-	// delivered to.
+	// Dequeue pulls up to n hosts for delivery and sorts them
+	// mapped by the host to package.
 	Dequeue(n int) (map[string]Delivery, error)
 
 	// Report updates the status of a delivery. If it was delivered it
