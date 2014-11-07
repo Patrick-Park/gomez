@@ -3,7 +3,6 @@ package mailbox
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/mail"
 
 	_ "github.com/lib/pq"
@@ -137,20 +136,23 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 		return errors.New("Expecting *Message in func deliverOutbound.")
 	}
 
-	var err error
-	if n := len(msg.Inbound()); n > 0 {
-		q := "INSERT INTO mailbox (user_id, message_id) VALUES "
-		v := "((SELECT id FROM users WHERE username='%s' and host='%s'), %d)"
-		for i, addr := range msg.Inbound() {
-			user, host := SplitUserHost(addr)
-			q += fmt.Sprintf(v, user, host, msg.ID)
-			if i < n-1 {
-				q += ","
-			}
-		}
-		_, err = tx.Exec(q)
+	stmt, err := tx.Prepare(`
+		INSERT INTO mailbox (user_id, message_id) VALUES 
+		((SELECT id FROM users WHERE username=$1 and host=$2), $3)
+	`)
+	if err != nil {
+		return err
 	}
-	return err
+	defer stmt.Close()
+
+	for _, rcv := range msg.Inbound() {
+		u, h := SplitUserHost(rcv)
+		_, err = stmt.Exec(u, h, msg.ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // query searches for the given address. See int for return types.
