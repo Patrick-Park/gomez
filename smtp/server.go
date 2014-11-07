@@ -28,7 +28,7 @@ type host interface {
 
 // Host server instance.
 type server struct {
-	spec     *commandSpec
+	spec     commandSpec
 	config   jamon.Group
 	Enqueuer mailbox.Enqueuer
 }
@@ -54,8 +54,8 @@ func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
 	if err != nil {
 		return err
 	}
-
-	spec := &commandSpec{
+	srv := server{Enqueuer: mq, config: cfg}
+	srv.spec = commandSpec{
 		"HELO": cmdHELO,
 		"EHLO": cmdEHLO,
 		"MAIL": cmdMAIL,
@@ -67,15 +67,12 @@ func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
 		"QUIT": cmdQUIT,
 	}
 
-	srv := &server{Enqueuer: mq, config: cfg, spec: spec}
-
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Printf("Error accepting an incoming connection: %s\r\n", err)
 			continue
 		}
-
 		go srv.createTransaction(conn)
 	}
 }
@@ -97,7 +94,6 @@ func (s server) createTransaction(conn net.Conn) {
 		conn:    conn,
 		addrIP:  ip,
 	}
-
 	if hosts, _ := net.LookupAddr(ip); len(hosts) > 0 {
 		t.addrHost = strings.TrimRight(hosts[0], ".") + " "
 	}
@@ -123,7 +119,7 @@ func (s server) run(ctx *transaction, msg string) error {
 	parts := commandFormat.FindStringSubmatch(msg)
 	cmd, params := parts[1], strings.Trim(parts[2], " ")
 
-	command, ok := (*s.spec)[cmd]
+	command, ok := s.spec[cmd]
 	if !ok {
 		return ctx.notify(replyBadCommand)
 	}
@@ -147,14 +143,12 @@ func (s server) digest(client *transaction) error {
 
 		client.Message.ID = id
 	}
-
 	if len(msg.Header["Message-Id"]) == 0 {
 		client.Message.PrependHeader(
 			"Message-ID", "<%x.%d@%s>",
 			time.Now().UnixNano(), client.Message.ID, s.config.Get("host"),
 		)
 	}
-
 	client.Message.PrependHeader(
 		"Received", "from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
 		client.ID, client.addrHost, client.addrIP, s.config.Get("host"), client.Message.ID,
@@ -165,7 +159,6 @@ func (s server) digest(client *transaction) error {
 	if err != nil {
 		return client.notify(replyErrorProcessing)
 	}
-
 	client.reset()
 
 	return client.notify(reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})

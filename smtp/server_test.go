@@ -21,7 +21,7 @@ import (
 // and reject bad commands or commands that are not in the spec
 func TestServerRun(t *testing.T) {
 	srv := &server{
-		spec: &commandSpec{
+		spec: commandSpec{
 			"HELO": func(ctx *transaction, params string) error {
 				return ctx.notify(reply{100, params})
 			},
@@ -84,7 +84,7 @@ func TestServerCreateClient(t *testing.T) {
 	cconn := textproto.NewConn(cc)
 
 	testServer := &server{
-		spec: &commandSpec{
+		spec: commandSpec{
 			"EXIT": func(ctx *transaction, params string) error {
 				return io.EOF
 			},
