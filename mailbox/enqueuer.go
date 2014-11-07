@@ -111,8 +111,8 @@ func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 	stmt, err := tx.Prepare(`
 		INSERT INTO queue 
 		(host, message_id, "user", date_added, attempts) 
-		VALUES ($1, $2, $3, NOW(), 0)
-	`)
+		VALUES ($1, $2, $3, NOW(), 0)`)
+
 	if err != nil {
 		return err
 	}
@@ -138,8 +138,8 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 
 	stmt, err := tx.Prepare(`
 		INSERT INTO mailbox (user_id, message_id) VALUES 
-		((SELECT id FROM users WHERE username=$1 and host=$2), $3)
-	`)
+		((SELECT id FROM users WHERE username=$1 and host=$2), $3)`)
+
 	if err != nil {
 		return err
 	}
