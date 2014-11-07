@@ -109,15 +109,25 @@ func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 		return errors.New("Expecting *Message in func enqueueOutbound.")
 	}
 
-	var err error
-	if len(msg.Outbound()) > 0 {
-		_, err = tx.Exec(
-			`INSERT INTO queue (message_id, rcpt, date_added, attempts) 
-			VALUES ($1, $2, NOW(), 0)`,
-			msg.ID, MakeAddressList(msg.Outbound()),
-		)
+	stmt, err := tx.Prepare(`
+		INSERT INTO queue 
+		(host, message_id, "user", date_added, attempts) 
+		VALUES ($1, $2, $3, NOW(), 0)
+	`)
+	if err != nil {
+		return err
 	}
-	return err
+	defer stmt.Close()
+
+	for _, dst := range msg.Outbound() {
+		u, h := SplitUserHost(dst)
+		_, err = stmt.Exec(h, msg.ID, u)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // deliverInbound delivers mail to local recipients.

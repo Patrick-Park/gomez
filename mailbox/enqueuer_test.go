@@ -84,17 +84,6 @@ func TestPostBox_NextID_Success(t *testing.T) {
 	t.Log(id)
 }
 
-type queueRow struct {
-	MID      uint64
-	Rcpt     string
-	Attempts int
-}
-
-type mailboxRow struct {
-	MID uint64
-	UID uint64
-}
-
 func TestPostBox_Enqueuer(t *testing.T) {
 	EnsureTestDB()
 
@@ -103,10 +92,20 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		t.Errorf("Failed to extract sequence val: %s", err)
 	}
 
+	type queueRow struct {
+		MID        uint64
+		User, Host string
+		Attempts   int
+	}
+	type mailboxRow struct {
+		MID uint64
+		UID uint64
+	}
+
 	for k, test := range []struct {
 		Users        string
 		Msg          *Message
-		QueueItem    queueRow
+		QueueItems   []queueRow
 		MailboxItems []mailboxRow
 		HasErr       bool // Expect error
 	}{
@@ -120,7 +119,10 @@ func TestPostBox_Enqueuer(t *testing.T) {
 				rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"c d", "c@d.com"}},
 				rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
 			},
-			queueRow{123, `"x z" <x@z.com>, "q w" <q@w.eu>`, 0},
+			[]queueRow{
+				{123, "x", "z.com", 0},
+				{123, "q", "w.eu", 0},
+			},
 			[]mailboxRow{{123, 5}, {123, 7}}, false,
 		}, {
 			// Only local
@@ -132,7 +134,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 				rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"c d", "c@d.com"}},
 				rcptOut: []*mail.Address{},
 			},
-			queueRow{}, []mailboxRow{{123, 5}, {123, 7}}, false,
+			[]queueRow{}, []mailboxRow{{123, 5}, {123, 7}}, false,
 		}, {
 			// Only remote
 			"(5, 'a b', 'a', 'b.com'),	(7, 'c d', 'c', 'd.com')",
@@ -143,7 +145,11 @@ func TestPostBox_Enqueuer(t *testing.T) {
 				rcptIn:  []*mail.Address{},
 				rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
 			},
-			queueRow{123, `"x z" <x@z.com>, "q w" <q@w.eu>`, 0}, []mailboxRow{}, false,
+			[]queueRow{
+				{123, "x", "z.com", 0},
+				{123, "q", "w.eu", 0},
+			},
+			[]mailboxRow{}, false,
 		}, {
 			// Error (duplicate inbound)
 			"(5, 'a b', 'a', 'b.com'),	(7, 'c d', 'c', 'd.com')",
@@ -154,7 +160,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 				rcptIn:  []*mail.Address{&mail.Address{"a b", "a@b.com"}, &mail.Address{"a b", "a@b.com"}},
 				rcptOut: []*mail.Address{&mail.Address{"x z", "x@z.com"}, &mail.Address{"q w", "q@w.eu"}},
 			},
-			queueRow{}, []mailboxRow{}, true,
+			[]queueRow{}, []mailboxRow{}, true,
 		},
 	} {
 		// Teardown
@@ -180,21 +186,27 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		}
 
 		// Test that outbound messages were queued
-		var q queueRow
+		var r queueRow
+		q := []queueRow{}
 
-		r := pb.db.QueryRow("SELECT message_id, rcpt, attempts FROM queue")
-		err = r.Scan(&q.MID, &q.Rcpt, &q.Attempts)
-		if err != nil && err != sql.ErrNoRows {
-			t.Errorf("Failed to query queue: %s", err)
+		rows, err := pb.db.Query(`SELECT message_id, "user", host, attempts FROM queue`)
+		if err != nil {
+			t.Errorf("Failed to query: %s", err)
 		}
 
-		if !reflect.DeepEqual(q, test.QueueItem) {
-			t.Errorf("Expected %+v, got %+v", test.QueueItem, q)
+		for rows.Next() {
+			rows.Scan(&r.MID, &r.User, &r.Host, &r.Attempts)
+			q = append(q, r)
+		}
+		rows.Close()
+
+		if !reflect.DeepEqual(q, test.QueueItems) {
+			t.Errorf("Expected %+v, got %+v", test.QueueItems, q)
 		}
 
 		// Test that inbound messages were delivered
-		m := make([]mailboxRow, 0, 10)
-		rows, err := pb.db.Query("SELECT user_id, message_id FROM mailbox")
+		m := []mailboxRow{}
+		rows, err = pb.db.Query("SELECT user_id, message_id FROM mailbox")
 		if err != nil {
 			t.Errorf("Failed to query queue: %s", err)
 		}
@@ -204,12 +216,11 @@ func TestPostBox_Enqueuer(t *testing.T) {
 			rows.Scan(&mr.UID, &mr.MID)
 			m = append(m, mr)
 		}
+		rows.Close()
 
 		if !reflect.DeepEqual(m, test.MailboxItems) {
 			t.Errorf("Expected %+v, got %+v", test.MailboxItems, m)
 		}
-
-		rows.Close()
 	}
 
 	pb.Close()

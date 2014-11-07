@@ -97,8 +97,9 @@ CREATE TABLE messages (
 --
 
 CREATE TABLE queue (
+	host character varying NOT NULL,
     message_id bigint NOT NULL CHECK (message_id <> 0),
-    rcpt character varying NOT NULL,
+    "user" character varying NOT NULL,
     date_added timestamp without time zone NOT NULL,
     attempts integer
 );
