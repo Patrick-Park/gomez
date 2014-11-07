@@ -89,7 +89,7 @@ func (s server) createTransaction(conn net.Conn) {
 		return
 	}
 
-	t := &transaction{
+	t := transaction{
 		Message: new(mailbox.Message),
 		Mode:    stateHELO,
 		host:    s,

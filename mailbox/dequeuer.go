@@ -17,6 +17,18 @@ type Dequeuer interface {
 	Flush(pkg *Package) error
 }
 
+/*
+
+Delivery report?
+
+type Report struct {
+	Host string
+	Msg  *Message
+	User string
+}
+
+*/
+
 func (mb *mailBox) Dequeue(n int) (map[string]Package, error) {
 	pkgs := make(map[string]Package)
 	rows, err := mb.db.Query(sqlGetNJobs, n)

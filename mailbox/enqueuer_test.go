@@ -186,7 +186,6 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		}
 
 		// Test that outbound messages were queued
-		var r queueRow
 		q := []queueRow{}
 
 		rows, err := pb.db.Query(`SELECT message_id, "user", host, attempts FROM queue`)
@@ -195,6 +194,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		}
 
 		for rows.Next() {
+			var r queueRow
 			rows.Scan(&r.MID, &r.User, &r.Host, &r.Attempts)
 			q = append(q, r)
 		}
