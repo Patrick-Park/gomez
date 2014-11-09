@@ -91,7 +91,6 @@ func storeMessage(tx *sql.Tx, ctx interface{}) error {
 	if !ok {
 		return errors.New("Expecting *Message in func storeMessage.")
 	}
-
 	_, err := tx.Exec(
 		`INSERT INTO messages (id, "from", rcpt, raw)
 		VALUES ($1, $2, $3, $4)`,
@@ -106,7 +105,6 @@ func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 	if !ok {
 		return errors.New("Expecting *Message in func enqueueOutbound.")
 	}
-
 	stmt, err := tx.Prepare(`
 		INSERT INTO queue 
 		(host, message_id, "user", date_added, attempts) 
@@ -124,7 +122,6 @@ func enqueueOutbound(tx *sql.Tx, ctx interface{}) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -134,7 +131,6 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 	if !ok {
 		return errors.New("Expecting *Message in func deliverOutbound.")
 	}
-
 	stmt, err := tx.Prepare(`
 		INSERT INTO mailbox (user_id, message_id) VALUES 
 		((SELECT id FROM users WHERE username=$1 and host=$2), $3)`)
@@ -156,9 +152,8 @@ func deliverInbound(tx *sql.Tx, ctx interface{}) error {
 
 // query searches for the given address. See int for return types.
 func (mb mailBox) Query(addr *mail.Address) int {
-	user, host := SplitUserHost(addr)
-
 	var result string
+	user, host := SplitUserHost(addr)
 	err := mb.db.
 		QueryRow("SELECT username FROM users WHERE username=$1 AND host=$2", user, host).
 		Scan(&result)
@@ -169,7 +164,6 @@ func (mb mailBox) Query(addr *mail.Address) int {
 	case result == user:
 		return QuerySuccess
 	}
-
 	err = mb.db.
 		QueryRow("SELECT host FROM users WHERE host=$1 LIMIT 1", host).
 		Scan(&result)

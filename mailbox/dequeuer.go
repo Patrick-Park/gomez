@@ -3,6 +3,9 @@ package mailbox
 
 import "net/mail"
 
+//sounds like select Host, MsgID, User from (select Host from queue group by Host order by last_attempt desc limit N)
+//as x join queue q on q.Host = x.Host order by Host, User;
+
 // A Delivery is a set of messages mapped to the recipients that
 // they need to be delivered to.
 type Delivery map[*Message][]*mail.Address
