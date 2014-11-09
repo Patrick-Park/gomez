@@ -48,9 +48,7 @@ func Start() error {
 	return nil
 }
 
-func (s server) createTransaction(conn net.Conn) {
-
-}
+func (s server) createTransaction(conn net.Conn) {}
 
 func (s server) run(ctx *transaction, msg string) error {
 	return nil
