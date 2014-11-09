@@ -3,6 +3,7 @@ package pop3
 import (
 	"log"
 	"net"
+	"regexp"
 )
 
 type server struct {
@@ -15,6 +16,8 @@ type commandSpec map[string]func(*transaction, string) error
 type transaction struct {
 	conn net.Conn
 }
+
+var commandFormat = regexp.MustCompile("^([a-zA-Z]{4})(?:[ ](.*))?$")
 
 func Start() error {
 	var srv server
@@ -47,4 +50,8 @@ func Start() error {
 
 func (s server) createTransaction(conn net.Conn) {
 
+}
+
+func (s server) run(ctx *transaction, msg string) error {
+	return nil
 }
