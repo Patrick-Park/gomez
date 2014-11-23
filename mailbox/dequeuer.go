@@ -3,9 +3,6 @@ package mailbox
 
 import "net/mail"
 
-//sounds like select Host, MsgID, User from (select Host from queue group by Host order by last_attempt desc limit N)
-//as x join queue q on q.Host = x.Host order by Host, User;
-
 // A Delivery is a set of messages mapped to the recipients that
 // they need to be delivered to.
 type Delivery map[*Message][]*mail.Address
@@ -30,3 +27,27 @@ func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 func (mb mailBox) Report(user, host string, msgID uint64, delivered bool) error {
 	return nil
 }
+
+// all rows in table for latest N hosts
+var sqlPopQueue = `
+with recursive
+  qh(last_host, hosts_seen, date_cutoff)
+    as ((select host,
+                array[host],
+                date_added
+           from queue
+          order by date_added,host
+          limit 1)
+        union all
+        (select q.host,
+                qh.hosts_seen || q.host,
+                q.date_added
+           from qh,
+                lateral (select host, date_added
+                           from queue q2
+                          where q2.host <> ALL (qh.hosts_seen)
+                            and (q2.date_added,q2.host) > (qh.date_cutoff,qh.last_host)
+                          order by q2.date_added,q2.host
+                          limit 1) q
+          where array_length(qh.hosts_seen,1) < 1))
+select * from queue where host in (select last_host from qh);`
