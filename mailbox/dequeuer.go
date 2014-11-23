@@ -49,5 +49,5 @@ with recursive
                             and (q2.date_added,q2.host) > (qh.date_cutoff,qh.last_host)
                           order by q2.date_added,q2.host
                           limit 1) q
-          where array_length(qh.hosts_seen,1) < 1))
+          where array_length(qh.hosts_seen,1) < $1))
 select * from queue where host in (select last_host from qh);`
