@@ -4,7 +4,7 @@ package mailbox
 import (
 	"net/mail"
 
-	pq "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 // A Delivery is a set of messages mapped to the recipients that
