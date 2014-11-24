@@ -97,6 +97,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		User, Host string
 		Attempts   int
 	}
+
 	type mailboxRow struct {
 		MID uint64
 		UID uint64

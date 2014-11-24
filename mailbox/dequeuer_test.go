@@ -1,26 +1,67 @@
 package mailbox
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
+	"log"
+	"net/mail"
 	"testing"
+	"time"
 )
 
-type testJob struct {
-	MID             int
-	From, Rcpt, Raw string
-	Dest            string
+// Messages that will be enqueued for the test
+// set up and dequeued for the actual test.
+type testSetup struct {
+	MID  uint64
+	Rcpt string
 }
 
-var setupJobs = []testJob{
-	testJob{1, "andy@gmail.com", "jim, jane", "hi!", "<iraq@mommy.co>, <daddy@mommy.co>, jim@ji.joe"},
-	testJob{5, `"doe jim" <doe@jim.co.uk>`, "tim, tony", "supe!", `a@b.com, "Eric" <c@d.be>`},
-	testJob{7, "robert@hotmail.eu", "janise", "am going home guys!", `"Lemur" <b@bb.b>, x@b.com`},
+// The actual test. N is the number that will be passed
+// to the Dequeuer and Items is what is expected from the
+// Dequeuer.
+type testWant struct {
+	N int
+	// host -> msg ID -> address list
+	Items  map[string]map[int][]*mail.Address
+	HasErr bool
+}
+
+var dequeuerTests = []struct {
+	msgSetup []testSetup
+	want     []testWant
+}{
+	{
+		/*
+			doe.com    -> 1 -> jane
+			doe.com    -> 2 -> jim
+			doe.com    -> 4 -> jane
+			bree.com   -> 1 -> ann
+			bree.com   -> 3 -> adam
+			bree.com   -> 3 -> ann
+			cheese.com -> 4 -> ann
+		*/
+
+		msgSetup: []testSetup{
+			{1, "<jane@doe.com>, <ann@bree.com>, <adam@doe.com>"},
+			{2, "<jim@doe.com>"},
+			{3, "<adam@bree.com>, <ann@bree.com>"},
+			{4, "<jane@doe.com>, <ann@cheese.com>"},
+		},
+
+		want: []testWant{
+			{
+				N: 1,
+				Items: map[string]map[int][]*mail.Address{
+					"doe.com": map[int][]*mail.Address{
+						1: []*mail.Address{{Address: "jane@doe.com"}, {Address: "adam@doe.com"}},
+						2: []*mail.Address{{Address: "jim@doe.com"}},
+						4: []*mail.Address{{Address: "jane@doe.com"}},
+					},
+				},
+			},
+		},
+	},
 }
 
 func TestDequeuer_Dequeue(t *testing.T) {
-	return // temporarily disable test
 	EnsureTestDB()
 
 	pb, err := New(dbString)
@@ -28,44 +69,42 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		t.Error("Error starting server")
 	}
 	defer pb.Close()
-}
 
-// setupMessages attempts to set up the passed messages within the
-// transaction.
-func setupMessages(tx *sql.Tx, j interface{}) error {
-	jobs, ok := j.([]testJob)
-	if !ok {
-		return errors.New("Expected testJobs in setupMessages.")
-	}
-
-	query := `insert into messages(id, "from", rcpt, raw) values `
-	for i, j := range jobs {
-		query += fmt.Sprintf("(%d,'%s','%s','%s')", j.MID, j.From, j.Rcpt, j.Raw)
-		if i < len(jobs)-1 {
-			query += ", "
+	for _, ts := range dequeuerTests {
+		enqueueMsgs(pb, ts.msgSetup)
+		for _, tt := range ts.want {
+			jobs, err := pb.Dequeue(tt.N)
+			if tt.HasErr {
+				if err == nil {
+					t.Errorf("Expected error")
+				}
+				continue
+			}
+			if err != nil {
+				t.Errorf("Unexpected error.")
+			}
+			log.Printf("%+v", jobs)
 		}
 	}
-
-	_, err := tx.Exec(query)
-	return err
 }
 
-// setupQueue attempts to set up the queue for the passed messages in the
-// context of a given transaction.
-func setupQueue(tx *sql.Tx, j interface{}) error {
-	jobs, ok := j.([]testJob)
-	if !ok {
-		return errors.New("Expected testJobs in setupMessages.")
-	}
-
-	query := "insert into queue(message_id, rcpt, date_added, attempts) values "
-	for i, j := range jobs {
-		query += fmt.Sprintf("(%d,'%s',now(),0)", j.MID, j.Dest)
-		if i < len(jobs)-1 {
-			query += ", "
+func enqueueMsgs(mb *mailBox, msgs []testSetup) {
+	chk := func(err error) {
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
-
-	_, err := tx.Exec(query)
-	return err
+	CleanDB(mb.db)
+	for _, msg := range msgs {
+		list, err := mail.ParseAddressList(msg.Rcpt)
+		chk(err)
+		err = mb.Enqueue(&Message{
+			ID:      msg.MID,
+			Raw:     "BODY",
+			from:    &mail.Address{Address: "from@addre.ss"},
+			rcptOut: list,
+		})
+		chk(err)
+		time.Sleep(time.Millisecond) // allows for different timestamps in DB
+	}
 }

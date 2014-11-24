@@ -1,7 +1,11 @@
 // This is still a draft. Work in progress.
 package mailbox
 
-import "net/mail"
+import (
+	"net/mail"
+
+	pq "github.com/lib/pq"
+)
 
 // A Delivery is a set of messages mapped to the recipients that
 // they need to be delivered to.
@@ -19,7 +23,28 @@ type Dequeuer interface {
 // Dequeue returns up to limit number of hosts along with their deliveries.
 // If it fails, Dequeue will return an error.
 func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
-	return nil, nil
+	rows, err := mb.db.Query(sqlPopQueue, limit)
+	if err != nil {
+		return nil, err
+	}
+	jobs := make(map[string]Delivery)
+	for rows.Next() {
+		var row struct {
+			Host     string
+			MID      uint64
+			User     string
+			Date     pq.NullTime
+			Attempts int
+		}
+		err := rows.Scan(&row.Host, &row.MID, &row.User, &row.Date, &row.Attempts)
+		if err != nil {
+			return jobs, err
+		}
+		if jobs[row.Host] == nil {
+			jobs[row.Host] = make(Delivery)
+		}
+	}
+	return jobs, nil
 }
 
 // Report removes a delivered task from the queue or marks an extra attempt
