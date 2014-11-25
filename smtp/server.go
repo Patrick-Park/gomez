@@ -85,7 +85,6 @@ func (s server) createTransaction(conn net.Conn) {
 	if err != nil {
 		return
 	}
-
 	t := transaction{
 		Message: new(mailbox.Message),
 		Mode:    stateHELO,
@@ -115,7 +114,6 @@ func (s server) run(ctx *transaction, msg string) error {
 	if !commandFormat.MatchString(msg) {
 		return ctx.notify(replyBadCommand)
 	}
-
 	parts := commandFormat.FindStringSubmatch(msg)
 	cmd, params := parts[1], strings.Trim(parts[2], " ")
 
@@ -131,35 +129,38 @@ func (s server) run(ctx *transaction, msg string) error {
 // to enqueue it. This method attaches transitional headers as per RFC 5321.
 func (s server) digest(client *transaction) error {
 	msg, err := client.Message.Parse()
-	if err != nil || len(msg.Header["Date"]) == 0 || len(msg.Header["From"]) == 0 {
+	if err != nil ||
+		len(msg.Header["Date"]) == 0 ||
+		len(msg.Header["From"]) == 0 {
 		return client.notify(reply{550, "Message not RFC 2822 compliant."})
 	}
-
+	// If this messages hasn't had an ID generated before, from a previous
+	// attempt, create one for it.
 	if client.Message.ID == 0 {
 		id, err := s.Enqueuer.GUID()
 		if err != nil {
 			return client.notify(replyErrorProcessing)
 		}
-
 		client.Message.ID = id
 	}
+	// Check if the message has an ID and add it if it doesn't.
 	if len(msg.Header["Message-Id"]) == 0 {
 		client.Message.PrependHeader(
 			"Message-ID", "<%x.%d@%s>",
-			time.Now().UnixNano(), client.Message.ID, s.config.Get("host"),
-		)
+			time.Now().UnixNano(), client.Message.ID, s.config.Get("host"))
 	}
+	// Add Received header.
 	client.Message.PrependHeader(
-		"Received", "from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
-		client.ID, client.addrHost, client.addrIP, s.config.Get("host"), client.Message.ID,
-		client.Message.Rcpt()[0], time.Now(),
-	)
+		"Received",
+		"from %s (%s[%s])\r\n\tby %s (Gomez) with ESMTP id %d for %s; %s",
+		client.ID, client.addrHost, client.addrIP, s.config.Get("host"),
+		client.Message.ID, client.Message.Rcpt()[0], time.Now())
 
 	err = s.Enqueuer.Enqueue(client.Message)
 	if err != nil {
 		return client.notify(replyErrorProcessing)
 	}
 	client.reset()
-
-	return client.notify(reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})
+	return client.notify(reply{250, fmt.Sprintf("message queued (%x)",
+		client.Message.ID)})
 }
