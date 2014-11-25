@@ -30,7 +30,7 @@ func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 		MID         uint64
 		MRaw, MFrom string
 	}
-	rows, err := mb.db.Query(sqlPopQueue, limit)
+	rows, err := mb.dequeueStmt.Query(limit)
 	if err != nil {
 		return nil, err
 	}
@@ -54,36 +54,3 @@ func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 func (mb mailBox) Report(user, host string, msgID uint64, delivered bool) error {
 	return nil
 }
-
-// all rows in table for latest N hosts
-var sqlPopQueue = `
--- RhodiumToad
--- change order by date_added, host to order by date_added desc, host desc
--- (in both places) and change the > to a <
---
-with recursive
-  qh(last_host, hosts_seen, date_cutoff)
-    as ((select host,
-                array[host],
-                date_added
-           from queue
-          order by date_added,host
-          limit 1)
-        union all
-        (select q.host,
-                qh.hosts_seen || q.host,
-                q.date_added
-           from qh,
-                lateral (select host, date_added
-                           from queue q2
-                          where q2.host <> ALL (qh.hosts_seen)
-                            and (q2.date_added,q2.host) > (qh.date_cutoff,qh.last_host)
-                          order by q2.date_added,q2.host
-                          limit 1) q
-          where array_length(qh.hosts_seen,1) < $1))
-
-        select queue.*, messages.raw, messages.from
-          from queue 
-	inner join messages 
-	        on messages.id=queue.message_id 
-	     where host in (select last_host from qh);`
