@@ -24,13 +24,11 @@ type Dequeuer interface {
 // If it fails, Dequeue will return an error.
 func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 	type queueEntry struct {
-		Host     string
-		User     string
-		Date     pq.NullTime
-		Attempts int
-		MID      uint64
-		MRaw     string
-		MFrom    string
+		User, Host  string
+		Date        pq.NullTime
+		Attempts    int
+		MID         uint64
+		MRaw, MFrom string
 	}
 	rows, err := mb.db.Query(sqlPopQueue, limit)
 	if err != nil {
