@@ -57,12 +57,12 @@ func (mb mailBox) Report(user, host string, msgID uint64, delivered bool) error 
 	return nil
 }
 
-// > RhodiumToad:
-// if you want the newest, you change order by date_added, host to order by date_added desc, host desc (in both places)
-// and change the > to a <
-
 // all rows in table for latest N hosts
 var sqlPopQueue = `
+-- RhodiumToad
+-- change order by date_added, host to order by date_added desc, host desc
+-- (in both places) and change the > to a <
+--
 with recursive
   qh(last_host, hosts_seen, date_cutoff)
     as ((select host,
