@@ -49,7 +49,6 @@ func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
 	if !cfg.Has("listen") || !cfg.Has("host") {
 		return ErrMinConfig
 	}
-
 	ln, err := net.Listen("tcp", cfg.Get("listen"))
 	if err != nil {
 		return err
@@ -66,7 +65,6 @@ func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
 		"VRFY": cmdVRFY,
 		"QUIT": cmdQUIT,
 	}
-
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -80,7 +78,6 @@ func Start(mq mailbox.Enqueuer, cfg jamon.Group) error {
 // createTransaction creates a new client based on the given connection.
 func (s server) createTransaction(conn net.Conn) {
 	defer conn.Close()
-
 	ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {
 		return
@@ -96,7 +93,6 @@ func (s server) createTransaction(conn net.Conn) {
 	if hosts, _ := net.LookupAddr(ip); len(hosts) > 0 {
 		t.addrHost = strings.TrimRight(hosts[0], ".") + " "
 	}
-
 	t.notify(reply{220, s.config.Get("host") + " Gomez SMTP"})
 	t.serve()
 }
@@ -121,7 +117,6 @@ func (s server) run(ctx *transaction, msg string) error {
 	if !ok {
 		return ctx.notify(replyBadCommand)
 	}
-
 	return command(ctx, params)
 }
 
