@@ -31,12 +31,15 @@ func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 	for rows.Next() {
 		var row struct {
 			Host     string
-			MID      uint64
 			User     string
 			Date     pq.NullTime
 			Attempts int
+			MID      uint64
+			MRaw     string
+			MFrom    string
 		}
-		err := rows.Scan(&row.Host, &row.MID, &row.User, &row.Date, &row.Attempts)
+		err := rows.Scan(&row.Host, &row.MID, &row.User, &row.Date,
+			&row.Attempts, &row.MRaw, &row.MFrom)
 		if err != nil {
 			return jobs, err
 		}
@@ -79,4 +82,9 @@ with recursive
                           order by q2.date_added,q2.host
                           limit 1) q
           where array_length(qh.hosts_seen,1) < $1))
-select * from queue where host in (select last_host from qh);`
+
+        select queue.*, messages.raw, messages.from
+          from queue 
+	inner join messages 
+	        on messages.id=queue.message_id 
+	     where host in (select last_host from qh);`
