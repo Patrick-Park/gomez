@@ -8,6 +8,11 @@ type mailBox struct {
 	dequeueStmt *sql.Stmt
 }
 
+var _ interface {
+	Dequeuer
+	Enqueuer
+} = (*mailBox)(nil)
+
 // New creates a PostBox using the given connection string. Example
 // connection strings can be seen at: http://godoc.org/github.com/lib/pq
 func New(dbString string) (*mailBox, error) {
