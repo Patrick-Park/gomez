@@ -156,6 +156,6 @@ func (s server) digest(client *transaction) error {
 		return client.notify(replyErrorProcessing)
 	}
 	client.reset()
-	return client.notify(reply{250, fmt.Sprintf("message queued (%x)",
-		client.Message.ID)})
+	return client.notify(
+		reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})
 }
