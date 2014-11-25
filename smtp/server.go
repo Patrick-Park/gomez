@@ -138,7 +138,7 @@ func (s server) digest(client *transaction) error {
 		}
 		client.Message.ID = id
 	}
-	// Check if the message has an ID and add it if it doesn't.
+	// Check if the message has the Message-ID header and add it if it doesn't.
 	if len(msg.Header["Message-Id"]) == 0 {
 		client.Message.PrependHeader(
 			"Message-ID", "<%x.%d@%s>",
