@@ -7,6 +7,6 @@ script:
   - go test ./... -v
 
 before_script:
-  - createuser -S Gabriel
+  - createuser -Srl Gabriel
   - psql -c 'create database Gabriel;' -U postgres
   - psql -c 'create database gomez_test;' -U Gabriel
