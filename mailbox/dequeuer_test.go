@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/mail"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ type queueItem struct {
 }
 
 // Creates a list of *mail.Addresses from a list of strings.
-func alist(addrs ...string) []*mail.Address {
+func addrList(addrs ...string) []*mail.Address {
 	list := make([]*mail.Address, 0, len(addrs))
 	for _, addr := range addrs {
 		list = append(list, &mail.Address{Address: addr})
@@ -63,9 +64,9 @@ func TestDequeuer_Dequeue(t *testing.T) {
 					N: 1,
 					Items: map[string]DeliveryByID{
 						"doe.com": DeliveryByID{
-							1: alist("jane@doe.com", "adam@doe.com"),
-							2: alist("jim@doe.com"),
-							4: alist("jane@doe.com"),
+							1: addrList("adam@doe.com", "jane@doe.com"),
+							2: addrList("jim@doe.com"),
+							4: addrList("jane@doe.com"),
 						},
 					},
 				},
@@ -94,11 +95,11 @@ func TestDequeuer_Dequeue(t *testing.T) {
 
 // compareResults compares a map of host->Delivery to a map of host->DeliveryByID
 // where ID matches the ID of the message from the gotten Delivery.
-// TODO(gbbr): Test this method
 func compareResults(
 	got map[string]Delivery,
 	want map[string]DeliveryByID,
 ) (map[string]DeliveryByID, bool) {
+
 	cgot := make(map[string]DeliveryByID)
 	for host, delivery := range got {
 		cgot[host] = make(DeliveryByID)
@@ -109,10 +110,50 @@ func compareResults(
 			for _, addr := range addrs {
 				cgot[host][msg.ID] = append(cgot[host][msg.ID], addr)
 			}
+			if _, ok := want[host][msg.ID]; !ok {
+				return cgot, false
+			}
+			// Sort slice so that we can perform a deep equal
+			// and overlook order.
+			sort.Sort(byAddress(cgot[host][msg.ID]))
+			sort.Sort(byAddress(want[host][msg.ID]))
 		}
 	}
-	// TODO(gbbr): create custom DeepEqual that ignores order in slice
 	return cgot, reflect.DeepEqual(cgot, want)
+}
+
+type byAddress []*mail.Address
+
+func (by byAddress) Len() int           { return len(by) }
+func (by byAddress) Less(i, j int) bool { return by[i].Address < by[j].Address }
+func (by byAddress) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+
+func Test_compareResults(t *testing.T) {
+	for _, tt := range []struct {
+		got    map[string]Delivery
+		want   map[string]DeliveryByID
+		expect bool
+	}{
+		{
+			got: map[string]Delivery{
+				"addr.net": Delivery{
+					&Message{ID: 1}: addrList("jane@addr.net", "john@addr.net"),
+					&Message{ID: 2}: addrList("a@b.com", "c@d.com", "x@y.com"),
+				},
+			},
+			want: map[string]DeliveryByID{
+				"addr.net": DeliveryByID{
+					1: addrList("jane@addr.net", "john@addr.net"),
+					2: addrList("x@y.com", "c@d.com", "a@b.com"),
+				},
+			},
+			expect: true,
+		},
+	} {
+		if _, exp := compareResults(tt.got, tt.want); exp != tt.expect {
+			t.Error("Incorect comparison")
+		}
+	}
 }
 
 func setupDequeuerTest(mb *mailBox, msgs []queueItem) {

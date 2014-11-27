@@ -70,12 +70,10 @@ func TestPostBox_NextID_Success(t *testing.T) {
 	}
 	defer pb.Close()
 
-	id, err := pb.GUID()
+	_, err = pb.GUID()
 	if err != nil {
 		t.Errorf("Failed to extract sequence val: %s", err)
 	}
-
-	t.Log(id)
 }
 
 func TestPostBox_Enqueuer(t *testing.T) {
