@@ -23,23 +23,22 @@ type Dequeuer interface {
 // Dequeue returns up to limit number of hosts along with their deliveries.
 // If it fails, Dequeue will return an error.
 func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
-	type queueEntry struct {
-		User, Host  string
-		Date        pq.NullTime
-		Attempts    int
-		MID         uint64
-		MRaw, MFrom string
-	}
 	rows, err := mb.dequeueStmt.Query(limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	jobs := make(map[string]Delivery)
 	cache := make(map[uint64]*Message)
+
 	for rows.Next() {
-		var row queueEntry
+		var row struct {
+			User, Host  string
+			Date        pq.NullTime
+			Attempts    int
+			MID         uint64
+			MRaw, MFrom string
+		}
 		err := rows.Scan(&row.Host, &row.MID, &row.User, &row.Date,
 			&row.Attempts, &row.MRaw, &row.MFrom)
 		if err != nil {
