@@ -59,6 +59,7 @@ func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 				return nil, err
 			}
 			msg.SetFrom(addr)
+			cache[row.MID] = msg
 		}
 		if jobs[row.Host][msg] == nil {
 			jobs[row.Host][msg] = make([]*mail.Address, 0, 1)
