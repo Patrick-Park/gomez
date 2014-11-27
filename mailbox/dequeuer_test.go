@@ -149,6 +149,21 @@ func Test_compareResults(t *testing.T) {
 			},
 			expect: true,
 		},
+		{
+			got: map[string]Delivery{
+				"addr.net": Delivery{
+					&Message{ID: 1}: addrList("jane@addr.net", "john@addr.net"),
+					&Message{ID: 2}: addrList("a@b.com", "c@d.com", "x@y.com"),
+				},
+			},
+			want: map[string]DeliveryByID{
+				"addr.net": DeliveryByID{
+					1: addrList("jane@addr.net", "john@addr.net"),
+					2: addrList("x@y.com", "SOMETHING DIFFERENT", "a@b.com"),
+				},
+			},
+			expect: false,
+		},
 	} {
 		if _, exp := compareResults(tt.got, tt.want); exp != tt.expect {
 			t.Error("Incorect comparison")
