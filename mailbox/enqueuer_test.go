@@ -55,13 +55,7 @@ func setUpTestDB() {
 }
 
 func TestPostBox_NextID_Error(t *testing.T) {
-	pb, err := New("bogus")
-	if err != nil {
-		t.Errorf("Could not open DB:", err)
-	}
-	defer pb.Close()
-
-	_, err = pb.GUID()
+	_, err := New("bogus")
 	if err == nil {
 		t.Error("Was expecting an error.")
 	}
@@ -76,12 +70,10 @@ func TestPostBox_NextID_Success(t *testing.T) {
 	}
 	defer pb.Close()
 
-	id, err := pb.GUID()
+	_, err = pb.GUID()
 	if err != nil {
 		t.Errorf("Failed to extract sequence val: %s", err)
 	}
-
-	t.Log(id)
 }
 
 func TestPostBox_Enqueuer(t *testing.T) {
@@ -97,6 +89,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		User, Host string
 		Attempts   int
 	}
+
 	type mailboxRow struct {
 		MID uint64
 		UID uint64
@@ -229,16 +222,7 @@ func TestPostBox_Enqueuer(t *testing.T) {
 func TestEnqueue_Tx_Error(t *testing.T) {
 	EnsureTestDB()
 
-	pb, err := New("bogus")
-	if err != nil {
-		t.Errorf("Failed to initialize PostBox", err)
-	}
-
-	if err := pb.Enqueue(&Message{}); err == nil {
-		t.Error("Was expecing an error here")
-	}
-
-	pb, err = New(dbString)
+	pb, err := New(dbString)
 	if err != nil {
 		t.Errorf("Failed to initialize PostBox", err)
 	}
@@ -319,17 +303,6 @@ func TestEnqueuer_Query(t *testing.T) {
 	}
 
 	CleanDB(pb.db)
-	pb.Close()
-
-	pb, err = New("bogus")
-	if err != nil {
-		t.Errorf("Error setting up error test: %s", err)
-	}
-
-	if pb.Query(&mail.Address{}) != QueryError {
-		t.Error("Was expecting error")
-	}
-
 	pb.Close()
 }
 

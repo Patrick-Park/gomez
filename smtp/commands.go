@@ -13,7 +13,6 @@ func cmdHELO(ctx *transaction, param string) error {
 	if len(param) == 0 {
 		return ctx.notify(reply{501, "Syntax: HELO hostname"})
 	}
-
 	ctx.ID = param
 	ctx.Mode = stateMAIL
 
@@ -25,7 +24,6 @@ func cmdEHLO(ctx *transaction, param string) error {
 	if len(param) == 0 {
 		return ctx.notify(reply{501, "Syntax: EHLO hostname"})
 	}
-
 	ctx.ID = param
 	ctx.Mode = stateMAIL
 
@@ -37,19 +35,15 @@ func cmdMAIL(ctx *transaction, param string) error {
 	switch {
 	case ctx.Mode == stateHELO:
 		return ctx.notify(reply{503, "5.5.1 Say HELO/EHLO first."})
-
 	case ctx.Mode > stateMAIL:
 		return ctx.notify(reply{503, "5.5.1 Error: nested MAIL command"})
-
 	case !strings.HasPrefix(strings.ToUpper(param), "FROM:"):
 		return ctx.notify(reply{501, "5.5.4 Syntax: MAIL FROM:<address>"})
 	}
-
 	addr, err := mail.ParseAddress(param[len("FROM:"):])
 	if err != nil {
 		return ctx.notify(reply{501, "5.1.7 Bad sender address syntax"})
 	}
-
 	ctx.Message.SetFrom(addr)
 	ctx.Mode = stateRCPT
 
@@ -61,14 +55,11 @@ func cmdRCPT(ctx *transaction, param string) error {
 	switch {
 	case ctx.Mode == stateHELO:
 		return ctx.notify(reply{503, "5.5.1 Say HELO/EHLO first."})
-
 	case ctx.Mode == stateMAIL:
 		return ctx.notify(reply{503, "5.5.1 Error: need MAIL command"})
-
 	case !strings.HasPrefix(strings.ToUpper(param), "TO:"):
 		return ctx.notify(reply{501, "5.5.4 Syntax: RCPT TO:<address>"})
 	}
-
 	addr, err := mail.ParseAddress(param[len("TO:"):])
 	if err != nil {
 		return ctx.notify(reply{501, "5.1.7 Bad recipient address syntax"})
@@ -77,24 +68,19 @@ func cmdRCPT(ctx *transaction, param string) error {
 	switch ctx.host.query(addr) {
 	case mailbox.QueryNotFound:
 		return ctx.notify(reply{550, "5.1.1 No such user here."})
-
 	case mailbox.QueryNotLocal:
 		if flags := ctx.host.settings(); !flags.Has("relay") {
 			return ctx.notify(reply{550, "5.1.1 No such user here."})
 		}
-
 		ctx.Message.AddOutbound(addr)
 		ctx.Mode = stateDATA
 
 		return ctx.notify(reply{251, "User not local; will forward to <forward-path>"})
-
 	case mailbox.QuerySuccess:
 		ctx.Message.AddInbound(addr)
 		ctx.Mode = stateDATA
-
 		return ctx.notify(reply{250, "2.1.5 Ok"})
 	}
-
 	return ctx.notify(replyErrorProcessing)
 }
 
@@ -103,18 +89,14 @@ func cmdDATA(ctx *transaction, param string) error {
 	switch ctx.Mode {
 	case stateHELO:
 		return ctx.notify(reply{503, "5.5.1 Say HELO/EHLO first."})
-
 	case stateMAIL:
 		return ctx.notify(reply{503, "5.5.1 Bad sequence of commands."})
-
 	case stateRCPT:
 		return ctx.notify(reply{503, "5.5.1 RCPT first."})
 	}
-
 	if err := ctx.notify(reply{354, "End data with <CR><LF>.<CR><LF>"}); err != nil {
 		return err
 	}
-
 	msg, err := ctx.text.ReadDotLines()
 	if err != nil {
 		return ctx.notify(replyErrorProcessing)

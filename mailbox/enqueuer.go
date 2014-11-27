@@ -30,19 +30,6 @@ const (
 	QueryError
 )
 
-// PostgreSQL implementation of the mailbox
-type mailBox struct{ db *sql.DB }
-
-// New creates a PostBox using the given connection string. Example
-// connection strings can be seen at: http://godoc.org/github.com/lib/pq
-func New(dbString string) (*mailBox, error) {
-	db, err := sql.Open("postgres", dbString)
-	if err != nil {
-		return nil, err
-	}
-	return &mailBox{db}, nil
-}
-
 // GUID extracts a unique ID from a database sequence.
 func (mb mailBox) GUID() (id uint64, err error) {
 	err = mb.db.QueryRow("SELECT nextval('message_ids')").Scan(&id)
