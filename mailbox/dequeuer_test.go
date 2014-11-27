@@ -3,61 +3,25 @@ package mailbox
 import (
 	"log"
 	"net/mail"
+	"reflect"
 	"testing"
 )
 
+// Maps message to destination by ID.
+// MessageID -> Destination addresses
+type DeliveryByID map[uint64][]*mail.Address
+
 // Messages that will be enqueued for the test
 // set up and dequeued for the actual test.
-type testSetup struct {
+type queueItem struct {
 	MID    uint64
 	Rcpt   string
 	Addded string
 }
 
-// The actual test. N is the number that will be passed
-// to the Dequeuer and Items is what is expected from the
-// Dequeuer.
-type testWant struct {
-	N int
-	// host -> msg ID -> address list
-	Items  map[string]map[int][]*mail.Address
-	HasErr bool
-}
-
-var dequeuerTests = []struct {
-	msgSetup []testSetup
-	want     []testWant
-}{
-	{
-		msgSetup: []testSetup{
-			{1, "<jane@doe.com>", "12:05"},
-			{1, "<adam@doe.com>", "12:05"},
-			{1, "<ann@bree.com>", "12:06"},
-			{2, "<jim@doe.com>", "12:07"},
-			{3, "<adam@bree.com>", "12:08"},
-			{3, "<ann@bree.com>", "12:08"},
-			{4, "<jane@doe.com>", "12:09"},
-			{4, "<ann@cheese.com>", "12:09"},
-		},
-
-		want: []testWant{
-			{
-				N: 1,
-				Items: map[string]map[int][]*mail.Address{
-					"doe.com": map[int][]*mail.Address{
-						1: alist("jane@doe.com", "adam@doe.com"),
-						2: alist("jim@doe.com"),
-						4: alist("jane@doe.com"),
-					},
-				},
-			},
-		},
-	},
-}
-
-// Creates a list of *mail.Addresses
+// Creates a list of *mail.Addresses from a list of strings.
 func alist(addrs ...string) []*mail.Address {
-	list := make([]*mail.Address, len(addrs))
+	list := make([]*mail.Address, 0, len(addrs))
 	for _, addr := range addrs {
 		list = append(list, &mail.Address{Address: addr})
 	}
@@ -66,17 +30,50 @@ func alist(addrs ...string) []*mail.Address {
 
 func TestDequeuer_Dequeue(t *testing.T) {
 	EnsureTestDB()
-
+	// The actual test. N is the number that will be passed
+	// to the Dequeuer and Items is what is expected from the
+	// Dequeuer.
+	type testCase struct {
+		N      int
+		Items  map[string]DeliveryByID
+		HasErr bool
+	}
 	pb, err := New(dbString)
 	if err != nil {
 		t.Error("Error starting server")
 	}
 	defer pb.Close()
-
-	for _, ts := range dequeuerTests {
+	for _, ts := range []struct {
+		msgSetup []queueItem
+		want     []testCase
+	}{
+		{
+			msgSetup: []queueItem{
+				{1, "<jane@doe.com>", "12:05"},
+				{1, "<adam@doe.com>", "12:05"},
+				{1, "<ann@bree.com>", "12:06"},
+				{2, "<jim@doe.com>", "12:07"},
+				{3, "<adam@bree.com>", "12:08"},
+				{3, "<ann@bree.com>", "12:08"},
+				{4, "<jane@doe.com>", "12:09"},
+				{4, "<ann@cheese.com>", "12:09"},
+			},
+			want: []testCase{
+				{
+					N: 1,
+					Items: map[string]DeliveryByID{
+						"doe.com": DeliveryByID{
+							1: alist("jane@doe.com", "adam@doe.com"),
+							2: alist("jim@doe.com"),
+							4: alist("jane@doe.com"),
+						},
+					},
+				},
+			},
+		},
+	} {
 		CleanDB(pb.db)
 		setupDequeuerTest(pb, ts.msgSetup)
-
 		for _, tt := range ts.want {
 			jobs, err := pb.Dequeue(tt.N)
 			if tt.HasErr {
@@ -88,12 +85,36 @@ func TestDequeuer_Dequeue(t *testing.T) {
 			if err != nil {
 				t.Errorf("Unexpected error.")
 			}
-			log.Printf("%+v", jobs)
+			if got, same := compareResults(jobs, tt.Items); !same {
+				t.Errorf("Got %+v, want %+v", got, tt.Items)
+			}
 		}
 	}
 }
 
-func setupDequeuerTest(mb *mailBox, msgs []testSetup) {
+// compareResults compares a map of host->Delivery to a map of host->DeliveryByID
+// where ID matches the ID of the message from the gotten Delivery.
+// TODO(gbbr): Test this method
+func compareResults(
+	got map[string]Delivery,
+	want map[string]DeliveryByID,
+) (map[string]DeliveryByID, bool) {
+	cgot := make(map[string]DeliveryByID)
+	for host, delivery := range got {
+		cgot[host] = make(DeliveryByID)
+		for msg, addrs := range delivery {
+			if cgot[host][msg.ID] == nil {
+				cgot[host][msg.ID] = make([]*mail.Address, 0, len(addrs))
+			}
+			for _, addr := range addrs {
+				cgot[host][msg.ID] = append(cgot[host][msg.ID], addr)
+			}
+		}
+	}
+	return cgot, reflect.DeepEqual(cgot, want)
+}
+
+func setupDequeuerTest(mb *mailBox, msgs []queueItem) {
 	chk := func(err error) {
 		if err != nil {
 			log.Fatal(err)

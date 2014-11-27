@@ -34,7 +34,10 @@ func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
 	jobs := make(map[string]Delivery)
+	cache := make(map[uint64]*Message)
 	for rows.Next() {
 		var row queueEntry
 		err := rows.Scan(&row.Host, &row.MID, &row.User, &row.Date,
@@ -45,6 +48,26 @@ func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
 		if jobs[row.Host] == nil {
 			jobs[row.Host] = make(Delivery)
 		}
+		msg, ok := cache[row.MID]
+		if !ok {
+			msg = &Message{
+				ID:  row.MID,
+				Raw: row.MRaw,
+			}
+			addr, err := mail.ParseAddress(row.MFrom)
+			if err != nil {
+				return nil, err
+			}
+			msg.SetFrom(addr)
+		}
+		if jobs[row.Host][msg] == nil {
+			jobs[row.Host][msg] = make([]*mail.Address, 0, 1)
+		}
+		dest, err := mail.ParseAddress(row.User + "@" + row.Host)
+		if err != nil {
+			return nil, err
+		}
+		jobs[row.Host][msg] = append(jobs[row.Host][msg], dest)
 	}
 	return jobs, nil
 }
