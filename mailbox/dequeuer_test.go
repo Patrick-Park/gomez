@@ -111,6 +111,7 @@ func compareResults(
 			}
 		}
 	}
+	// TODO(gbbr): create custom DeepEqual that ignores order in slice
 	return cgot, reflect.DeepEqual(cgot, want)
 }
 
