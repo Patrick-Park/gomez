@@ -49,6 +49,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		want     []testCase
 	}{
 		{
+			// This is the setup for the tests that follow.
 			msgSetup: []queueItem{
 				{1, "<jane@doe.com>", "12:05"},
 				{1, "<adam@doe.com>", "12:05"},
@@ -57,18 +58,44 @@ func TestDequeuer_Dequeue(t *testing.T) {
 				{3, "<adam@bree.com>", "12:08"},
 				{3, "<ann@bree.com>", "12:08"},
 				{4, "<jane@doe.com>", "12:09"},
-				{4, "<ann@cheese.com>", "12:09"},
+				{4, "<brad@cheese.com>", "12:09"},
 			},
+			// This is a series of tests that act on the above setup
 			want: []testCase{
-				{
-					N: 1,
-					Items: map[string]DeliveryByID{
-						"doe.com": DeliveryByID{
-							1: addrList("adam@doe.com", "jane@doe.com"),
-							2: addrList("jim@doe.com"),
-							4: addrList("jane@doe.com"),
-						},
+				{N: 1, Items: map[string]DeliveryByID{
+					"doe.com": DeliveryByID{
+						1: addrList("adam@doe.com", "jane@doe.com"),
+						2: addrList("jim@doe.com"),
+						4: addrList("jane@doe.com"),
 					},
+				},
+				},
+				{N: 2, Items: map[string]DeliveryByID{
+					"doe.com": DeliveryByID{
+						1: addrList("adam@doe.com", "jane@doe.com"),
+						2: addrList("jim@doe.com"),
+						4: addrList("jane@doe.com"),
+					},
+					"bree.com": DeliveryByID{
+						1: addrList("ann@bree.com"),
+						3: addrList("adam@bree.com", "ann@bree.com"),
+					},
+				},
+				},
+				{N: 5, Items: map[string]DeliveryByID{
+					"doe.com": DeliveryByID{
+						1: addrList("adam@doe.com", "jane@doe.com"),
+						2: addrList("jim@doe.com"),
+						4: addrList("jane@doe.com"),
+					},
+					"bree.com": DeliveryByID{
+						1: addrList("ann@bree.com"),
+						3: addrList("adam@bree.com", "ann@bree.com"),
+					},
+					"cheese.com": DeliveryByID{
+						4: addrList("brad@cheese.com"),
+					},
+				},
 				},
 			},
 		},
