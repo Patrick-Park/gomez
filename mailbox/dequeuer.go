@@ -7,13 +7,13 @@ import (
 	"github.com/lib/pq"
 )
 
-// A Delivery is a set of messages mapped to the recipients that
-// they need to be delivered to.
-type Delivery map[*Message][]*mail.Address
-
 // Indicates the maximum amount of distincts hosts that will be
 // retrieved when dequeing.
 var MaxHostsPerDequeue = 50
+
+// A Delivery is a set of messages mapped to the recipients that
+// they need to be delivered to.
+type Delivery map[*Message][]*mail.Address
 
 type Dequeuer interface {
 	// Dequeue pulls up to n hosts for delivery and sorts them
