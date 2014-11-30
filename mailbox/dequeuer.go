@@ -11,19 +11,25 @@ import (
 // they need to be delivered to.
 type Delivery map[*Message][]*mail.Address
 
+// Indicates the maximum amount of distincts hosts that will be
+// retrieved when dequeing.
+var MaxHostsPerDequeue = 50
+
 type Dequeuer interface {
 	// Dequeue pulls up to n hosts for delivery and sorts them
 	// mapped by the host to package.
-	Dequeue(n int) (map[string]Delivery, error)
+	Dequeue() (map[string]Delivery, error)
 	// Report updates the status of a delivery. If it was delivered it
 	// removes it from the queue, otherwise it updates its status.
 	Report(user, host string, msgID uint64, delivered bool) error
 }
 
-// Dequeue returns up to limit number of hosts along with their deliveries.
-// If it fails, Dequeue will return an error.
-func (mb mailBox) Dequeue(limit int) (map[string]Delivery, error) {
-	rows, err := mb.dequeueStmt.Query(limit)
+// Dequeue returns jobs from the queue. It maps hosts to the packages
+// that need to be delivered to them. If anything goes wrong, Dequeue
+// returns an error. Dequeue will never return more hosts than the
+// current MaxHostsPerDequeue value.
+func (mb mailBox) Dequeue() (map[string]Delivery, error) {
+	rows, err := mb.dequeueStmt.Query(MaxHostsPerDequeue)
 	if err != nil {
 		return nil, err
 	}

@@ -103,7 +103,8 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		CleanDB(pb.db)
 		setupDequeuerTest(pb, ts.msgSetup)
 		for _, tt := range ts.want {
-			jobs, err := pb.Dequeue(tt.N)
+			MaxHostsPerDequeue = tt.N
+			jobs, err := pb.Dequeue()
 			if tt.HasErr {
 				if err == nil {
 					t.Errorf("Expected error")
