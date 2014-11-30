@@ -7,6 +7,8 @@ their inboxes.
 This is the data layer of the application and it interacts directly with 
 the database.  
 
+--
+
 ### Components
 
 __Enqueuer__  
