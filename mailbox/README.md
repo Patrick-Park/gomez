@@ -9,9 +9,11 @@ the database.
 --
 __Enqueuer__  
 Routes messages. Inbound messages are delivered to the recipient inboxes and outbound messages are placed on the queued to be picked up by the agent.
+
 --
 __Dequeuer__  
 Retrieves and manages jobs from the queue.
+
 --
 __Interface__  
 Interface is the mailbox's interface. It contains methods for its creation, as well as for inbox mail retrieval and authentication.
