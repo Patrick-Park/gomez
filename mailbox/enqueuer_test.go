@@ -158,34 +158,27 @@ func TestPostBox_Enqueuer(t *testing.T) {
 	} {
 		// Teardown
 		CleanDB(pb.db)
-
 		// Setup
 		_, err = pb.db.Exec(`INSERT INTO users (id, name, username, host) VALUES ` + test.Users)
 		if err != nil {
 			t.Errorf("Error setting up test: %s", err)
 		}
-
 		err = pb.Enqueue(test.Msg)
 		if !test.HasErr && err != nil {
 			t.Errorf("Error enqueuing message: %s", err)
 		}
-
 		if test.HasErr {
 			if err == nil {
 				t.Errorf("Expected error on test #%d.", k)
 			}
-
 			continue
 		}
-
 		// Test that outbound messages were queued
 		q := []queueRow{}
-
 		rows, err := pb.db.Query(`SELECT message_id, "user", host, attempts FROM queue`)
 		if err != nil {
 			t.Errorf("Failed to query: %s", err)
 		}
-
 		for rows.Next() {
 			var r queueRow
 			rows.Scan(&r.MID, &r.User, &r.Host, &r.Attempts)
@@ -196,14 +189,12 @@ func TestPostBox_Enqueuer(t *testing.T) {
 		if !reflect.DeepEqual(q, test.QueueItems) {
 			t.Errorf("Expected %+v, got %+v", test.QueueItems, q)
 		}
-
 		// Test that inbound messages were delivered
 		m := []mailboxRow{}
 		rows, err = pb.db.Query("SELECT user_id, message_id FROM mailbox")
 		if err != nil {
 			t.Errorf("Failed to query queue: %s", err)
 		}
-
 		for rows.Next() {
 			var mr mailboxRow
 			rows.Scan(&mr.UID, &mr.MID)
@@ -226,11 +217,9 @@ func TestEnqueue_Tx_Error(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to initialize PostBox", err)
 	}
-
 	if err := pb.Enqueue(&Message{ID: 1, from: &mail.Address{"a", "a@b.com"}}); err == nil {
 		t.Error("Was expecing an error here")
 	}
-
 	if err := pb.Enqueue(&Message{
 		Raw:     "body",
 		from:    &mail.Address{"a", "a@b.com"},
@@ -238,8 +227,19 @@ func TestEnqueue_Tx_Error(t *testing.T) {
 
 		t.Error("Was expecing an error here")
 	}
-
 	pb.Close()
+}
+
+func TestDataTransaction_Errors(t *testing.T) {
+	db, _ := sql.Open("postgres", "bogus")
+	dt := dataTransaction{db: db}
+	if err := dt.do(); err == nil {
+		t.Error("Expected error")
+	}
+	mb := mailBox{db: db}
+	if mb.Query(&mail.Address{Address: "mail@addr.com"}) != QueryError {
+		t.Error("Expected error")
+	}
 }
 
 func TestEnqueuer_Mock(t *testing.T) {
