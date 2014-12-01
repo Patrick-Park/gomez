@@ -68,8 +68,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 						2: addrList("jim@doe.com"),
 						4: addrList("jane@doe.com"),
 					},
-				},
-				},
+				}},
 				{N: 2, Items: map[string]DeliveryByID{
 					"doe.com": DeliveryByID{
 						1: addrList("adam@doe.com", "jane@doe.com"),
@@ -80,8 +79,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 						1: addrList("ann@bree.com"),
 						3: addrList("adam@bree.com", "ann@bree.com"),
 					},
-				},
-				},
+				}},
 				{N: 5, Items: map[string]DeliveryByID{
 					"doe.com": DeliveryByID{
 						1: addrList("adam@doe.com", "jane@doe.com"),
@@ -95,12 +93,42 @@ func TestDequeuer_Dequeue(t *testing.T) {
 					"cheese.com": DeliveryByID{
 						4: addrList("brad@cheese.com"),
 					},
-				},
-				},
+				}},
+			},
+		}, {
+			msgSetup: []queueItem{
+				{1, "james@john.com", "12:00"},
+				{2, "jenny@jane.com", "12:01"},
+				{3, "adams@dimm.com", "12:02"},
+				{4, "donny@jims.com", "12:03"},
+				{1, "jimmy@john.com", "12:04"},
+				{1, "eliza@dimm.com", "12:05"},
+				{2, "eliza@dimm.com", "12:06"},
+				{3, "jenny@jane.com", "12:07"},
+			},
+			want: []testCase{
+				{N: 1, Items: map[string]DeliveryByID{
+					"john.com": DeliveryByID{
+						1: addrList("james@john.com", "jimmy@john.com"),
+					},
+				}},
+				{N: 3, Items: map[string]DeliveryByID{
+					"john.com": DeliveryByID{
+						1: addrList("james@john.com", "jimmy@john.com"),
+					},
+					"jane.com": DeliveryByID{
+						2: addrList("jenny@jane.com"),
+						3: addrList("jenny@jane.com"),
+					},
+					"dimm.com": DeliveryByID{
+						1: addrList("eliza@dimm.com"),
+						2: addrList("eliza@dimm.com"),
+						3: addrList("adams@dimm.com"),
+					},
+				}},
 			},
 		},
 	} {
-		CleanDB(pb.db)
 		setupDequeuerTest(pb, ts.msgSetup)
 		for _, tt := range ts.want {
 			MaxHostsPerDequeue = tt.N
@@ -212,17 +240,22 @@ func setupDequeuerTest(mb *mailBox, msgs []queueItem) {
 			log.Fatal(err)
 		}
 	}
+	CleanDB(mb.db)
 	stmt, err := mb.db.Prepare("INSERT INTO queue VALUES ($1, $2, $3, $4, 0)")
 	chk(err)
 	stmt_msg, err := mb.db.Prepare("INSERT INTO messages VALUES ($1, $2, $3, $4)")
 	chk(err)
-	var lastId uint64
+	var msgIDs []uint64
 	for _, msg := range msgs {
-		if msg.MID != lastId {
-			_, err = stmt_msg.Exec(msg.MID, "from@addre.ss", "rcpt@addre.ss", "BODY")
-			chk(err)
-			lastId = msg.MID
+		for _, id := range msgIDs {
+			if id == msg.MID {
+				goto addQueue
+			}
 		}
+		_, err = stmt_msg.Exec(msg.MID, "from@addre.ss", "rcpt@addre.ss", "BODY")
+		chk(err)
+		msgIDs = append(msgIDs, msg.MID)
+	addQueue:
 		addr, err := mail.ParseAddress(msg.Rcpt)
 		chk(err)
 		u, h := SplitUserHost(addr)
