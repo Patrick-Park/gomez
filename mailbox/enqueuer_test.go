@@ -2,6 +2,7 @@ package mailbox
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/mail"
 	"os"
@@ -9,15 +10,15 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/gbbr/jamon"
 )
 
-const (
-	dbUser         = "Gabriel"
-	dbString       = "user=" + dbUser + " dbname=gomez_test sslmode=disable"
-	testSchemaFile = "schema/schema_test.sql"
+var (
+	config   jamon.Group
+	once     sync.Once
+	dbString string
 )
-
-var once sync.Once
 
 // Ensures the test database is set up. Should be called before each test
 func EnsureTestDB() {
@@ -37,15 +38,30 @@ func CleanDB(db *sql.DB) {
 	}
 }
 
+// loadConfig loads the configuration from the file.
+func loadConfig() {
+	conf, err := jamon.LoadFile("../config/defaults.conf")
+	if err != nil {
+		log.Fatalf("error loading config: %s", err)
+	}
+	if !conf.HasGroup("test") {
+		log.Fatal("test config category not found")
+	}
+	config = conf.Group("test")
+	dbString = fmt.Sprintf("user=%s dbname=%s sslmode=%s",
+		config.Get("db.user"), config.Get("db.name"), config.Get("db.sslmode"))
+}
+
 // Sets up the test database from the schema file.
 func setUpTestDB() {
-	file, err := os.Open(testSchemaFile)
+	loadConfig()
+	file, err := os.Open(config.Get("db.schema"))
 	if err != nil {
 		log.Fatalf("Error opening schema file: %s", err)
 	}
 	defer file.Close()
 
-	cmd := exec.Command("psql", "--username="+dbUser, "-q")
+	cmd := exec.Command("psql", "--username="+config.Get("db.user"), "-q")
 	cmd.Stdin = file
 
 	err = cmd.Run()
