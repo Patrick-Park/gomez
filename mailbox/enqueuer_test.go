@@ -34,7 +34,7 @@ func CleanDB(db *sql.DB) {
 		DELETE FROM users`)
 
 	if err != nil {
-		log.Fatalf("Error tearing down: %s", err)
+		log.Fatalf("error tearing down: %s", err)
 	}
 }
 
