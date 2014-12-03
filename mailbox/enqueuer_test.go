@@ -82,7 +82,7 @@ func TestPostBox_NextID_Success(t *testing.T) {
 
 	pb, err := New(dbString)
 	if err != nil {
-		t.Errorf("Could not open DB:", err)
+		t.Errorf("could not open DB: %s", err)
 	}
 	defer pb.Close()
 
