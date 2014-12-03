@@ -39,10 +39,9 @@ func TestDequeuer_Dequeue(t *testing.T) {
 		Items  map[string]DeliveryByID
 		HasErr bool
 	}
-	log.Println(dbString)
 	pb, err := New(dbString)
 	if err != nil {
-		t.Error("Error starting server")
+		t.Fatalf("error starting server: %s", err)
 	}
 	defer pb.Close()
 	for _, ts := range []struct {
