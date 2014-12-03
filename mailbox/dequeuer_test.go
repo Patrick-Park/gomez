@@ -126,6 +126,23 @@ func TestDequeuer_Dequeue(t *testing.T) {
 						3: addrList("adams@dimm.com"),
 					},
 				}},
+				{N: 50, Items: map[string]DeliveryByID{
+					"john.com": DeliveryByID{
+						1: addrList("james@john.com", "jimmy@john.com"),
+					},
+					"jane.com": DeliveryByID{
+						2: addrList("jenny@jane.com"),
+						3: addrList("jenny@jane.com"),
+					},
+					"dimm.com": DeliveryByID{
+						1: addrList("eliza@dimm.com"),
+						2: addrList("eliza@dimm.com"),
+						3: addrList("adams@dimm.com"),
+					},
+					"jims.com": DeliveryByID{
+						4: addrList("donny@jims.com"),
+					},
+				}},
 			},
 		},
 	} {
