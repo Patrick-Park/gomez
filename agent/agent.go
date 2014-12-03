@@ -13,13 +13,14 @@ import (
 )
 
 type cronJob struct {
+	config  jamon.Group
 	lastRun time.Time
 	running bool
 }
 
 func Run(dq mailbox.Dequeuer, conf jamon.Group) error {
-	var cron cronJob
-	s, err := strconv.Atoi(conf.Get("tick"))
+	cron := cronJob{config: conf}
+	s, err := strconv.Atoi(cron.config.Get("tick"))
 	if err != nil {
 		return err
 	}
@@ -36,11 +37,11 @@ func Run(dq mailbox.Dequeuer, conf jamon.Group) error {
 	}
 }
 
-type byPriority []*net.MX
+type byPref []*net.MX
 
-func (b byPriority) Len() int           { return len(b) }
-func (b byPriority) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-func (b byPriority) Less(i, j int) bool { return b[i].Pref < b[j].Pref }
+func (b byPref) Len() int           { return len(b) }
+func (b byPref) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b byPref) Less(i, j int) bool { return b[i].Pref < b[j].Pref }
 
 // lookupMX returns a list of MX hosts ordered by preference.
 // This function is declared inline so we can mock it.
@@ -49,7 +50,7 @@ var lookupMX = func(host string) []*net.MX {
 	if err != nil {
 		log.Println(err)
 	}
-	sort.Sort(byPriority(MXs))
+	sort.Sort(byPref(MXs))
 	return MXs
 }
 
