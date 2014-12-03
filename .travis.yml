@@ -4,9 +4,7 @@ go:
   - 1.3
 
 script: 
-  - go test ./... -v
+  - go test ./... -v -race
 
 before_script:
-  - createuser -Srld Gabriel
-  - psql -c 'create database Gabriel;' -U postgres
-  - psql -c 'create database gomez_test;' -U Gabriel
+  - psql -c 'create database gomez_test;' -U postgres
