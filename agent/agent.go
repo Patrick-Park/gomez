@@ -61,7 +61,7 @@ var lookupMX = func(host string) []*net.MX {
 func (cron *cronJob) deliverTo(host string, pkg mailbox.Delivery) {
 	cron.group.Add(1)
 	defer cron.group.Done()
-SEND_LOOP:
+BIG_LOOP:
 	//TODO(gbbr): Use config retries
 	for i := 0; i < 2; i++ {
 		for _, h := range lookupMX(host) {
@@ -73,10 +73,6 @@ SEND_LOOP:
 			//TODO(gbbr): Use config host
 			c, err := smtp.NewClient(conn, "mecca.local")
 			if err != nil {
-				err = conn.Close()
-				if err != nil {
-					// handle err
-				}
 				continue
 			}
 			for msg, addrList := range pkg {
@@ -85,25 +81,25 @@ SEND_LOOP:
 				}
 				for _, addr := range addrList {
 					if err = c.Rcpt(addr.String()); err != nil {
-						// handle err
+						// Failed to deliver to this rcpt
 					}
 				}
 				w, err := c.Data()
 				if err != nil {
-					// handle err
+					// Failed to deliver this msg. Retry?
 				}
 				_, err = fmt.Fprint(w, msg.Raw)
 				if err != nil {
-					// handle err
+					// Failed to deliver this msg. Retry?
 				}
 				if err = w.Close(); err != nil {
-					// handle err
-				}
-				if err = c.Quit(); err != nil {
-					// hanle err
+					// handle err. Are we done?
 				}
 			}
-			break SEND_LOOP
+			if err = c.Quit(); err != nil {
+				// log error
+			}
+			break BIG_LOOP
 		}
 	}
 }
