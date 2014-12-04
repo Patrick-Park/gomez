@@ -10,7 +10,7 @@ import (
 
 // Maps message to destination by ID.
 // MessageID -> Destination addresses
-type DeliveryByID map[uint64][]*mail.Address
+type PackageByID map[uint64][]*mail.Address
 
 // Messages that will be enqueued for the test
 // set up and dequeued for the actual test.
@@ -36,7 +36,7 @@ func TestDequeuer_Dequeue(t *testing.T) {
 	// Dequeuer.
 	type testCase struct {
 		N      int
-		Items  map[string]DeliveryByID
+		Items  map[string]PackageByID
 		HasErr bool
 	}
 	pb, err := New(dbString)
@@ -62,35 +62,35 @@ func TestDequeuer_Dequeue(t *testing.T) {
 			},
 			// This is a series of tests that act on the above setup
 			want: []testCase{
-				{N: 1, Items: map[string]DeliveryByID{
-					"doe.com": DeliveryByID{
+				{N: 1, Items: map[string]PackageByID{
+					"doe.com": PackageByID{
 						1: addrList("adam@doe.com", "jane@doe.com"),
 						2: addrList("jim@doe.com"),
 						4: addrList("jane@doe.com"),
 					},
 				}},
-				{N: 2, Items: map[string]DeliveryByID{
-					"doe.com": DeliveryByID{
+				{N: 2, Items: map[string]PackageByID{
+					"doe.com": PackageByID{
 						1: addrList("adam@doe.com", "jane@doe.com"),
 						2: addrList("jim@doe.com"),
 						4: addrList("jane@doe.com"),
 					},
-					"bree.com": DeliveryByID{
+					"bree.com": PackageByID{
 						1: addrList("ann@bree.com"),
 						3: addrList("adam@bree.com", "ann@bree.com"),
 					},
 				}},
-				{N: 5, Items: map[string]DeliveryByID{
-					"doe.com": DeliveryByID{
+				{N: 5, Items: map[string]PackageByID{
+					"doe.com": PackageByID{
 						1: addrList("adam@doe.com", "jane@doe.com"),
 						2: addrList("jim@doe.com"),
 						4: addrList("jane@doe.com"),
 					},
-					"bree.com": DeliveryByID{
+					"bree.com": PackageByID{
 						1: addrList("ann@bree.com"),
 						3: addrList("adam@bree.com", "ann@bree.com"),
 					},
-					"cheese.com": DeliveryByID{
+					"cheese.com": PackageByID{
 						4: addrList("brad@cheese.com"),
 					},
 				}},
@@ -107,39 +107,39 @@ func TestDequeuer_Dequeue(t *testing.T) {
 				{3, "jenny@jane.com", "12:07"},
 			},
 			want: []testCase{
-				{N: 1, Items: map[string]DeliveryByID{
-					"john.com": DeliveryByID{
+				{N: 1, Items: map[string]PackageByID{
+					"john.com": PackageByID{
 						1: addrList("james@john.com", "jimmy@john.com"),
 					},
 				}},
-				{N: 3, Items: map[string]DeliveryByID{
-					"john.com": DeliveryByID{
+				{N: 3, Items: map[string]PackageByID{
+					"john.com": PackageByID{
 						1: addrList("james@john.com", "jimmy@john.com"),
 					},
-					"jane.com": DeliveryByID{
+					"jane.com": PackageByID{
 						2: addrList("jenny@jane.com"),
 						3: addrList("jenny@jane.com"),
 					},
-					"dimm.com": DeliveryByID{
+					"dimm.com": PackageByID{
 						1: addrList("eliza@dimm.com"),
 						2: addrList("eliza@dimm.com"),
 						3: addrList("adams@dimm.com"),
 					},
 				}},
-				{N: 50, Items: map[string]DeliveryByID{
-					"john.com": DeliveryByID{
+				{N: 50, Items: map[string]PackageByID{
+					"john.com": PackageByID{
 						1: addrList("james@john.com", "jimmy@john.com"),
 					},
-					"jane.com": DeliveryByID{
+					"jane.com": PackageByID{
 						2: addrList("jenny@jane.com"),
 						3: addrList("jenny@jane.com"),
 					},
-					"dimm.com": DeliveryByID{
+					"dimm.com": PackageByID{
 						1: addrList("eliza@dimm.com"),
 						2: addrList("eliza@dimm.com"),
 						3: addrList("adams@dimm.com"),
 					},
-					"jims.com": DeliveryByID{
+					"jims.com": PackageByID{
 						4: addrList("donny@jims.com"),
 					},
 				}},
@@ -166,16 +166,16 @@ func TestDequeuer_Dequeue(t *testing.T) {
 	}
 }
 
-// compareResults compares a map of host->Delivery to a map of host->DeliveryByID
-// where ID matches the ID of the message from the gotten Delivery.
+// compareResults compares a map of host->Package to a map of host->PackageByID
+// where ID matches the ID of the message from the gotten Package.
 func compareResults(
-	got map[string]Delivery,
-	want map[string]DeliveryByID,
-) (map[string]DeliveryByID, bool) {
+	got map[string]Package,
+	want map[string]PackageByID,
+) (map[string]PackageByID, bool) {
 
-	cgot := make(map[string]DeliveryByID)
+	cgot := make(map[string]PackageByID)
 	for host, delivery := range got {
-		cgot[host] = make(DeliveryByID)
+		cgot[host] = make(PackageByID)
 		for msg, addrs := range delivery {
 			if cgot[host][msg.ID] == nil {
 				cgot[host][msg.ID] = make([]*mail.Address, 0, len(addrs))
@@ -203,42 +203,42 @@ func (by byAddress) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 
 func Test_compareResults(t *testing.T) {
 	for _, tt := range []struct {
-		got    map[string]Delivery
-		want   map[string]DeliveryByID
+		got    map[string]Package
+		want   map[string]PackageByID
 		expect bool
 	}{
 		{
-			got: map[string]Delivery{"addr.net": Delivery{
+			got: map[string]Package{"addr.net": Package{
 				&Message{ID: 1}: addrList("jane@addr.net", "john@addr.net"),
 				&Message{ID: 2}: addrList("a@b.com", "c@d.com", "x@y.com"),
 			}},
-			want: map[string]DeliveryByID{"addr.net": DeliveryByID{
+			want: map[string]PackageByID{"addr.net": PackageByID{
 				1: addrList("john@addr.net", "jane@addr.net"),
 				2: addrList("x@y.com", "c@d.com", "a@b.com"),
 			}},
 			expect: true,
 		},
 		{
-			got: map[string]Delivery{"addr.net": Delivery{
+			got: map[string]Package{"addr.net": Package{
 				&Message{ID: 1}: addrList("jane@addr.net", "john@addr.net"),
 				&Message{ID: 2}: addrList("a@b.com", "c@d.com", "x@y.com"),
 			}},
-			want: map[string]DeliveryByID{"addr.net": DeliveryByID{
+			want: map[string]PackageByID{"addr.net": PackageByID{
 				1: addrList("jane@addr.net", "john@addr.net"),
 				2: addrList("x@y.com", "SOMETHING DIFFERENT", "a@b.com"),
 			}},
 			expect: false,
 		},
 		{
-			got: map[string]Delivery{"addr.net": Delivery{
+			got: map[string]Package{"addr.net": Package{
 				&Message{ID: 1}: addrList("jane@addr.net", "john@addr.net"),
 				&Message{ID: 2}: addrList("a@b.com", "c@d.com", "x@y.com"),
 			}},
-			want: map[string]DeliveryByID{"addr.net": DeliveryByID{
+			want: map[string]PackageByID{"addr.net": PackageByID{
 				1: addrList("jane@addr.net", "john@addr.net"),
 				2: addrList("x@y.com", "c@d.com", "a@b.com"),
 				3: addrList("x@y.com", "c@d.com", "a@b.com"),
-			}, "xcv.net": DeliveryByID{
+			}, "xcv.net": PackageByID{
 				1: addrList("jane@addr.net", "john@addr.net"),
 				2: addrList("x@y.com", "c@d.com", "a@b.com"),
 			}},

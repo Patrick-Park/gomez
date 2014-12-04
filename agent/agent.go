@@ -58,7 +58,7 @@ var lookupMX = func(host string) []*net.MX {
 	return MXs
 }
 
-func (cron *cronJob) deliverTo(host string, pkg mailbox.Delivery) {
+func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 	cron.group.Add(1)
 	defer cron.group.Done()
 BIG_LOOP:

@@ -13,5 +13,5 @@ func TestAgent_deliverTo(t *testing.T) {
 	lookupMX = func(host string) []*net.MX {
 		return []*net.MX{{Host: "localhost"}}
 	}
-	cron.deliverTo("google.com", mailbox.Delivery{})
+	cron.deliverTo("google.com", mailbox.Package{})
 }
