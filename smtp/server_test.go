@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gbbr/gomez/internal/jamon"
 	"github.com/gbbr/gomez/mailbox"
-	"github.com/gbbr/jamon"
 	"github.com/gbbr/mocks"
 )
 
@@ -142,86 +142,58 @@ func TestServer_Digest_Responses(t *testing.T) {
 	testSuite := []struct {
 		Message  *mailbox.Message
 		Enqueuer mailbox.Enqueuer
-		Address  string
-		Response int
+		Response error
 	}{
 		{
 			&mailbox.Message{Raw: "Message is not valid"},
 			mailbox.MockEnqueuer{},
-			"1.2.3.4:1234", 550,
+			errMsgNotCompliant,
 		}, {
 			&mailbox.Message{Raw: "Subject: Heloo\r\nFrom: Maynard\r\n\r\nMessage is not valid"},
 			mailbox.MockEnqueuer{},
-			"1.2.3.4:1234", 550,
+			errMsgNotCompliant,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\n\r\nMessage is not valid"},
 			mailbox.MockEnqueuer{},
-			"1.2.3.4:1234", 550,
+			errMsgNotCompliant,
 		}, {
 			&mailbox.Message{
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with DB error.",
 			},
 			mailbox.MockEnqueuer{
-				GUIDMock: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
-			},
-			"1.2.3.4:1234", 451,
+				GUIDMock: func() (uint64, error) { return 0, errors.New("Error connecting to DB") }},
+			errProcessing,
 		}, {
 			&mailbox.Message{
-				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
-			},
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error."},
 			mailbox.MockEnqueuer{
 				GUIDMock:    func() (uint64, error) { return 123, nil },
-				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
-			},
-			"1.2.3.4:1234", 451,
+				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") }},
+			errEnqueuing,
 		}, {
 			&mailbox.Message{
-				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with split-host error.",
-			},
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors."},
 			mailbox.MockEnqueuer{
 				GUIDMock:    func() (uint64, error) { return 123, nil },
-				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
-			},
-			"1.2.3.4", 451,
-		}, {
-			&mailbox.Message{
-				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors.",
-			},
-			mailbox.MockEnqueuer{
-				GUIDMock:    func() (uint64, error) { return 123, nil },
-				EnqueueMock: func(*mailbox.Message) error { return nil },
-			},
-			"1.2.3.4:123", 250,
+				EnqueueMock: func(*mailbox.Message) error { return nil }},
+			nil,
 		},
 	}
-
-	var wg sync.WaitGroup
-
 	for _, test := range testSuite {
 		server.Enqueuer = test.Enqueuer
-		client, pipe := getTestClient()
+		client, _ := getTestClient()
 		client.Message = test.Message
 		client.Message.AddInbound(&mail.Address{"Name", "Addr@es"})
 
-		wg.Add(1)
-		go func() {
-			server.digest(client)
-			wg.Done()
-		}()
-
-		_, _, err := pipe.ReadResponse(test.Response)
-		if err != nil {
-			t.Errorf("Expected %d, but got: %+v", test.Response, err)
+		err := server.digest(client)
+		if err != test.Response {
+			t.Errorf("expected %+v, got %+v", test.Response, err)
 		}
-
-		pipe.Close()
-		wg.Wait()
 	}
 }
 
 func TestServer_Digest_Header_Message_ID(t *testing.T) {
 	var called bool
-
 	server := server{config: jamon.Group{"host": "TestHost"}}
 	testSuite := []struct {
 		Message    *mailbox.Message
@@ -254,24 +226,14 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 			"My_ID", 53, 451, false,
 		},
 	}
-
-	var wg sync.WaitGroup
-
 	for _, test := range testSuite {
 		called = false
 		server.Enqueuer = test.Enqueuer
-		client, pipe := getTestClient()
+		client, _ := getTestClient()
 		client.Message = test.Message
 		client.Message.AddInbound(&mail.Address{"", "a@b.com"})
 
-		wg.Add(1)
-		go func() {
-			server.digest(client)
-			wg.Done()
-		}()
-
-		pipe.ReadResponse(test.Response)
-		pipe.Close()
+		server.digest(client)
 
 		msg, err := client.Message.Parse()
 		if err != nil || len(msg.Header["Message-Id"]) == 0 {
@@ -289,8 +251,6 @@ func TestServer_Digest_Header_Message_ID(t *testing.T) {
 		if client.Message.ID != test.ID {
 			t.Errorf("Did not set message ID. Wanted %d, got %d", test.ID, client.Message.ID)
 		}
-
-		wg.Wait()
 	}
 }
 
@@ -303,28 +263,16 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 		EnqueueMock: func(*mailbox.Message) error { return errors.New("Error processing") },
 	}
 
-	client, pipe := getTestClient()
+	client, _ := getTestClient()
 	client.addrIP = "1.2.3.4"
 	client.ID = "Doe"
-
 	client.Message = &mailbox.Message{
 		Raw: "From: Mary\r\nMessage-ID: My_ID\r\nDate: Today\r\n\r\nHey Mary how are you?",
 		ID:  53,
 	}
-
 	client.Message.AddOutbound(&mail.Address{"Name", "Addr@es"})
 
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		server.digest(client)
-		wg.Done()
-	}()
-
-	pipe.ReadResponse(451)
-	wg.Wait()
-
+	server.digest(client)
 	msg, err := client.Message.Parse()
 	if err != nil || len(msg.Header["Received"]) == 0 {
 		t.Error("Error parsing message")
@@ -343,23 +291,12 @@ func TestServer_Digest_Received_Header(t *testing.T) {
 	// Check that host is added
 	client.addrIP = "127.0.0.1"
 	client.addrHost = "localhost "
-
-	wg.Add(1)
-	go func() {
-		server.digest(client)
-		wg.Done()
-	}()
-
-	pipe.ReadResponse(451)
-	pipe.Close()
-
-	wg.Wait()
+	server.digest(client)
 
 	msg, err = client.Message.Parse()
 	if err != nil || len(msg.Header["Received"]) == 0 {
 		t.Error("Error parsing message")
 	}
-
 	if !strings.HasPrefix(msg.Header["Received"][0],
 		`from Doe (localhost [127.0.0.1]) by TestHost (Gomez) with ESMTP id 53 for "Name" <Addr@es>;`) {
 		t.Errorf("Got (on reverse): %s", msg.Header["Received"][0])

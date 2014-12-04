@@ -1,109 +1,154 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"net/mail"
 	"net/smtp"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/gbbr/gomez/internal/jamon"
 	"github.com/gbbr/gomez/mailbox"
-	"github.com/gbbr/jamon"
 )
 
 type cronJob struct {
-	config  jamon.Group
-	lastRun time.Time
-	group   sync.WaitGroup
-	running bool
+	config jamon.Group
+	dq     mailbox.Dequeuer
 }
 
-func Run(dq mailbox.Dequeuer, conf jamon.Group) error {
-	cron := cronJob{config: conf}
-	s, err := strconv.Atoi(cron.config.Get("pause"))
+type flushRequest struct {
+	done  chan error
+	count int
+}
+
+type report struct {
+	msgID   uint64
+	success []*mail.Address
+	fail    []*mail.Address
+}
+
+func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
+	pause, err := strconv.Atoi(conf.Get("pause"))
 	if err != nil {
-		return err
+		log.Fatal("agent/pause configuration is not numeric")
 	}
-	tick := time.Duration(s) * time.Second
+	cron := cronJob{
+		dq:     dq,
+		config: conf,
+	}
 	for {
-		jobs, err := dq.Dequeue()
+		time.Sleep(time.Duration(pause) * time.Second)
+
+		jobs, err := cron.dq.Dequeue()
 		if err != nil {
-			return err
+			log.Printf("error dequeuing: %s", err)
+			continue
 		}
-		for host, pkg := range jobs {
-			go cron.deliverTo(host, pkg)
-		}
-		cron.group.Wait()
-		cron.lastRun = <-time.After(tick)
-	}
-}
 
-type byPref []*net.MX
-
-func (b byPref) Len() int           { return len(b) }
-func (b byPref) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-func (b byPref) Less(i, j int) bool { return b[i].Pref < b[j].Pref }
-
-// lookupMX returns a list of MX hosts ordered by preference.
-// This function is declared inline so we can mock it.
-var lookupMX = func(host string) []*net.MX {
-	MXs, err := net.LookupMX(host)
-	if err != nil {
-		log.Println(err)
-	}
-	sort.Sort(byPref(MXs))
-	return MXs
-}
-
-func (cron *cronJob) deliverTo(host string, pkg mailbox.Delivery) {
-	cron.group.Add(1)
-	defer cron.group.Done()
-SEND_LOOP:
-	//TODO(gbbr): Use config retries
-	for i := 0; i < 2; i++ {
-		for _, h := range lookupMX(host) {
-			//TODO(gbbr): Use config timeout
-			conn, err := net.DialTimeout("tcp", h.Host+":25", 5*time.Second)
-			if err != nil {
-				continue
-			}
-			//TODO(gbbr): Use config host
-			c, err := smtp.NewClient(conn, "mecca.local")
-			if err != nil {
-				err = conn.Close()
-				if err != nil {
-					// handle err
-				}
-				continue
-			}
-			for msg, addrList := range pkg {
-				if err = c.Mail(msg.From().String()); err != nil {
-					// handle err
-				}
-				for _, addr := range addrList {
-					if err = c.Rcpt(addr.String()); err != nil {
-						// handle err
+		retry := make(chan []*mail.Address)
+		done := make(chan []*mail.Address)
+		failed := make(chan *mail.Address)
+		go func() {
+			for {
+				select {
+				case list, more := <-done:
+					if !more {
+						return
 					}
-				}
-				w, err := c.Data()
-				if err != nil {
-					// handle err
-				}
-				_, err = fmt.Fprint(w, msg.Raw)
-				if err != nil {
-					// handle err
-				}
-				if err = w.Close(); err != nil {
-					// handle err
-				}
-				if err = c.Quit(); err != nil {
-					// hanle err
+					_ = list
+					// dq.Done(list)
+				case list := <-retry:
+					_ = list
+					// dq.Retry(list)
+				case addr := <-failed:
+					_ = addr
+					// dq.Flush(addr)
 				}
 			}
-			break SEND_LOOP
+		}()
+
+		var wg sync.WaitGroup
+		wg.Add(len(jobs))
+		for host, pkg := range jobs {
+			go func() {
+				defer wg.Done()
+				client, err := cron.getSMTPClient(host)
+				if err != nil {
+					// cron.log <- err
+					return
+				}
+				defer func() {
+					if err := client.Quit(); err != nil {
+						log.Printf("error quitting client: %s", err)
+					}
+				}()
+				for msg, rcpt := range pkg {
+					if err := client.Mail(msg.From().String()); err != nil {
+						retry <- rcpt
+						continue
+					}
+					var success []*mail.Address
+					for _, addr := range rcpt {
+						if err := client.Rcpt(addr.String()); err != nil {
+							failed <- addr
+							continue
+						}
+						success = append(success, addr)
+					}
+					w, err := client.Data()
+					if err != nil {
+						retry <- rcpt
+						continue
+					}
+					_, err = fmt.Fprint(w, msg.Raw)
+					if err != nil {
+						retry <- rcpt
+						continue
+					}
+					if err = w.Close(); err != nil {
+						retry <- rcpt
+						continue
+					}
+					done <- success
+				}
+			}()
+		}
+
+		wg.Wait()
+		close(done)
+		// dq.Flush()
+	}
+	return nil
+}
+
+var errFailedHost = errors.New("failed connecting to MX hosts after all tries")
+
+// We declare inline so we can mock to local in tests.
+var lookupMX = func(host string) ([]*net.MX, error) {
+	return net.LookupMX(host)
+}
+
+func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
+	MXs, err := lookupMX(host)
+	if err != nil {
+		return nil, err
+	}
+	for retry := 0; retry < 2; retry++ {
+		for _, mx := range MXs {
+			conn, err := net.DialTimeout("tcp", mx.Host+":25", 5*time.Second)
+			if err != nil {
+				continue
+			}
+			client, err := smtp.NewClient(conn, "mecca.local")
+			if err != nil {
+				continue
+			}
+			return client, nil
 		}
 	}
+	return nil, errFailedHost
 }
