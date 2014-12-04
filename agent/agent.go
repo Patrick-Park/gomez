@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/smtp"
 	"sort"
 	"strconv"
 	"sync"
@@ -60,7 +61,49 @@ var lookupMX = func(host string) []*net.MX {
 func (cron *cronJob) deliverTo(host string, pkg mailbox.Delivery) {
 	cron.group.Add(1)
 	defer cron.group.Done()
-	for _, h := range lookupMX(host) {
-		fmt.Printf("%d - %s\n", h.Pref, h.Host)
+SEND_LOOP:
+	//TODO(gbbr): Use config retries
+	for i := 0; i < 2; i++ {
+		for _, h := range lookupMX(host) {
+			//TODO(gbbr): Use config timeout
+			conn, err := net.DialTimeout("tcp", h.Host+":25", 5*time.Second)
+			if err != nil {
+				continue
+			}
+			//TODO(gbbr): Use config host
+			c, err := smtp.NewClient(conn, "mecca.local")
+			if err != nil {
+				err = conn.Close()
+				if err != nil {
+					// handle err
+				}
+				continue
+			}
+			for msg, addrList := range pkg {
+				if err = c.Mail(msg.From().String()); err != nil {
+					// handle err
+				}
+				for _, addr := range addrList {
+					if err = c.Rcpt(addr.String()); err != nil {
+						// handle err
+					}
+				}
+				w, err := c.Data()
+				if err != nil {
+					// handle err
+				}
+				_, err = fmt.Fprint(w, msg.Raw)
+				if err != nil {
+					// handle err
+				}
+				if err = w.Close(); err != nil {
+					// handle err
+				}
+				if err = c.Quit(); err != nil {
+					// hanle err
+				}
+			}
+			break SEND_LOOP
+		}
 	}
 }
