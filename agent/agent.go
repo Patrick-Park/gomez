@@ -63,10 +63,10 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 	defer cron.group.Done()
 BIG_LOOP:
 	//TODO(gbbr): Use config retries
-	for i := 0; i < 2; i++ {
-		for _, h := range lookupMX(host) {
+	for retry := 0; retry < 2; retry++ {
+		for _, mx := range lookupMX(host) {
 			//TODO(gbbr): Use config timeout
-			conn, err := net.DialTimeout("tcp", h.Host+":25", 5*time.Second)
+			conn, err := net.DialTimeout("tcp", mx.Host+":25", 5*time.Second)
 			if err != nil {
 				continue
 			}
