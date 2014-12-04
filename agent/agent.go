@@ -6,6 +6,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gbbr/gomez/mailbox"
@@ -15,12 +16,13 @@ import (
 type cronJob struct {
 	config  jamon.Group
 	lastRun time.Time
+	group   sync.WaitGroup
 	running bool
 }
 
 func Run(dq mailbox.Dequeuer, conf jamon.Group) error {
 	cron := cronJob{config: conf}
-	s, err := strconv.Atoi(cron.config.Get("tick"))
+	s, err := strconv.Atoi(cron.config.Get("pause"))
 	if err != nil {
 		return err
 	}
@@ -31,8 +33,9 @@ func Run(dq mailbox.Dequeuer, conf jamon.Group) error {
 			return err
 		}
 		for host, pkg := range jobs {
-			go deliverTo(host, pkg)
+			go cron.deliverTo(host, pkg)
 		}
+		cron.group.Wait()
 		cron.lastRun = <-time.After(tick)
 	}
 }
@@ -54,7 +57,9 @@ var lookupMX = func(host string) []*net.MX {
 	return MXs
 }
 
-func deliverTo(host string, pkg mailbox.Delivery) {
+func (cron *cronJob) deliverTo(host string, pkg mailbox.Delivery) {
+	cron.group.Add(1)
+	defer cron.group.Done()
 	for _, h := range lookupMX(host) {
 		fmt.Printf("%d - %s\n", h.Pref, h.Host)
 	}
