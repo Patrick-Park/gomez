@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/smtp"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -56,12 +55,12 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 		}
 	}()
 
-	for msg, rcpt := range pkg {
+	for msg, rcptList := range pkg {
 		if err := client.Mail(msg.From().String()); err != nil {
 			// handle err; increase attempts, continue
 		}
-		for _, addr := range rcpt {
-			if err := client.Rcpt(addr.String()); err != nil {
+		for _, rcpt := range rcptList {
+			if err := client.Rcpt(rcpt.String()); err != nil {
 				// Failed to deliver to this rcpt
 			}
 		}
@@ -79,12 +78,6 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 	}
 }
 
-type byPref []*net.MX
-
-func (b byPref) Len() int           { return len(b) }
-func (b byPref) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-func (b byPref) Less(i, j int) bool { return b[i].Pref < b[j].Pref }
-
 // lookupMX returns a list of MX hosts ordered by preference.
 // This function is declared inline so we can mock it.
 var lookupMX = func(host string) ([]*net.MX, error) {
@@ -92,7 +85,6 @@ var lookupMX = func(host string) ([]*net.MX, error) {
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(byPref(MXs))
 	return MXs, err
 }
 
