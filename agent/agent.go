@@ -77,7 +77,7 @@ BIG_LOOP:
 			}
 			for msg, addrList := range pkg {
 				if err = c.Mail(msg.From().String()); err != nil {
-					// handle err
+					// handle err; increase attempts, continue
 				}
 				for _, addr := range addrList {
 					if err = c.Rcpt(addr.String()); err != nil {
