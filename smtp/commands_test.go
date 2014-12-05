@@ -197,8 +197,7 @@ func TestCmdRCPT_Internal_Error(t *testing.T) {
 }
 
 func TestCmdDATA_Digest(t *testing.T) {
-	calledDigest := false
-
+	var calledDigest bool
 	client, pipe := getTestClient()
 	client.host = &mockHost{
 		DigestMock: func(c *transaction) error {
@@ -206,9 +205,7 @@ func TestCmdDATA_Digest(t *testing.T) {
 			return nil
 		},
 	}
-
 	var wg sync.WaitGroup
-
 	wg.Add(1)
 	go func() {
 		client.Mode = stateDATA
@@ -216,13 +213,12 @@ func TestCmdDATA_Digest(t *testing.T) {
 		cmdDATA(client, "")
 		wg.Done()
 	}()
-
 	pipe.ReadResponse(354)
 	pipe.PrintfLine(".")
+	pipe.ReadResponse(250)
 
 	wg.Wait()
 	pipe.Close()
-
 	if !calledDigest {
 		t.Error("Did not call digest")
 	}

@@ -2,7 +2,6 @@ package smtp
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"net/mail"
@@ -120,6 +119,12 @@ func (s server) run(ctx *transaction, msg string) error {
 	return command(ctx, params)
 }
 
+var (
+	errMsgNotCompliant = errors.New("message not RFC 2822 compliant")
+	errProcessing      = errors.New("error during processing")
+	errEnqueuing       = errors.New("error occurred while trying to enqueue")
+)
+
 // digest finalizes the SMTP transaction by validating the message and attempting
 // to enqueue it. This method attaches transitional headers as per RFC 5321.
 func (s server) digest(client *transaction) error {
@@ -127,14 +132,14 @@ func (s server) digest(client *transaction) error {
 	if err != nil ||
 		len(msg.Header["Date"]) == 0 ||
 		len(msg.Header["From"]) == 0 {
-		return client.notify(reply{550, "Message not RFC 2822 compliant."})
+		return errMsgNotCompliant
 	}
 	// If this messages hasn't had an ID generated before, from a previous
 	// attempt, create one for it.
 	if client.Message.ID == 0 {
 		id, err := s.Enqueuer.GUID()
 		if err != nil {
-			return client.notify(replyErrorProcessing)
+			return errProcessing
 		}
 		client.Message.ID = id
 	}
@@ -153,9 +158,8 @@ func (s server) digest(client *transaction) error {
 
 	err = s.Enqueuer.Enqueue(client.Message)
 	if err != nil {
-		return client.notify(replyErrorProcessing)
+		return errEnqueuing
 	}
 	client.reset()
-	return client.notify(
-		reply{250, fmt.Sprintf("message queued (%x)", client.Message.ID)})
+	return nil
 }
