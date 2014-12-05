@@ -142,61 +142,46 @@ func TestServer_Digest_Responses(t *testing.T) {
 	testSuite := []struct {
 		Message  *mailbox.Message
 		Enqueuer mailbox.Enqueuer
-		Address  string
 		Response error
 	}{
 		{
 			&mailbox.Message{Raw: "Message is not valid"},
 			mailbox.MockEnqueuer{},
-			"1.2.3.4:1234", errMsgNotCompliant,
+			errMsgNotCompliant,
 		}, {
 			&mailbox.Message{Raw: "Subject: Heloo\r\nFrom: Maynard\r\n\r\nMessage is not valid"},
 			mailbox.MockEnqueuer{},
-			"1.2.3.4:1234", errMsgNotCompliant,
+			errMsgNotCompliant,
 		}, {
 			&mailbox.Message{Raw: "From: Mary\r\n\r\nMessage is not valid"},
 			mailbox.MockEnqueuer{},
-			"1.2.3.4:1234", errMsgNotCompliant,
+			errMsgNotCompliant,
 		}, {
 			&mailbox.Message{
 				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with DB error.",
 			},
 			mailbox.MockEnqueuer{
-				GUIDMock: func() (uint64, error) { return 0, errors.New("Error connecting to DB") },
-			},
-			"1.2.3.4:1234", errProcessing,
+				GUIDMock: func() (uint64, error) { return 0, errors.New("Error connecting to DB") }},
+			errProcessing,
 		}, {
 			&mailbox.Message{
-				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error.",
-			},
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with queuing error."},
 			mailbox.MockEnqueuer{
 				GUIDMock:    func() (uint64, error) { return 123, nil },
-				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
-			},
-			"1.2.3.4:1234", errEnqueuing,
-			//}, {
-			//&mailbox.Message{
-			//Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with split-host error.",
-			//},
-			//mailbox.MockEnqueuer{
-			//GUIDMock:    func() (uint64, error) { return 123, nil },
-			//EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") },
-			//},
-			//"1.2.3.4", 451,
+				EnqueueMock: func(*mailbox.Message) error { return errors.New("Error queueing message.") }},
+			errEnqueuing,
 		}, {
 			&mailbox.Message{
-				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors.",
-			},
+				Raw: "From: Mary\r\nDate: Today\r\n\r\nMessage is valid, with no errors."},
 			mailbox.MockEnqueuer{
 				GUIDMock:    func() (uint64, error) { return 123, nil },
-				EnqueueMock: func(*mailbox.Message) error { return nil },
-			},
-			"1.2.3.4:123", nil,
+				EnqueueMock: func(*mailbox.Message) error { return nil }},
+			nil,
 		},
 	}
 	for _, test := range testSuite {
 		server.Enqueuer = test.Enqueuer
-		client, pipe := getTestClient()
+		client, _ := getTestClient()
 		client.Message = test.Message
 		client.Message.AddInbound(&mail.Address{"Name", "Addr@es"})
 
@@ -204,7 +189,6 @@ func TestServer_Digest_Responses(t *testing.T) {
 		if err != test.Response {
 			t.Errorf("expected %+v, got %+v", test.Response, err)
 		}
-		pipe.Close()
 	}
 }
 
