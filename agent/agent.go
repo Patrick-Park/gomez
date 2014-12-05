@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"strconv"
 	"sync"
@@ -20,7 +21,7 @@ type cronJob struct {
 	running bool
 }
 
-func Run(dq mailbox.Dequeuer, conf jamon.Group) error {
+func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	cron := cronJob{config: conf}
 	s, err := strconv.Atoi(cron.config.Get("pause"))
 	if err != nil {
@@ -54,49 +55,32 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 			// log error
 		}
 	}()
-
 	for msg, rcptList := range pkg {
-		if err := client.Mail(msg.From().String()); err != nil {
-			// handle err; increase attempts, continue
-		}
-		for _, rcpt := range rcptList {
-			if err := client.Rcpt(rcpt.String()); err != nil {
-				// Failed to deliver to this rcpt
-			}
-		}
-		w, err := client.Data()
-		if err != nil {
-			// Failed to deliver this msg. Retry?
-		}
-		_, err = fmt.Fprint(w, msg.Raw)
-		if err != nil {
-			// Failed to deliver this msg. Retry?
-		}
-		if err = w.Close(); err != nil {
-			// handle err. Are we done?
-		}
+		err = cron.sendMessage(client, msg, rcptList)
 	}
 }
+
+// errFailedLookup is returned when MX lookup failed for the passed host.
+var errFailedLookup = errors.New("failed to lookup MX hosts")
 
 // lookupMX returns a list of MX hosts ordered by preference.
 // This function is declared inline so we can mock it.
 var lookupMX = func(host string) ([]*net.MX, error) {
 	MXs, err := net.LookupMX(host)
 	if err != nil {
-		return nil, err
+		return nil, errFailedLookup
 	}
-	return MXs, err
+	return MXs, nil
 }
 
-var (
-	ErrFailedConnection = errors.New("failed connecting to MX hosts after all tries")
-	ErrFailedLookup     = errors.New("failed to lookup MX hosts")
-)
+// errFailedConnect is returned when connecting was not possible to any
+// of the MX hosts.
+var errFailedConnect = errors.New("failed connecting to MX hosts after all tries")
 
 func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
 	MXs, err := lookupMX(host)
 	if err != nil {
-		return nil, ErrFailedLookup
+		return nil, err
 	}
 	//TODO(gbbr): Use config retries
 	for retry := 0; retry < 2; retry++ {
@@ -114,5 +98,28 @@ func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
 			return c, nil
 		}
 	}
-	return nil, ErrFailedConnection
+	return nil, errFailedConnect
+}
+
+func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcptList []*mail.Address) error {
+	if err := client.Mail(msg.From().String()); err != nil {
+		// handle err; increase attempts, continue
+	}
+	for _, rcpt := range rcptList {
+		if err := client.Rcpt(rcpt.String()); err != nil {
+			// Failed to deliver to this rcpt
+		}
+	}
+	w, err := client.Data()
+	if err != nil {
+		// Failed to deliver this msg. Retry?
+	}
+	_, err = fmt.Fprint(w, msg.Raw)
+	if err != nil {
+		// Failed to deliver this msg. Retry?
+	}
+	if err = w.Close(); err != nil {
+		// handle err. Are we done?
+	}
+	return nil
 }
