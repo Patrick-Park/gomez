@@ -10,8 +10,8 @@ import (
 func TestAgent_deliverTo(t *testing.T) {
 	return
 	var cron cronJob
-	lookupMX = func(host string) []*net.MX {
-		return []*net.MX{{Host: "localhost"}}
+	lookupMX = func(host string) ([]*net.MX, error) {
+		return []*net.MX{{Host: "localhost"}}, nil
 	}
 	cron.deliverTo("google.com", mailbox.Package{})
 }

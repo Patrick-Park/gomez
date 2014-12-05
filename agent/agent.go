@@ -1,8 +1,8 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/smtp"
 	"sort"
@@ -34,10 +34,48 @@ func Run(dq mailbox.Dequeuer, conf jamon.Group) error {
 			return err
 		}
 		for host, pkg := range jobs {
-			go cron.deliverTo(host, pkg)
+			cron.group.Add(1)
+			go func() {
+				defer cron.group.Done()
+				cron.deliverTo(host, pkg)
+			}()
 		}
 		cron.group.Wait()
 		cron.lastRun = <-time.After(tick)
+	}
+}
+
+func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
+	client, err := cron.getSMTPClient(host)
+	if err != nil {
+		// handle error
+	}
+	defer func() {
+		if err = client.Quit(); err != nil {
+			// log error
+		}
+	}()
+
+	for msg, rcpt := range pkg {
+		if err := client.Mail(msg.From().String()); err != nil {
+			// handle err; increase attempts, continue
+		}
+		for _, addr := range rcpt {
+			if err := client.Rcpt(addr.String()); err != nil {
+				// Failed to deliver to this rcpt
+			}
+		}
+		w, err := client.Data()
+		if err != nil {
+			// Failed to deliver this msg. Retry?
+		}
+		_, err = fmt.Fprint(w, msg.Raw)
+		if err != nil {
+			// Failed to deliver this msg. Retry?
+		}
+		if err = w.Close(); err != nil {
+			// handle err. Are we done?
+		}
 	}
 }
 
@@ -49,22 +87,28 @@ func (b byPref) Less(i, j int) bool { return b[i].Pref < b[j].Pref }
 
 // lookupMX returns a list of MX hosts ordered by preference.
 // This function is declared inline so we can mock it.
-var lookupMX = func(host string) []*net.MX {
+var lookupMX = func(host string) ([]*net.MX, error) {
 	MXs, err := net.LookupMX(host)
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
 	sort.Sort(byPref(MXs))
-	return MXs
+	return MXs, err
 }
 
-func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
-	cron.group.Add(1)
-	defer cron.group.Done()
-BIG_LOOP:
+var (
+	ErrFailedConnection = errors.New("failed connecting to MX hosts after all tries")
+	ErrFailedLookup     = errors.New("failed to lookup MX hosts")
+)
+
+func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
+	MXs, err := lookupMX(host)
+	if err != nil {
+		return nil, ErrFailedLookup
+	}
 	//TODO(gbbr): Use config retries
 	for retry := 0; retry < 2; retry++ {
-		for _, mx := range lookupMX(host) {
+		for _, mx := range MXs {
 			//TODO(gbbr): Use config timeout
 			conn, err := net.DialTimeout("tcp", mx.Host+":25", 5*time.Second)
 			if err != nil {
@@ -75,31 +119,8 @@ BIG_LOOP:
 			if err != nil {
 				continue
 			}
-			for msg, addrList := range pkg {
-				if err = c.Mail(msg.From().String()); err != nil {
-					// handle err; increase attempts, continue
-				}
-				for _, addr := range addrList {
-					if err = c.Rcpt(addr.String()); err != nil {
-						// Failed to deliver to this rcpt
-					}
-				}
-				w, err := c.Data()
-				if err != nil {
-					// Failed to deliver this msg. Retry?
-				}
-				_, err = fmt.Fprint(w, msg.Raw)
-				if err != nil {
-					// Failed to deliver this msg. Retry?
-				}
-				if err = w.Close(); err != nil {
-					// handle err. Are we done?
-				}
-			}
-			if err = c.Quit(); err != nil {
-				// log error
-			}
-			break BIG_LOOP
+			return c, nil
 		}
 	}
+	return nil, ErrFailedConnection
 }
