@@ -1,6 +1,7 @@
 package smtp
 
 import (
+	"fmt"
 	"io"
 	"net/mail"
 	"strings"
@@ -101,9 +102,21 @@ func cmdDATA(ctx *transaction, param string) error {
 	if err != nil {
 		return ctx.notify(replyErrorProcessing)
 	}
-
 	ctx.Message.Raw = strings.Join(msg, "\r\n")
-	return ctx.host.digest(ctx)
+
+	err = ctx.host.digest(ctx)
+	switch err {
+	case errMsgNotCompliant:
+		return ctx.notify(reply{550, "Message not RFC 2822 compliant."})
+	case errEnqueuing:
+		ctx.Message.Raw = ""
+		fallthrough
+	case errProcessing:
+		return ctx.notify(replyErrorProcessing)
+	default:
+		reply := reply{250, fmt.Sprintf("message queued (%x)", ctx.Message.ID)}
+		return ctx.notify(reply)
+	}
 }
 
 // RFC 2821 4.1.1.5 RESET (RSET)
