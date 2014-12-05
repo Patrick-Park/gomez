@@ -56,7 +56,7 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 		}
 	}()
 	for msg, rcptList := range pkg {
-		err = cron.sendMessage(client, msg, rcptList)
+		cron.sendMessage(client, msg, rcptList)
 	}
 }
 
@@ -101,7 +101,7 @@ func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
 	return nil, errFailedConnect
 }
 
-func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcptList []*mail.Address) error {
+func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcptList []*mail.Address) {
 	if err := client.Mail(msg.From().String()); err != nil {
 		// handle err; increase attempts, continue
 	}
@@ -121,5 +121,4 @@ func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcpt
 	if err = w.Close(); err != nil {
 		// handle err. Are we done?
 	}
-	return nil
 }
