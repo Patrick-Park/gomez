@@ -61,17 +61,10 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 	}
 }
 
-// errFailedLookup is returned when MX lookup failed for the passed host.
-var errFailedLookup = errors.New("failed to lookup MX hosts")
-
 // lookupMX returns a list of MX hosts ordered by preference.
 // This function is declared inline so we can mock it.
 var lookupMX = func(host string) ([]*net.MX, error) {
-	MXs, err := net.LookupMX(host)
-	if err != nil {
-		return nil, errFailedLookup
-	}
-	return MXs, nil
+	return net.LookupMX(host)
 }
 
 // errFailedConnect is returned when connecting was not possible to any
