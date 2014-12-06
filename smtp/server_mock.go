@@ -3,7 +3,7 @@ package smtp
 import (
 	"net/mail"
 
-	"github.com/gbbr/jamon"
+	"github.com/gbbr/gomez/internal/jamon"
 )
 
 type mockHost struct {
