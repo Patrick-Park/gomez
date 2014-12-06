@@ -83,3 +83,25 @@ func (mb mailBox) Dequeue() (map[string]Package, error) {
 func (mb mailBox) Report(user, host string, msgID uint64, delivered bool) error {
 	return nil
 }
+
+type DeliveryReport struct {
+	msg    *Message
+	status map[*mail.Address]bool
+}
+
+func NewDeliveryReport(msg *Message, rcptList []*mail.Address) *DeliveryReport {
+	stat := make(map[*mail.Address]bool)
+	for _, addr := range rcptList {
+		stat[addr] = false
+	}
+	return &DeliveryReport{
+		msg:    msg,
+		status: stat,
+	}
+}
+
+func (r *DeliveryReport) Flag(addr *mail.Address) {
+	if _, ok := r.status[addr]; ok {
+		r.status[addr] = true
+	}
+}
