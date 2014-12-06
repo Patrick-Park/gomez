@@ -29,9 +29,11 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	}
 	tick := time.Duration(s) * time.Second
 	for {
+		cron.lastRun = <-time.After(tick)
 		jobs, err := dq.Dequeue()
 		if err != nil {
-			return err
+			// log it / alert
+			continue
 		}
 		for host, pkg := range jobs {
 			cron.group.Add(1)
@@ -41,7 +43,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			}()
 		}
 		cron.group.Wait()
-		cron.lastRun = <-time.After(tick)
 	}
 }
 
