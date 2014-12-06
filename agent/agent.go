@@ -101,6 +101,7 @@ func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
 	return nil, errFailedConnect
 }
 
+// sendMessage attempts to send the message and returns a detailed DeliveryReport
 func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcptList []*mail.Address) {
 	if err := client.Mail(msg.From().String()); err != nil {
 		// handle err; increase attempts, continue
