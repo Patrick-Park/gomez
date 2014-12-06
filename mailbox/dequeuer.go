@@ -48,7 +48,7 @@ func (mb mailBox) Dequeue() (map[string]Package, error) {
 		err := rows.Scan(&row.Host, &row.MID, &row.User, &row.Date,
 			&row.Attempts, &row.MRaw, &row.MFrom)
 		if err != nil {
-			return jobs, err
+			return nil, err
 		}
 		if jobs[row.Host] == nil {
 			jobs[row.Host] = make(Package)
