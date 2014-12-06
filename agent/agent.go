@@ -39,26 +39,57 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			cron.group.Add(1)
 			go func() {
 				defer cron.group.Done()
-				cron.deliverTo(host, pkg)
+				err := cron.deliverTo(host, pkg)
+				if err != nil {
+					// Could not lookup DNS
+					// Could not connect to host
+				}
 			}()
 		}
 		cron.group.Wait()
 	}
 }
 
-func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
-	client, err := cron.getSMTPClient(host)
+func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) error {
+	MXs, err := lookupMX(host)
 	if err != nil {
-		// handle error
+		return errFailedDNS
 	}
+	//TODO(gbbr): Use config retries
+	var client *smtp.Client
+	for retry := 0; retry < 2; retry++ {
+		for _, mx := range MXs {
+			//TODO(gbbr): Use config timeout, per MX entry and per host
+			conn, err := net.DialTimeout("tcp", mx.Host+":25", 5*time.Second)
+			if err != nil {
+				continue
+			}
+			//TODO(gbbr): Use config host
+			client, err = smtp.NewClient(conn, "mecca.local")
+			if err != nil {
+				continue
+			}
+			goto DELIVERY
+		}
+	}
+	return errFailedHost
+
+DELIVERY:
 	defer func() {
 		if err = client.Quit(); err != nil {
-			// log error
+			// LOG disconnect error
 		}
 	}()
 	for msg, rcptList := range pkg {
-		cron.sendMessage(client, msg, rcptList)
+		err = cron.sendMessage(client, msg, rcptList)
+		if err != nil {
+			// Failed to send message, wrong status code
+			// RECORD error
+			continue
+		}
+		// ANALYZE report
 	}
+	return nil
 }
 
 // lookupMX returns a list of MX hosts ordered by preference.
@@ -67,53 +98,32 @@ var lookupMX = func(host string) ([]*net.MX, error) {
 	return net.LookupMX(host)
 }
 
-// errFailedConnect is returned when connecting was not possible to any
-// of the MX hosts.
-var errFailedConnect = errors.New("failed connecting to MX hosts after all tries")
-
-func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
-	MXs, err := lookupMX(host)
-	if err != nil {
-		return nil, err
-	}
-	//TODO(gbbr): Use config retries
-	for retry := 0; retry < 2; retry++ {
-		for _, mx := range MXs {
-			//TODO(gbbr): Use config timeout
-			conn, err := net.DialTimeout("tcp", mx.Host+":25", 5*time.Second)
-			if err != nil {
-				continue
-			}
-			//TODO(gbbr): Use config host
-			c, err := smtp.NewClient(conn, "mecca.local")
-			if err != nil {
-				continue
-			}
-			return c, nil
-		}
-	}
-	return nil, errFailedConnect
-}
+var (
+	errFailedHost = errors.New("failed connecting to MX hosts after all tries")
+	errFailedDNS  = errors.New("failed to lookup DNS")
+)
 
 // sendMessage attempts to send the message and returns a detailed DeliveryReport
-func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcptList []*mail.Address) {
+func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcptList []*mail.Address) error {
 	if err := client.Mail(msg.From().String()); err != nil {
-		// handle err; increase attempts, continue
+		return err
 	}
 	for _, rcpt := range rcptList {
 		if err := client.Rcpt(rcpt.String()); err != nil {
-			// Failed to deliver to this rcpt
+			// did not get 25 response
+			// failed recipient
 		}
 	}
 	w, err := client.Data()
 	if err != nil {
-		// Failed to deliver this msg. Retry?
+		return err
 	}
 	_, err = fmt.Fprint(w, msg.Raw)
 	if err != nil {
-		// Failed to deliver this msg. Retry?
+		return err
 	}
 	if err = w.Close(); err != nil {
-		// handle err. Are we done?
+		return err
 	}
+	return nil
 }
