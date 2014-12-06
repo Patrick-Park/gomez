@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gbbr/gomez/internal/jamon"
 	"github.com/gbbr/gomez/mailbox"
-	"github.com/gbbr/jamon"
 )
 
 type cronJob struct {
@@ -29,9 +29,11 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	}
 	tick := time.Duration(s) * time.Second
 	for {
+		cron.lastRun = <-time.After(tick)
 		jobs, err := dq.Dequeue()
 		if err != nil {
-			return err
+			// log it / alert
+			continue
 		}
 		for host, pkg := range jobs {
 			cron.group.Add(1)
@@ -41,7 +43,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			}()
 		}
 		cron.group.Wait()
-		cron.lastRun = <-time.After(tick)
 	}
 }
 
@@ -60,17 +61,10 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 	}
 }
 
-// errFailedLookup is returned when MX lookup failed for the passed host.
-var errFailedLookup = errors.New("failed to lookup MX hosts")
-
 // lookupMX returns a list of MX hosts ordered by preference.
 // This function is declared inline so we can mock it.
 var lookupMX = func(host string) ([]*net.MX, error) {
-	MXs, err := net.LookupMX(host)
-	if err != nil {
-		return nil, errFailedLookup
-	}
-	return MXs, nil
+	return net.LookupMX(host)
 }
 
 // errFailedConnect is returned when connecting was not possible to any

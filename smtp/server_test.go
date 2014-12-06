@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gbbr/gomez/internal/jamon"
 	"github.com/gbbr/gomez/mailbox"
-	"github.com/gbbr/jamon"
 	"github.com/gbbr/mocks"
 )
 
