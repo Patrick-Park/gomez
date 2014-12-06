@@ -3,6 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/mail"
 	"net/smtp"
@@ -10,115 +11,126 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gbbr/gomez/internal/jamon"
 	"github.com/gbbr/gomez/mailbox"
-	"github.com/gbbr/jamon"
 )
 
 type cronJob struct {
-	config  jamon.Group
-	lastRun time.Time
-	group   sync.WaitGroup
-	running bool
+	config    jamon.Group
+	lastStart time.Time
+	dq        mailbox.Dequeuer
+	failed    chan string
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
-	cron := cronJob{config: conf}
-	s, err := strconv.Atoi(cron.config.Get("pause"))
+	cron := cronJob{dq: dq, config: conf}
+	pause, err := strconv.Atoi(cron.config.Get("pause"))
 	if err != nil {
-		return err
+		log.Fatal("agent/pause configuration is not numeric")
 	}
-	tick := time.Duration(s) * time.Second
-	for {
-		jobs, err := dq.Dequeue()
-		if err != nil {
-			return err
+	cron.failed = make(chan string)
+	go func() {
+		for {
+			select {
+			case _ = <-cron.failed:
+				// do something
+				// dq.Flag(...)
+			}
 		}
+	}()
+	for {
+		cron.lastStart = <-time.After(time.Duration(pause) * time.Second)
+		jobs, err := cron.dq.Dequeue()
+		if err != nil {
+			log.Printf("error dequeuing: %s", err)
+			continue
+		}
+		var wg sync.WaitGroup
 		for host, pkg := range jobs {
-			cron.group.Add(1)
+			wg.Add(1)
 			go func() {
-				defer cron.group.Done()
+				defer wg.Done()
 				cron.deliverTo(host, pkg)
 			}()
 		}
-		cron.group.Wait()
-		cron.lastRun = <-time.After(tick)
+		wg.Wait()
 	}
+	return nil
 }
 
 func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 	client, err := cron.getSMTPClient(host)
 	if err != nil {
-		// handle error
+		// cron.dq.FlagHost(host)
+		return
 	}
 	defer func() {
 		if err = client.Quit(); err != nil {
-			// log error
+			log.Printf("error quitting client: %s", err)
 		}
 	}()
 	for msg, rcptList := range pkg {
-		cron.sendMessage(client, msg, rcptList)
+		flagged, err := cron.sendMessage(client, msg, rcptList)
+		if err != nil {
+			flagged = rcptList
+		}
+		for _, addr := range flagged {
+			cron.failed <- addr.String()
+		}
 	}
 }
-
-// errFailedLookup is returned when MX lookup failed for the passed host.
-var errFailedLookup = errors.New("failed to lookup MX hosts")
-
-// lookupMX returns a list of MX hosts ordered by preference.
-// This function is declared inline so we can mock it.
-var lookupMX = func(host string) ([]*net.MX, error) {
-	MXs, err := net.LookupMX(host)
-	if err != nil {
-		return nil, errFailedLookup
-	}
-	return MXs, nil
-}
-
-// errFailedConnect is returned when connecting was not possible to any
-// of the MX hosts.
-var errFailedConnect = errors.New("failed connecting to MX hosts after all tries")
 
 func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
 	MXs, err := lookupMX(host)
 	if err != nil {
 		return nil, err
 	}
-	//TODO(gbbr): Use config retries
 	for retry := 0; retry < 2; retry++ {
 		for _, mx := range MXs {
-			//TODO(gbbr): Use config timeout
 			conn, err := net.DialTimeout("tcp", mx.Host+":25", 5*time.Second)
 			if err != nil {
 				continue
 			}
-			//TODO(gbbr): Use config host
-			c, err := smtp.NewClient(conn, "mecca.local")
+			client, err := smtp.NewClient(conn, "mecca.local")
 			if err != nil {
 				continue
 			}
-			return c, nil
+			return client, nil
 		}
 	}
-	return nil, errFailedConnect
+	return nil, errFailedHost
 }
 
-func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message, rcptList []*mail.Address) {
+// We declare inline so we can mock to local in tests.
+var lookupMX = func(host string) ([]*net.MX, error) {
+	return net.LookupMX(host)
+}
+
+var errFailedHost = errors.New("failed connecting to MX hosts after all tries")
+
+// sendMessage attempts to send a message to an SMTP client and returns
+// a list of addresses which have failed delivery on success.
+func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message,
+	rcptList []*mail.Address) ([]*mail.Address, error) {
+	failed := make([]*mail.Address, 0)
 	if err := client.Mail(msg.From().String()); err != nil {
-		// handle err; increase attempts, continue
+		return nil, err
 	}
 	for _, rcpt := range rcptList {
 		if err := client.Rcpt(rcpt.String()); err != nil {
-			// Failed to deliver to this rcpt
+			failed = append(failed, rcpt)
 		}
 	}
 	w, err := client.Data()
 	if err != nil {
-		// Failed to deliver this msg. Retry?
+		return nil, err
 	}
 	_, err = fmt.Fprint(w, msg.Raw)
 	if err != nil {
-		// Failed to deliver this msg. Retry?
+		return nil, err
 	}
 	if err = w.Close(); err != nil {
-		// handle err. Are we done?
+		return nil, err
 	}
+	return failed, nil
 }
