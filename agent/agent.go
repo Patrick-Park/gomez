@@ -19,6 +19,7 @@ type cronJob struct {
 	config    jamon.Group
 	lastStart time.Time
 	dq        mailbox.Dequeuer
+	failed    chan string
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
@@ -27,11 +28,15 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	if err != nil {
 		log.Fatal("agent/pause configuration is not numeric")
 	}
-	_, err = dq.Dequeue()
-	if err != nil {
-		log.Fatalf("can not dequeue: %s", err)
+	cron.failed = make(chan string)
+	go cron.run(time.Duration(s) * time.Second)
+	for {
+		select {
+		case _ = <-cron.failed:
+			// do something
+			// dq.Flag(...)
+		}
 	}
-	cron.run(time.Duration(s) * time.Second)
 	return nil
 }
 
@@ -67,14 +72,17 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 		}
 	}()
 	for msg, rcptList := range pkg {
+		flag := make([]*mail.Address, 0)
 		failed, err := cron.sendMessage(client, msg, rcptList)
 		if err != nil {
-			// cron.dq.Flag(msg.ID, rcptList...)
-			continue
+			flag = append(flag, rcptList...)
 		}
-		// It worked, but not for all?
-		_ = failed
-		// cron.dq.Flag(msg.ID,  failed...)
+		if failed != nil {
+			flag = append(flag, failed...)
+		}
+		for _, addr := range flag {
+			cron.failed <- addr.String()
+		}
 	}
 }
 

@@ -1,3 +1,0 @@
-[submodule "internal/jamon"]
-	path = internal/jamon
-	url = https://github.com/gbbr/jamon.git
