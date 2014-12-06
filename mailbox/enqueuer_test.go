@@ -44,10 +44,10 @@ func loadConfig() {
 	if err != nil {
 		log.Fatalf("error loading config: %s", err)
 	}
-	if !conf.HasGroup("test") {
-		log.Fatal("test config category not found")
+	if !conf.HasGroup("mailbox.test") {
+		log.Fatal("mailbox.test not in config file.")
 	}
-	config = conf.Group("test")
+	config = conf.Group("mailbox.test")
 	dbString = fmt.Sprintf("user=%s dbname=%s sslmode=%s",
 		config.Get("db.user"), config.Get("db.name"), config.Get("db.sslmode"))
 }
@@ -94,23 +94,19 @@ func TestPostBox_NextID_Success(t *testing.T) {
 
 func TestPostBox_Enqueuer(t *testing.T) {
 	EnsureTestDB()
-
 	pb, err := New(dbString)
 	if err != nil {
 		t.Errorf("Failed to extract sequence val: %s", err)
 	}
-
 	type queueRow struct {
 		MID        uint64
 		User, Host string
 		Attempts   int
 	}
-
 	type mailboxRow struct {
 		MID uint64
 		UID uint64
 	}
-
 	for k, test := range []struct {
 		Users        string
 		Msg          *Message
