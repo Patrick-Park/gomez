@@ -87,6 +87,7 @@ func (mb mailBox) Report(user, host string, msgID uint64, delivered bool) error 
 type DeliveryReport struct {
 	msg    *Message
 	status map[*mail.Address]bool
+	dirty  bool
 }
 
 func NewDeliveryReport(msg *Message, rcptList []*mail.Address) *DeliveryReport {
@@ -102,6 +103,7 @@ func NewDeliveryReport(msg *Message, rcptList []*mail.Address) *DeliveryReport {
 
 func (r *DeliveryReport) Flag(addr *mail.Address) {
 	if _, ok := r.status[addr]; ok {
+		r.dirty = true
 		r.status[addr] = true
 	}
 }
