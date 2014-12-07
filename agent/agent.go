@@ -16,11 +16,12 @@ import (
 )
 
 type cronJob struct {
-	config    jamon.Group
-	dq        mailbox.Dequeuer
-	succes    chan report
-	failed    chan report
-	completed chan int
+	config jamon.Group
+	dq     mailbox.Dequeuer
+
+	succes chan report
+	failed chan report
+	done   chan int
 }
 
 type report struct {
@@ -48,7 +49,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			case ok := <-cron.succes:
 				_ = ok
 				// dq.Failure(ok.msgID, ok.rcpt)
-			case count := <-cron.completed:
+			case count := <-cron.done:
 				_ = count
 				// dq.Flush(count) // compare and finish, find potential misses
 				break
@@ -79,7 +80,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		for k := range rcpts {
 			count += k
 		}
-		cron.completed <- count
+		cron.done <- count
 	}
 	return nil
 }
