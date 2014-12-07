@@ -58,8 +58,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			for {
 				select {
 				case r := <-cron.report:
-					_ = r
-					// dq.Report(r.msgID, r.success, r.failed)
+					dq.Report(r.msgID, r.success, r.fail)
 				case req := <-cron.flush:
 					// dq.Flush(req.count) // compare and finish, find potential misses
 					req.done <- nil
