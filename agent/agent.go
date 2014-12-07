@@ -71,9 +71,15 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		}()
 
 		counter := make(chan int)
+
 		var wg sync.WaitGroup
+		wg.Add(len(job))
+		go func() {
+			wg.Wait()
+			close(counter)
+		}()
+
 		for host, pkg := range jobs {
-			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				client, err := cron.getSMTPClient(host)
@@ -97,11 +103,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				counter <- k
 			}()
 		}
-
-		go func() {
-			wg.Wait()
-			close(counter)
-		}()
 
 		var count int
 		for n := range counter {
