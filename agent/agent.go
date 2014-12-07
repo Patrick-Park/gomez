@@ -18,7 +18,12 @@ import (
 type cronJob struct {
 	config jamon.Group
 	dq     mailbox.Dequeuer
-	failed chan string
+	report chan report
+}
+
+type report struct {
+	id  uint64
+	msg string
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
@@ -27,11 +32,11 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	if err != nil {
 		log.Fatal("agent/pause configuration is not numeric")
 	}
-	cron.failed = make(chan string)
+	cron.report = make(chan report)
 	go func() {
 		for {
 			select {
-			case _ = <-cron.failed:
+			case _ = <-cron.report:
 				// do something
 				// dq.Flag(...)
 			}
@@ -69,12 +74,9 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 		}
 	}()
 	for msg, rcptList := range pkg {
-		flagged, err := cron.sendMessage(client, msg, rcptList)
-		if err != nil {
-			flagged = rcptList
-		}
+		flagged := cron.sendMessage(client, msg, rcptList)
 		for _, addr := range flagged {
-			cron.failed <- addr.String()
+			cron.report <- report{msg.ID, addr.String()}
 		}
 	}
 }
@@ -110,11 +112,11 @@ var errFailedHost = errors.New("failed connecting to MX hosts after all tries")
 // sendMessage attempts to send a message to an SMTP client and returns
 // a list of addresses which have failed delivery on success.
 func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message,
-	rcptList []*mail.Address) ([]*mail.Address, error) {
-	failed := make([]*mail.Address, 0)
+	rcptList []*mail.Address) []*mail.Address {
 	if err := client.Mail(msg.From().String()); err != nil {
-		return nil, err
+		return rcptList
 	}
+	failed := make([]*mail.Address, 0)
 	for _, rcpt := range rcptList {
 		if err := client.Rcpt(rcpt.String()); err != nil {
 			failed = append(failed, rcpt)
@@ -122,14 +124,14 @@ func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message,
 	}
 	w, err := client.Data()
 	if err != nil {
-		return nil, err
+		return rcptList
 	}
 	_, err = fmt.Fprint(w, msg.Raw)
 	if err != nil {
-		return nil, err
+		return rcptList
 	}
 	if err = w.Close(); err != nil {
-		return nil, err
+		return rcptList
 	}
-	return failed, nil
+	return failed
 }
