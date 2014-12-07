@@ -57,8 +57,8 @@ with recursive
                           limit 1) q
           where array_length(qh.hosts_seen,1) < $1))
 
-        select queue.*, messages.raw, messages.from
-          from queue 
-	inner join messages 
-	        on messages.id=queue.message_id 
-	     where host in (select last_host from qh);`
+         select queue.*, messages.raw, messages.from
+           from queue 
+     inner join messages 
+             on messages.id=queue.message_id 
+          where host in (select last_host from qh);`
