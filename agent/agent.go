@@ -25,7 +25,7 @@ type cronJob struct {
 }
 
 type flushRequest struct {
-	done  chan bool
+	done  chan struct{}
 	count int
 }
 
