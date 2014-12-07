@@ -43,6 +43,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	}
 	for {
 		time.Sleep(time.Duration(pause) * time.Second)
+
 		jobs, err := cron.dq.Dequeue()
 		if err != nil {
 			log.Printf("error dequeuing: %s", err)
@@ -89,7 +90,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		for k := range counter {
 			count += k
 		}
-
 		cron.done <- count
 	}
 	return nil
