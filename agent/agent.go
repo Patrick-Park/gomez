@@ -50,8 +50,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		}
 
 		results := make(chan report, 1)
-		counter := make(chan int)
-
 		go func() {
 			for {
 				select {
@@ -82,27 +80,16 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 						log.Printf("error quitting client: %s", err)
 					}
 				}()
-				var k int
 				for msg, rcpt := range pkg {
-					k += len(rcpt)
 					succes, fail := cron.sendMessage(client, msg, rcpt)
 					results <- report{msg.ID, succes, fail}
 				}
-				counter <- k
 			}()
 		}
 
-		go func() {
-			wg.Wait()
-			close(counter)
-		}()
-
-		var count int
-		for n := range counter {
-			count += n
-		}
+		wg.Wait()
 		close(results)
-		// dq.Flush(count)
+		// dq.Flush()
 	}
 	return nil
 }
