@@ -18,7 +18,7 @@ import (
 type cronJob struct {
 	config jamon.Group
 	dq     mailbox.Dequeuer
-	report chan report
+	failed chan report
 }
 
 type report struct {
@@ -32,13 +32,13 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	if err != nil {
 		log.Fatal("agent/pause configuration is not numeric")
 	}
-	cron.report = make(chan report)
+	cron.failed = make(chan report)
 	go func() {
 		for {
 			select {
-			case _ = <-cron.report:
-				// do something
-				// dq.Flag(...)
+			case rep := <-cron.failed:
+				_ = rep
+				// dq.Flag(rep.id, rep.msg)
 			}
 		}
 	}()
@@ -76,7 +76,7 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 	for msg, rcptList := range pkg {
 		flagged := cron.sendMessage(client, msg, rcptList)
 		for _, addr := range flagged {
-			cron.report <- report{msg.ID, addr.String()}
+			cron.failed <- report{msg.ID, addr.String()}
 		}
 	}
 }
