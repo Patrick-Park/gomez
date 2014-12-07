@@ -65,13 +65,10 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 						return
 					}
 					_ = list
-					// dq.Done(list)
 				case list := <-retry:
 					_ = list
-					// dq.Retry(list)
 				case f := <-failed:
 					_ = f
-					// dq.Flush(addr)
 				}
 			}
 		}()
