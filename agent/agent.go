@@ -26,9 +26,14 @@ type flushRequest struct {
 }
 
 type report struct {
-	msgID   uint64
-	success []*mail.Address
-	fail    []*mail.Address
+	msgID uint64
+	rcpt  []*mail.Address
+}
+
+type failure struct {
+	msgID  uint64
+	rcpt   *mail.Address
+	reason string
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
@@ -49,9 +54,9 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			continue
 		}
 
-		retry := make(chan []*mail.Address)
-		done := make(chan []*mail.Address)
-		failed := make(chan *mail.Address)
+		retry := make(chan report)
+		done := make(chan report)
+		failed := make(chan failure)
 		go func() {
 			for {
 				select {
@@ -64,8 +69,8 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				case list := <-retry:
 					_ = list
 					// dq.Retry(list)
-				case addr := <-failed:
-					_ = addr
+				case f := <-failed:
+					_ = f
 					// dq.Flush(addr)
 				}
 			}
@@ -88,36 +93,36 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				}()
 				for msg, all := range pkg {
 					if err := client.Mail(msg.From().String()); err != nil {
-						retry <- all
+						retry <- report{msg.ID, all}
 						continue
 					}
-					var success []*mail.Address
+					var ok []*mail.Address
 					for _, rcpt := range all {
 						if err := client.Rcpt(rcpt.String()); err != nil {
-							failed <- rcpt
+							failed <- failure{msg.ID, rcpt, err.Error()}
 							continue
 						}
-						success = append(success, rcpt)
+						ok = append(ok, rcpt)
 					}
+					v := report{msg.ID, ok}
 					w, err := client.Data()
 					if err != nil {
-						retry <- success
+						retry <- v
 						continue
 					}
 					_, err = fmt.Fprint(w, msg.Raw)
 					if err != nil {
-						retry <- success
+						retry <- v
 						continue
 					}
 					if err = w.Close(); err != nil {
-						retry <- success
+						retry <- v
 						continue
 					}
-					done <- success
+					done <- v
 				}
 			}()
 		}
-
 		wg.Wait()
 		close(done)
 		// dq.Flush()
