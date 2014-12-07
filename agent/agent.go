@@ -19,9 +19,9 @@ type cronJob struct {
 	config jamon.Group
 	dq     mailbox.Dequeuer
 
-	succes chan report
-	failed chan report
-	done   chan int
+	success chan report
+	fail    chan report
+	done    chan int
 }
 
 type report struct {
@@ -35,11 +35,11 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		log.Fatal("agent/pause configuration is not numeric")
 	}
 	cron := cronJob{
-		dq:     dq,
-		config: conf,
-		failed: make(chan report),
-		succes: make(chan report),
-		done:   make(chan int),
+		dq:      dq,
+		config:  conf,
+		fail:    make(chan report),
+		success: make(chan report),
+		done:    make(chan int),
 	}
 	for {
 		time.Sleep(time.Duration(pause) * time.Second)
@@ -53,10 +53,10 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		go func() {
 			for {
 				select {
-				case fail := <-cron.failed:
+				case fail := <-cron.fail:
 					_ = fail
 					// dq.Success(ok.msgID, ok.rcpt)
-				case ok := <-cron.succes:
+				case ok := <-cron.success:
 					_ = ok
 					// dq.Failure(ok.msgID, ok.rcpt)
 				case count := <-cron.done:
@@ -77,7 +77,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				if err != nil {
 					// cron.dq.FlagHost(host)
 				}
-				counter <- cron.deliverTo(client, pkg)
+				counter <- cron.deliver(client, pkg)
 			}()
 		}
 
@@ -95,7 +95,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	return nil
 }
 
-func (cron *cronJob) deliverTo(client *smtp.Client, pkg mailbox.Package) int {
+func (cron *cronJob) deliver(client *smtp.Client, pkg mailbox.Package) int {
 	defer func() {
 		if err := client.Quit(); err != nil {
 			log.Printf("error quitting client: %s", err)
@@ -106,10 +106,10 @@ func (cron *cronJob) deliverTo(client *smtp.Client, pkg mailbox.Package) int {
 		succes, fail := cron.sendMessage(client, msg, rcptList)
 		rcpts += len(rcptList)
 		if len(succes) > 0 {
-			cron.succes <- report{msg.ID, succes}
+			cron.success <- report{msg.ID, succes}
 		}
 		if len(fail) > 0 {
-			cron.failed <- report{msg.ID, fail}
+			cron.fail <- report{msg.ID, fail}
 		}
 	}
 	return rcpts
