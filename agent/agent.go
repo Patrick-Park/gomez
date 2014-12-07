@@ -93,30 +93,29 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 						retry <- report{msg.ID, all}
 						continue
 					}
-					var ok []*mail.Address
+					ok := report{msg.ID, make([]*mail.Address, 0, len(all))}
 					for _, rcpt := range all {
 						if err := client.Rcpt(rcpt.String()); err != nil {
 							failed <- failure{msg.ID, rcpt, err.Error()}
 							continue
 						}
-						ok = append(ok, rcpt)
+						ok.rcpt = append(ok.rcpt, rcpt)
 					}
-					v := report{msg.ID, ok}
 					w, err := client.Data()
 					if err != nil {
-						retry <- v
+						retry <- ok
 						continue
 					}
 					_, err = fmt.Fprint(w, msg.Raw)
 					if err != nil {
-						retry <- v
+						retry <- ok
 						continue
 					}
 					if err = w.Close(); err != nil {
-						retry <- v
+						retry <- ok
 						continue
 					}
-					done <- v
+					done <- ok
 				}
 			}()
 		}
