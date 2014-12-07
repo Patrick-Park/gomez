@@ -113,11 +113,8 @@ var errFailedHost = errors.New("failed connecting to MX hosts after all tries")
 
 // sendMessage attempts to send a message to an SMTP client and returns
 // a list of addresses which have failed delivery on success.
-func (cron *cronJob) sendMessage(
-	client *smtp.Client,
-	msg *mailbox.Message,
-	rcptList []*mail.Address,
-) ([]*mail.Address, error) {
+func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message,
+	rcptList []*mail.Address) ([]*mail.Address, error) {
 	failed := make([]*mail.Address, 0)
 	if err := client.Mail(msg.From().String()); err != nil {
 		return nil, err
