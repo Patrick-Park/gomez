@@ -50,6 +50,8 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		}
 
 		results := make(chan report, 1)
+		counter := make(chan int)
+
 		go func() {
 			for {
 				select {
@@ -67,7 +69,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 
 		var wg sync.WaitGroup
 		wg.Add(len(jobs))
-		counter := make(chan int)
 		for host, pkg := range jobs {
 			go func() {
 				defer wg.Done()
