@@ -39,6 +39,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		config: conf,
 		failed: make(chan report),
 		succes: make(chan report),
+		done:   make(chan int),
 	}
 	go func() {
 		for {
