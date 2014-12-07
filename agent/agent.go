@@ -95,9 +95,9 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		for k := range counter {
 			count += k
 		}
-		ok := make(chan bool)
-		cron.flush <- flushRequest{ok, count}
-		<-ok
+		done := make(chan bool)
+		cron.flush <- flushRequest{done, count}
+		<-done
 	}
 	return nil
 }
