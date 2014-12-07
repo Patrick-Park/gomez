@@ -18,7 +18,6 @@ import (
 type cronJob struct {
 	config jamon.Group
 	dq     mailbox.Dequeuer
-
 	report chan report
 	flush  chan flushRequest
 }
