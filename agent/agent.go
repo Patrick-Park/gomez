@@ -41,22 +41,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		succes: make(chan report),
 		done:   make(chan int),
 	}
-	go func() {
-		for {
-			select {
-			case fail := <-cron.failed:
-				_ = fail
-				// dq.Success(ok.msgID, ok.rcpt)
-			case ok := <-cron.succes:
-				_ = ok
-				// dq.Failure(ok.msgID, ok.rcpt)
-			case count := <-cron.done:
-				_ = count
-				// dq.Flush(count) // compare and finish, find potential misses
-				break
-			}
-		}
-	}()
 	for {
 		time.Sleep(time.Duration(pause) * time.Second)
 		jobs, err := cron.dq.Dequeue()
@@ -64,23 +48,44 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			log.Printf("error dequeuing: %s", err)
 			continue
 		}
+
+		go func() {
+			for {
+				select {
+				case fail := <-cron.failed:
+					_ = fail
+					// dq.Success(ok.msgID, ok.rcpt)
+				case ok := <-cron.succes:
+					_ = ok
+					// dq.Failure(ok.msgID, ok.rcpt)
+				case count := <-cron.done:
+					_ = count
+					// dq.Flush(count) // compare and finish, find potential misses
+					break
+				}
+			}
+		}()
+
 		var wg sync.WaitGroup
-		rcpts := make(chan int)
+		counter := make(chan int)
 		for host, pkg := range jobs {
 			wg.Add(1)
 			go func() {
-				rcpts <- cron.deliverTo(host, pkg)
+				counter <- cron.deliverTo(host, pkg)
 				wg.Done()
 			}()
 		}
+
 		go func() {
 			wg.Wait()
-			close(rcpts)
+			close(counter)
 		}()
+
 		var count int
-		for k := range rcpts {
+		for k := range counter {
 			count += k
 		}
+
 		cron.done <- count
 	}
 	return nil
