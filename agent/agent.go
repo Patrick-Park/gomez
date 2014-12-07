@@ -74,8 +74,7 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 		failed, err := cron.sendMessage(client, msg, rcptList)
 		if err != nil {
 			flag = append(flag, rcptList...)
-		}
-		if failed != nil {
+		} else if failed != nil {
 			flag = append(flag, failed...)
 		}
 		for _, addr := range flag {
