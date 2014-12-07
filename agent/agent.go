@@ -24,25 +24,22 @@ type cronJob struct {
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	cron := cronJob{dq: dq, config: conf}
-	s, err := strconv.Atoi(cron.config.Get("pause"))
+	pause, err := strconv.Atoi(cron.config.Get("pause"))
 	if err != nil {
 		log.Fatal("agent/pause configuration is not numeric")
 	}
 	cron.failed = make(chan string)
-	go cron.run(time.Duration(s) * time.Second)
-	for {
-		select {
-		case _ = <-cron.failed:
-			// do something
-			// dq.Flag(...)
+	go func() {
+		for {
+			select {
+			case _ = <-cron.failed:
+				// do something
+				// dq.Flag(...)
+			}
 		}
-	}
-	return nil
-}
-
-func (cron *cronJob) run(pause time.Duration) {
+	}()
 	for {
-		cron.lastStart = <-time.After(pause)
+		cron.lastStart = <-time.After(time.Duration(pause) * time.Second)
 		jobs, err := cron.dq.Dequeue()
 		if err != nil {
 			log.Printf("error dequeuing: %s", err)
@@ -58,6 +55,7 @@ func (cron *cronJob) run(pause time.Duration) {
 		}
 		wg.Wait()
 	}
+	return nil
 }
 
 func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
