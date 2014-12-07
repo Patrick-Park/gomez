@@ -49,11 +49,11 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			continue
 		}
 
-		results := make(chan report, 1)
+		sent := make(chan report, 1)
 		go func() {
 			for {
 				select {
-				case r, more := <-results:
+				case r, more := <-sent:
 					if !more {
 						return
 					}
@@ -82,13 +82,13 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				}()
 				for msg, rcpt := range pkg {
 					succes, fail := cron.sendMessage(client, msg, rcpt)
-					results <- report{msg.ID, succes, fail}
+					sent <- report{msg.ID, succes, fail}
 				}
 			}()
 		}
 
 		wg.Wait()
-		close(results)
+		close(sent)
 		// dq.Flush()
 	}
 	return nil
