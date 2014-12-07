@@ -74,8 +74,8 @@ func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
 		}
 	}()
 	for msg, rcptList := range pkg {
-		flagged := cron.sendMessage(client, msg, rcptList)
-		for _, addr := range flagged {
+		failed := cron.sendMessage(client, msg, rcptList)
+		for _, addr := range failed {
 			cron.failed <- report{msg.ID, addr.String()}
 		}
 	}
