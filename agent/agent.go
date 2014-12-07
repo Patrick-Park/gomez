@@ -18,8 +18,6 @@ import (
 type cronJob struct {
 	config jamon.Group
 	dq     mailbox.Dequeuer
-	report chan report
-	flush  chan flushRequest
 }
 
 type flushRequest struct {
@@ -41,8 +39,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	cron := cronJob{
 		dq:     dq,
 		config: conf,
-		report: make(chan report),
-		flush:  make(chan flushRequest),
 	}
 	for {
 		time.Sleep(time.Duration(pause) * time.Second)
@@ -53,19 +49,18 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			continue
 		}
 
+		results := make(chan report, 1)
 		go func() {
 			for {
 				select {
-				case r := <-cron.report:
+				case r, more := <-results:
+					if !more {
+						return
+					}
 					err := dq.Report(r.msgID, r.success, r.fail)
 					if err != nil {
 						// handle err
 					}
-				case req := <-cron.flush:
-					// dq.Flush(req.count)
-					// compare and finish, find potential misses
-					req.done <- nil
-					break
 				}
 			}
 		}()
@@ -73,11 +68,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		counter := make(chan int)
 
 		var wg sync.WaitGroup
-		wg.Add(len(job))
-		go func() {
-			wg.Wait()
-			close(counter)
-		}()
+		wg.Add(len(jobs))
 
 		for host, pkg := range jobs {
 			go func() {
@@ -96,21 +87,23 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				for msg, rcpt := range pkg {
 					k += len(rcpt)
 					succes, fail := cron.sendMessage(client, msg, rcpt)
-					go func(r report) {
-						cron.report <- r
-					}(report{msg.ID, succes, fail})
+					results <- report{msg.ID, succes, fail}
 				}
 				counter <- k
 			}()
 		}
 
+		go func() {
+			wg.Wait()
+			close(counter)
+		}()
+
 		var count int
 		for n := range counter {
 			count += n
 		}
-		reply := make(chan error)
-		cron.flush <- flushRequest{reply, count}
-		<-reply
+		close(results)
+		// dq.Flush(count)
 	}
 	return nil
 }
