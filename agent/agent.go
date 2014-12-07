@@ -66,13 +66,13 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			}
 		}()
 
-		var wg sync.WaitGroup
 		counter := make(chan int)
+		var wg sync.WaitGroup
 		for host, pkg := range jobs {
 			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				counter <- cron.deliverTo(host, pkg)
-				wg.Done()
 			}()
 		}
 
