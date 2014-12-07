@@ -66,7 +66,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 					// dq.Failure(ok.msgID, ok.rcpt)
 				case req := <-cron.flush:
 					// dq.Flush(req.count) // compare and finish, find potential misses
-					req.done <- true
+					close(req.done)
 					break
 				}
 			}
@@ -95,7 +95,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		for k := range counter {
 			count += k
 		}
-		done := make(chan bool)
+		done := make(chan struct{})
 		cron.flush <- flushRequest{done, count}
 		<-done
 	}
