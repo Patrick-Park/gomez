@@ -86,31 +86,31 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 						log.Printf("error quitting client: %s", err)
 					}
 				}()
-				for msg, rcpt := range pkg {
+				for msg, all := range pkg {
 					if err := client.Mail(msg.From().String()); err != nil {
-						retry <- rcpt
+						retry <- all
 						continue
 					}
 					var success []*mail.Address
-					for _, addr := range rcpt {
-						if err := client.Rcpt(addr.String()); err != nil {
-							failed <- addr
+					for _, rcpt := range all {
+						if err := client.Rcpt(rcpt.String()); err != nil {
+							failed <- rcpt
 							continue
 						}
-						success = append(success, addr)
+						success = append(success, rcpt)
 					}
 					w, err := client.Data()
 					if err != nil {
-						retry <- rcpt
+						retry <- success
 						continue
 					}
 					_, err = fmt.Fprint(w, msg.Raw)
 					if err != nil {
-						retry <- rcpt
+						retry <- success
 						continue
 					}
 					if err = w.Close(); err != nil {
-						retry <- rcpt
+						retry <- success
 						continue
 					}
 					done <- success
