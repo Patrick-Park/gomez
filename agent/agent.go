@@ -16,29 +16,42 @@ import (
 )
 
 type cronJob struct {
-	config jamon.Group
-	dq     mailbox.Dequeuer
-	failed chan report
+	config    jamon.Group
+	dq        mailbox.Dequeuer
+	succes    chan report
+	failed    chan report
+	completed chan int
 }
 
 type report struct {
-	id  uint64
-	msg string
+	msgID uint64
+	rcpt  []*mail.Address
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
-	cron := cronJob{dq: dq, config: conf}
-	pause, err := strconv.Atoi(cron.config.Get("pause"))
+	pause, err := strconv.Atoi(conf.Get("pause"))
 	if err != nil {
 		log.Fatal("agent/pause configuration is not numeric")
 	}
-	cron.failed = make(chan report)
+	cron := cronJob{
+		dq:     dq,
+		config: conf,
+		failed: make(chan report),
+		succes: make(chan report),
+	}
 	go func() {
 		for {
 			select {
-			case rep := <-cron.failed:
-				_ = rep
-				// dq.Flag(rep.id, rep.msg)
+			case fail := <-cron.failed:
+				_ = fail
+				// dq.Success(ok.msgID, ok.rcpt)
+			case ok := <-cron.succes:
+				_ = ok
+				// dq.Failure(ok.msgID, ok.rcpt)
+			case count := <-cron.completed:
+				_ = count
+				// dq.Flush(count) // compare and finish, find potential misses
+				break
 			}
 		}
 	}()
@@ -50,37 +63,51 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			continue
 		}
 		var wg sync.WaitGroup
+		rcpts := make(chan int)
 		for host, pkg := range jobs {
 			wg.Add(1)
 			go func() {
-				defer wg.Done()
-				cron.deliverTo(host, pkg)
+				rcpts <- cron.deliverTo(host, pkg)
+				wg.Done()
 			}()
 		}
-		wg.Wait()
+		go func() {
+			wg.Wait()
+			close(rcpts)
+		}()
+		var count int
+		for k := range rcpts {
+			count += k
+		}
+		cron.completed <- count
 	}
 	return nil
 }
 
-func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
+func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) int {
 	client, err := cron.getSMTPClient(host)
 	if err != nil {
 		// cron.dq.FlagHost(host)
-		return
+		// ??
+		return 0
 	}
 	defer func() {
 		if err = client.Quit(); err != nil {
 			log.Printf("error quitting client: %s", err)
 		}
 	}()
+	var rcpts int
 	for msg, rcptList := range pkg {
-		failed := cron.sendMessage(client, msg, rcptList)
-		go func(id uint64, list []*mail.Address) {
-			for _, addr := range list {
-				cron.failed <- report{id, addr.String()}
-			}
-		}(msg.ID, failed)
+		succes, fail := cron.sendMessage(client, msg, rcptList)
+		rcpts += len(rcptList)
+		if len(succes) > 0 {
+			cron.succes <- report{msg.ID, succes}
+		}
+		if len(fail) > 0 {
+			cron.failed <- report{msg.ID, fail}
+		}
 	}
+	return rcpts
 }
 
 func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
@@ -114,26 +141,28 @@ var errFailedHost = errors.New("failed connecting to MX hosts after all tries")
 // sendMessage attempts to send a message to an SMTP client and returns
 // a list of addresses which have failed delivery on success.
 func (cron *cronJob) sendMessage(client *smtp.Client, msg *mailbox.Message,
-	rcptList []*mail.Address) []*mail.Address {
+	rcptList []*mail.Address) ([]*mail.Address, []*mail.Address) {
 	if err := client.Mail(msg.From().String()); err != nil {
-		return rcptList
+		return nil, rcptList
 	}
-	failed := make([]*mail.Address, 0)
+	var failed, succes []*mail.Address
 	for _, rcpt := range rcptList {
 		if err := client.Rcpt(rcpt.String()); err != nil {
 			failed = append(failed, rcpt)
+			continue
 		}
+		succes = append(succes, rcpt)
 	}
 	w, err := client.Data()
 	if err != nil {
-		return rcptList
+		return nil, rcptList
 	}
 	_, err = fmt.Fprint(w, msg.Raw)
 	if err != nil {
-		return rcptList
+		return nil, rcptList
 	}
 	if err = w.Close(); err != nil {
-		return rcptList
+		return nil, rcptList
 	}
-	return failed
+	return succes, failed
 }
