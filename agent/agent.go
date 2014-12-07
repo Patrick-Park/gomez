@@ -21,7 +21,12 @@ type cronJob struct {
 
 	success chan report
 	fail    chan report
-	done    chan int
+	done    chan flushRequest
+}
+
+type flushRequest struct {
+	done  chan bool
+	count int
 }
 
 type report struct {
@@ -39,7 +44,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		config:  conf,
 		fail:    make(chan report),
 		success: make(chan report),
-		done:    make(chan int),
+		done:    make(chan flushRequest),
 	}
 	for {
 		time.Sleep(time.Duration(pause) * time.Second)
@@ -59,9 +64,10 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				case ok := <-cron.success:
 					_ = ok
 					// dq.Failure(ok.msgID, ok.rcpt)
-				case count := <-cron.done:
-					_ = count
+				case req := <-cron.done:
+					_ = req.count
 					// dq.Flush(count) // compare and finish, find potential misses
+					req.done <- true
 					break
 				}
 			}
@@ -90,7 +96,9 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		for k := range counter {
 			count += k
 		}
-		cron.done <- count
+		ok := make(chan bool)
+		cron.done <- flushRequest{ok, count}
+		<-ok
 	}
 	return nil
 }
