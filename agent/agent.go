@@ -78,7 +78,8 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				defer wg.Done()
 				client, err := cron.getSMTPClient(host)
 				if err != nil {
-					// Failed host (lookup already confirmed from SMTP)
+					// cron.log <- err
+					return
 				}
 				defer func() {
 					if err := client.Quit(); err != nil {
