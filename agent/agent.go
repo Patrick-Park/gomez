@@ -19,9 +19,8 @@ type cronJob struct {
 	config jamon.Group
 	dq     mailbox.Dequeuer
 
-	success chan report
-	fail    chan report
-	flush   chan flushRequest
+	report chan report
+	flush  chan flushRequest
 }
 
 type flushRequest struct {
@@ -30,8 +29,9 @@ type flushRequest struct {
 }
 
 type report struct {
-	msgID uint64
-	rcpt  []*mail.Address
+	msgID   uint64
+	success []*mail.Address
+	fail    []*mail.Address
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
@@ -40,11 +40,10 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		log.Fatal("agent/pause configuration is not numeric")
 	}
 	cron := cronJob{
-		dq:      dq,
-		config:  conf,
-		fail:    make(chan report),
-		success: make(chan report),
-		flush:   make(chan flushRequest),
+		dq:     dq,
+		config: conf,
+		report: make(chan report),
+		flush:  make(chan flushRequest),
 	}
 	for {
 		time.Sleep(time.Duration(pause) * time.Second)
@@ -58,11 +57,11 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		go func() {
 			for {
 				select {
-				case fail := <-cron.fail:
-					_ = fail
+				case r := <-cron.report:
+					for _, _ = range r.success {
+						// dq.Success(r.msgID, s)
+					}
 					// dq.Success(ok.msgID, ok.rcpt)
-				case ok := <-cron.success:
-					_ = ok
 					// dq.Failure(ok.msgID, ok.rcpt)
 				case req := <-cron.flush:
 					// dq.Flush(req.count) // compare and finish, find potential misses
@@ -110,14 +109,9 @@ func (cron *cronJob) deliver(client *smtp.Client, pkg mailbox.Package) int {
 	}()
 	var rcpts int
 	for msg, rcptList := range pkg {
-		succes, fail := cron.sendMessage(client, msg, rcptList)
 		rcpts += len(rcptList)
-		if len(succes) > 0 {
-			cron.success <- report{msg.ID, succes}
-		}
-		if len(fail) > 0 {
-			cron.fail <- report{msg.ID, fail}
-		}
+		succes, fail := cron.sendMessage(client, msg, rcptList)
+		cron.report <- report{msg.ID, succes, fail}
 	}
 	return rcpts
 }

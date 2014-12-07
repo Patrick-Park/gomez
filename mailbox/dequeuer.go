@@ -21,7 +21,7 @@ type Dequeuer interface {
 	Dequeue() (map[string]Package, error)
 	// Report updates the status of a delivery. If it was delivered it
 	// removes it from the queue, otherwise it updates its status.
-	Report(user, host string, msgID uint64, delivered bool) error
+	Report(id uint64, succeeded []*mail.Address, failed []*mail.Address) error
 }
 
 // Dequeue returns jobs from the queue. It maps hosts to the packages
@@ -80,6 +80,6 @@ func (mb mailBox) Dequeue() (map[string]Package, error) {
 
 // Report removes a delivered task from the queue or marks an extra attempt
 // if it has failed.
-func (mb mailBox) Report(user, host string, msgID uint64, delivered bool) error {
+func (mb mailBox) Report(id uint64, succeeded []*mail.Address, failed []*mail.Address) error {
 	return nil
 }
