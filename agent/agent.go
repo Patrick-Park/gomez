@@ -62,7 +62,8 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 						// handle err
 					}
 				case req := <-cron.flush:
-					// dq.Flush(req.count) // compare and finish, find potential misses
+					// dq.Flush(req.count)
+					// compare and finish, find potential misses
 					req.done <- nil
 					break
 				}
@@ -77,20 +78,22 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				defer wg.Done()
 				client, err := cron.getSMTPClient(host)
 				if err != nil {
-					// cron.dq.FlagHost(host)
+					// Failed host (lookup already confirmed from SMTP)
 				}
 				defer func() {
 					if err := client.Quit(); err != nil {
 						log.Printf("error quitting client: %s", err)
 					}
 				}()
-				var count int
+				var k int
 				for msg, rcpt := range pkg {
-					count += len(rcpt)
+					k += len(rcpt)
 					succes, fail := cron.sendMessage(client, msg, rcpt)
-					cron.report <- report{msg.ID, succes, fail}
+					go func(r report) {
+						cron.report <- r
+					}(report{msg.ID, succes, fail})
 				}
-				counter <- count
+				counter <- k
 			}()
 		}
 
@@ -100,12 +103,12 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		}()
 
 		var count int
-		for k := range counter {
-			count += k
+		for n := range counter {
+			count += n
 		}
-		ok := make(chan error)
-		cron.flush <- flushRequest{ok, count}
-		<-ok
+		reply := make(chan error)
+		cron.flush <- flushRequest{reply, count}
+		<-reply
 	}
 	return nil
 }
