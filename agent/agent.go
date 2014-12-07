@@ -77,7 +77,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				if err != nil {
 					// cron.dq.FlagHost(host)
 				}
-				counter <- cron.deliverTo(client, host, pkg)
+				counter <- cron.deliverTo(client, pkg)
 			}()
 		}
 
@@ -95,7 +95,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	return nil
 }
 
-func (cron *cronJob) deliverTo(client *smtp.Client, host string, pkg mailbox.Package) int {
+func (cron *cronJob) deliverTo(client *smtp.Client, pkg mailbox.Package) int {
 	defer func() {
 		if err := client.Quit(); err != nil {
 			log.Printf("error quitting client: %s", err)
