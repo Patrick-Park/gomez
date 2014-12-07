@@ -80,7 +80,18 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				if err != nil {
 					// cron.dq.FlagHost(host)
 				}
-				counter <- cron.deliver(client, pkg)
+				defer func() {
+					if err := client.Quit(); err != nil {
+						log.Printf("error quitting client: %s", err)
+					}
+				}()
+				var count int
+				for msg, rcpt := range pkg {
+					count += len(rcpt)
+					succes, fail := cron.sendMessage(client, msg, rcpt)
+					cron.report <- report{msg.ID, succes, fail}
+				}
+				counter <- count
 			}()
 		}
 
@@ -98,21 +109,6 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		<-ok
 	}
 	return nil
-}
-
-func (cron *cronJob) deliver(client *smtp.Client, pkg mailbox.Package) int {
-	defer func() {
-		if err := client.Quit(); err != nil {
-			log.Printf("error quitting client: %s", err)
-		}
-	}()
-	var rcpts int
-	for msg, rcptList := range pkg {
-		rcpts += len(rcptList)
-		succes, fail := cron.sendMessage(client, msg, rcptList)
-		cron.report <- report{msg.ID, succes, fail}
-	}
-	return rcpts
 }
 
 func (cron *cronJob) getSMTPClient(host string) (*smtp.Client, error) {
