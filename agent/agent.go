@@ -53,11 +53,11 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		go func() {
 			for {
 				select {
-				case r, more := <-sent:
+				case s, more := <-sent:
 					if !more {
 						return
 					}
-					err := dq.Report(r.msgID, r.success, r.fail)
+					err := dq.Report(s.msgID, s.success, s.fail)
 					if err != nil {
 						// handle err
 					}
