@@ -16,10 +16,9 @@ import (
 )
 
 type cronJob struct {
-	config    jamon.Group
-	lastStart time.Time
-	dq        mailbox.Dequeuer
-	failed    chan string
+	config jamon.Group
+	dq     mailbox.Dequeuer
+	failed chan string
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
@@ -39,7 +38,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		}
 	}()
 	for {
-		cron.lastStart = <-time.After(time.Duration(pause) * time.Second)
+		time.Sleep(time.Duration(pause) * time.Second)
 		jobs, err := cron.dq.Dequeue()
 		if err != nil {
 			log.Printf("error dequeuing: %s", err)
