@@ -1,6 +1,7 @@
 package mailbox
 
 import (
+	"bytes"
 	"fmt"
 	"net/mail"
 	"strings"
@@ -59,14 +60,14 @@ func (m *Message) PrependHeader(name, value string, params ...interface{}) {
 
 // MakeAddressList returns a string parseable by mail.ParseAddressList
 func MakeAddressList(list []*mail.Address) string {
-	var r string
+	var r bytes.Buffer
 	for i, addr := range list {
-		r += addr.String()
+		r.WriteString(addr.String())
 		if i < len(list)-1 {
-			r += ", "
+			r.WriteString(", ")
 		}
 	}
-	return r
+	return r.String()
 }
 
 // SplitUserHost splits an address into user and host.

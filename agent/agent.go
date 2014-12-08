@@ -20,11 +20,6 @@ type cronJob struct {
 	dq     mailbox.Dequeuer
 }
 
-type flushRequest struct {
-	done  chan error
-	count int
-}
-
 type report struct {
 	msgID uint64
 	rcpt  []*mail.Address
