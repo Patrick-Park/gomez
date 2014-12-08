@@ -62,10 +62,10 @@ func (m *Message) PrependHeader(name, value string, params ...interface{}) {
 func MakeAddressList(list []*mail.Address) string {
 	var r bytes.Buffer
 	for i, addr := range list {
-		r.WriteString(addr.String())
-		if i < len(list)-1 {
+		if i > 0 {
 			r.WriteString(", ")
 		}
+		r.WriteString(addr.String())
 	}
 	return r.String()
 }
