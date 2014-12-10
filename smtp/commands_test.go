@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gbbr/gomez/internal/jamon"
 	"github.com/gbbr/gomez/mailbox"
+	"github.com/gbbr/jamon"
 )
 
 func TestCmd_Modes_and_Codes(t *testing.T) {

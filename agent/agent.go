@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gbbr/gomez/internal/jamon"
 	"github.com/gbbr/gomez/mailbox"
+	"github.com/gbbr/jamon"
 )
 
 type cronJob struct {

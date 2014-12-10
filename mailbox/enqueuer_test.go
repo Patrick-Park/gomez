@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gbbr/gomez/internal/jamon"
+	"github.com/gbbr/jamon"
 )
 
 var (
