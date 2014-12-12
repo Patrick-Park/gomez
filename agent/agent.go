@@ -21,13 +21,8 @@ type cronJob struct {
 }
 
 type report struct {
-	msgID uint64
-	rcpt  []*mail.Address
-}
-
-type failure struct {
 	msgID  uint64
-	rcpt   *mail.Address
+	rcpt   []*mail.Address
 	reason string
 }
 
@@ -51,7 +46,7 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 
 		retry := make(chan report)
 		done := make(chan report)
-		failed := make(chan failure)
+		failed := make(chan report)
 		go func() {
 			for {
 				select {
@@ -85,13 +80,13 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				}()
 				for msg, all := range pkg {
 					if err := client.Mail(msg.From().String()); err != nil {
-						retry <- report{msg.ID, all}
+						retry <- report{msgID: msg.ID, rcpt: all}
 						continue
 					}
-					ok := report{msg.ID, make([]*mail.Address, 0, len(all))}
+					ok := report{msgID: msg.ID, rcpt: make([]*mail.Address, 0, len(all))}
 					for _, rcpt := range all {
 						if err := client.Rcpt(rcpt.String()); err != nil {
-							failed <- failure{msg.ID, rcpt, err.Error()}
+							failed <- report{msg.ID, []*mail.Address{rcpt}, err.Error()}
 							continue
 						}
 						ok.rcpt = append(ok.rcpt, rcpt)
