@@ -36,7 +36,6 @@ func (mb mailBox) Dequeue() (map[string]Package, error) {
 	defer rows.Close()
 	jobs := make(map[string]Package)
 	cache := make(map[uint64]*Message)
-
 	for rows.Next() {
 		var row struct {
 			User, Host  string

@@ -23,7 +23,7 @@ type cronJob struct {
 type report struct {
 	msgID  uint64
 	rcpt   []*mail.Address
-	reason string
+	reason error
 }
 
 func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
@@ -80,28 +80,31 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 				}()
 				for msg, all := range pkg {
 					if err := client.Mail(msg.From().String()); err != nil {
-						retry <- report{msgID: msg.ID, rcpt: all}
+						retry <- report{msgID: msg.ID, rcpt: all, reason: err}
 						continue
 					}
 					ok := report{msgID: msg.ID, rcpt: make([]*mail.Address, 0, len(all))}
 					for _, rcpt := range all {
 						if err := client.Rcpt(rcpt.String()); err != nil {
-							failed <- report{msg.ID, []*mail.Address{rcpt}, err.Error()}
+							failed <- report{msg.ID, []*mail.Address{rcpt}, err}
 							continue
 						}
 						ok.rcpt = append(ok.rcpt, rcpt)
 					}
 					w, err := client.Data()
 					if err != nil {
+						ok.reason = err
 						retry <- ok
 						continue
 					}
 					_, err = fmt.Fprint(w, msg.Raw)
 					if err != nil {
+						ok.reason = err
 						retry <- ok
 						continue
 					}
 					if err = w.Close(); err != nil {
+						ok.reason = err
 						retry <- ok
 						continue
 					}
