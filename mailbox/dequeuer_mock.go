@@ -2,7 +2,7 @@ package mailbox
 
 import "net/mail"
 
-var _ Dequeuer = (*MockDequeuer)(nil)
+//var _ Dequeuer = (*MockDequeuer)(nil)
 
 // MockDequeuer is a configurable mock for the Dequeuer interface.
 type MockDequeuer struct {

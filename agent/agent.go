@@ -18,6 +18,9 @@ import (
 type cronJob struct {
 	config jamon.Group
 	dq     mailbox.Dequeuer
+	done   chan report
+	failed chan report
+	retry  chan report
 }
 
 type report struct {
@@ -34,6 +37,9 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 	cron := cronJob{
 		dq:     dq,
 		config: conf,
+		failed: make(chan report),
+		done:   make(chan report),
+		retry:  make(chan report),
 	}
 	for {
 		time.Sleep(time.Duration(pause) * time.Second)
@@ -44,21 +50,18 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 			continue
 		}
 
-		retry := make(chan report)
-		done := make(chan report)
-		failed := make(chan report)
 		go func() {
 			for {
 				select {
-				case list, more := <-done:
+				case r, more := <-cron.done:
 					if !more {
 						return
 					}
-					_ = list
-				case list := <-retry:
-					_ = list
-				case f := <-failed:
-					_ = f
+					dq.Delivered(r.msgID, r.rcpt)
+				case r := <-cron.retry:
+					dq.Retry(r.msgID, r.rcpt, r.reason)
+				case r := <-cron.failed:
+					dq.Failed(r.msgID, r.rcpt, r.reason)
 				}
 			}
 		}()
@@ -68,55 +71,59 @@ func Start(dq mailbox.Dequeuer, conf jamon.Group) error {
 		for host, pkg := range jobs {
 			go func() {
 				defer wg.Done()
-				client, err := cron.getSMTPClient(host)
-				if err != nil {
-					// cron.log <- err
-					return
-				}
-				defer func() {
-					if err := client.Quit(); err != nil {
-						log.Printf("error quitting client: %s", err)
-					}
-				}()
-				for msg, all := range pkg {
-					if err := client.Mail(msg.From().String()); err != nil {
-						retry <- report{msgID: msg.ID, rcpt: all, reason: err}
-						continue
-					}
-					ok := report{msgID: msg.ID, rcpt: make([]*mail.Address, 0, len(all))}
-					for _, rcpt := range all {
-						if err := client.Rcpt(rcpt.String()); err != nil {
-							failed <- report{msg.ID, []*mail.Address{rcpt}, err}
-							continue
-						}
-						ok.rcpt = append(ok.rcpt, rcpt)
-					}
-					w, err := client.Data()
-					if err != nil {
-						ok.reason = err
-						retry <- ok
-						continue
-					}
-					_, err = fmt.Fprint(w, msg.Raw)
-					if err != nil {
-						ok.reason = err
-						retry <- ok
-						continue
-					}
-					if err = w.Close(); err != nil {
-						ok.reason = err
-						retry <- ok
-						continue
-					}
-					done <- ok
-				}
+				cron.deliverTo(host, pkg)
 			}()
 		}
 		wg.Wait()
-		close(done)
-		// dq.Flush()
+		close(cron.done)
+		dq.Flush()
 	}
 	return nil
+}
+
+func (cron *cronJob) deliverTo(host string, pkg mailbox.Package) {
+	client, err := cron.getSMTPClient(host)
+	if err != nil {
+		// cron.log <- err
+		return
+	}
+	defer func() {
+		if err := client.Quit(); err != nil {
+			log.Printf("error quitting client: %s", err)
+		}
+	}()
+	for msg, all := range pkg {
+		if err := client.Mail(msg.From().String()); err != nil {
+			cron.retry <- report{msgID: msg.ID, rcpt: all, reason: err}
+			continue
+		}
+		ok := report{msgID: msg.ID, rcpt: make([]*mail.Address, 0, len(all))}
+		for _, rcpt := range all {
+			if err := client.Rcpt(rcpt.String()); err != nil {
+				cron.failed <- report{msg.ID, []*mail.Address{rcpt}, err}
+				continue
+			}
+			ok.rcpt = append(ok.rcpt, rcpt)
+		}
+		w, err := client.Data()
+		if err != nil {
+			ok.reason = err
+			cron.retry <- ok
+			continue
+		}
+		_, err = fmt.Fprint(w, msg.Raw)
+		if err != nil {
+			ok.reason = err
+			cron.retry <- ok
+			continue
+		}
+		if err = w.Close(); err != nil {
+			ok.reason = err
+			cron.retry <- ok
+			continue
+		}
+		cron.done <- ok
+	}
 }
 
 var errFailedHost = errors.New("failed connecting to MX hosts after all tries")
