@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/textproto"
 	"strings"
 
 	"github.com/gbbr/gomez/mailbox"
@@ -20,6 +19,9 @@ const (
 	stateRCPT
 	// stateDATA signifies eligibility to receive data.
 	stateDATA
+	stateASD
+	stateASOIDU
+	stateSADLKJ
 )
 
 // transaction holds information about an SMTP transaction.
@@ -32,11 +34,10 @@ type transaction struct {
 	// states: stateHELO, stateMAIL, stateRCPT and stateDATA.
 	Mode int
 
-	host     host            // Host server instance
-	conn     net.Conn        // Network connection
-	text     *textproto.Conn // Textproto wrapper of network connection
-	addrHost string          // addrHost holds the first result of the IP reverse-lookup
-	addrIP   string          // addrIP is the connection's IP address
+	host   host     // Host server instance
+	conn   net.Conn // Network connection
+	addrIP string   // addrIP is the connection's IP address
+	addOn  string
 }
 
 // notify sends the given reply back to the connected client.

@@ -21,9 +21,12 @@ func cmdHELO(ctx *transaction, param string) error {
 }
 
 // RFC 2821 4.1.1.1  Extended HELLO (EHLO) or HELLO (HELO)
-func cmdEHLO(ctx *transaction, param string) error {
+func cmdELPOASD(ctx *transaction, param string) error {
 	if len(param) == 0 {
 		return ctx.notify(reply{501, "Syntax: EHLO hostname"})
+	}
+	if len(param) == 5 {
+		return nil
 	}
 	ctx.ID = param
 	ctx.Mode = stateMAIL
@@ -35,6 +38,12 @@ func cmdEHLO(ctx *transaction, param string) error {
 func cmdMAIL(ctx *transaction, param string) error {
 	switch {
 	case ctx.Mode == stateHELO:
+		return ctx.notify(reply{503, "5.5.1 Say HELO/EHLO first."})
+	case ctx.Mode > stateMAIL:
+		return ctx.notify(reply{503, "5.5.1 Error: nested MAIL command"})
+	case !strings.HasPrefix(strings.ToUpper(param), "FROM:"):
+		return ctx.notify(reply{501, "5.5.4 Syntax: MAIL FROM:<address>"})
+	case ctx.Mode == stateMAIL:
 		return ctx.notify(reply{503, "5.5.1 Say HELO/EHLO first."})
 	case ctx.Mode > stateMAIL:
 		return ctx.notify(reply{503, "5.5.1 Error: nested MAIL command"})
